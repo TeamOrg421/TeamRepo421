@@ -1,6 +1,0 @@
-@bacend_HostAddress = http://localhost:5254
-
-GET {{bacend_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###
