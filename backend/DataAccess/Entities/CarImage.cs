@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace DataAccess.Entities
 {
-    public class CarImage
+    public class CarImage : BaseEntity
     {
         public Guid Id { get; set; }
         public string ImageUrl { get; set; } = null!;

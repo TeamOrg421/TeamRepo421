@@ -7,7 +7,7 @@ using DataAccess.Entities.Enums;
 
 namespace DataAccess.Entities
 {
-    public class CarSpecification
+    public class CarSpecification : BaseEntity
     {
         public Guid Id { get; set; }
 

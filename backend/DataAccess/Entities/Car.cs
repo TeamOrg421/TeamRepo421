@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace DataAccess.Entities
 {
-    public class Car
+    public class Car : BaseEntity
     {
         public Guid Id { get; set; }
         public int Year { get; set; }
@@ -21,6 +21,6 @@ namespace DataAccess.Entities
         // Зв'язки 1:M (характеристики самого авто)
         public virtual ICollection<CarImage> Images { get; set; } = new List<CarImage>();
         public virtual ICollection<VehicleHistory> Histories { get; set; } = new List<VehicleHistory>();
-        public virtual ICollection<CarListing> Listings { get; set; } = new List<CarListing>();
+        public virtual ICollection<AuctionLot> Listings { get; set; } = new List<AuctionLot>();
     }
 }

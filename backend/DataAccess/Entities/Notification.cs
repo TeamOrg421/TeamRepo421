@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace DataAccess.Entities
 {
-    public class Notification
+    public class Notification : BaseEntity
     {
         public Guid Id { get; set; }
         public string Title { get; set; } = null!;

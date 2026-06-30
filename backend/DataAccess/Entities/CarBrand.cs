@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace DataAccess.Entities
 {
-    public class CarBrand
+    public class CarBrand : BaseEntity
     {
         public Guid Id { get; set; }
         public string Name { get; set; } = null!;

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace DataAccess.Entities
 {
-    public class VehicleHistory
+    public class VehicleHistory : BaseEntity
     {
         public Guid Id { get; set; }
         public DateTime EventDate { get; set; }
