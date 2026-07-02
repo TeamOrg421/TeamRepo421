@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace DataAccess.Entities
 {
-    public class CarModel
+    public class CarModel : BaseEntity
     {
         public Guid Id { get; set; }
         public string Name { get; set; } = null!;

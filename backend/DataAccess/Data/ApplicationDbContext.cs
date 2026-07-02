@@ -23,7 +23,7 @@ namespace DataAccess.Data
         public DbSet<CarSpecification> CarSpecifications { get; set; } = null!;
         public DbSet<CarImage> CarImages { get; set; } = null!;
         public DbSet<VehicleHistory> VehicleHistories { get; set; } = null!;
-        public DbSet<CarListing> CarListings { get; set; } = null!;
+        public DbSet<AuctionLot> CarListings { get; set; } = null!;
         public DbSet<Bid> Bids { get; set; } = null!;
         public DbSet<AuctionWinner> AuctionWinners { get; set; } = null!;
         public DbSet<Comment> Comments { get; set; } = null!;
@@ -85,11 +85,11 @@ namespace DataAccess.Data
                 .HasForeignKey<AuctionWinner>(w => w.ListingId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            modelBuilder.Entity<CarListing>()
+            modelBuilder.Entity<AuctionLot>()
                 .Property(l => l.StartingPrice)
                 .HasColumnType("decimal(18,2)");
 
-            modelBuilder.Entity<CarListing>()
+            modelBuilder.Entity<AuctionLot>()
                 .Property(l => l.CurrentPrice)
                 .HasColumnType("decimal(18,2)");
 
@@ -102,7 +102,7 @@ namespace DataAccess.Data
                 .HasColumnType("decimal(18,2)");
 
             // Якщо видаляють лот, не видаляємо продавця (і навпаки — захист бази від циклічних посилань)
-            modelBuilder.Entity<CarListing>()
+            modelBuilder.Entity<AuctionLot>()
                 .HasOne(l => l.Seller)
                 .WithMany(u => u.Listings)
                 .HasForeignKey(l => l.SellerId)
