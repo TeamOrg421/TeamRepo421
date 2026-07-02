@@ -9,7 +9,7 @@ using DataAccess.Entities.Enums;
 
 namespace DataAccess.Entities
 {
-    public class CarListing
+    public class AuctionLot : BaseEntity
     {
         public Guid Id { get; set; }
         public string Title { get; set; } = null!;

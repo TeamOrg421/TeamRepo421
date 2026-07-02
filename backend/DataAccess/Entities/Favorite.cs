@@ -6,12 +6,12 @@ using System.Threading.Tasks;
 
 namespace DataAccess.Entities
 {
-    public class Favorite
+    public class Favorite : BaseEntity
     {
         public Guid UserId { get; set; }
         public virtual ApplicationUser User { get; set; } = null!;
 
         public Guid ListingId { get; set; }
-        public virtual CarListing Listing { get; set; } = null!;
+        public virtual AuctionLot Listing { get; set; } = null!;
     }
 }

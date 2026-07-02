@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace DataAccess.Entities
 {
-    public class ModerationLog
+    public class ModerationLog : BaseEntity
     {
         public Guid Id { get; set; }
         public string Action { get; set; } = null!; // "Approved", "Rejected", "Banned"
@@ -17,6 +17,6 @@ namespace DataAccess.Entities
         public virtual ApplicationUser Moderator { get; set; } = null!;
 
         public Guid ListingId { get; set; }
-        public virtual CarListing Listing { get; set; } = null!;
+        public virtual AuctionLot Listing { get; set; } = null!;
     }
 }
