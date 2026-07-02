@@ -1,7 +1,11 @@
+<<<<<<< HEAD
 ﻿using BusinessLogic.Interfaces;
 using DataAccess.Entities;
 using DataAccess.IRepositories;
 using System;
+=======
+﻿using System;
+>>>>>>> origin/main
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,6 +13,7 @@ using System.Threading.Tasks;
 
 namespace BusinessLogic.Services
 {
+<<<<<<< HEAD
     public class CarSerivece : ICarSerivece
     {
         private readonly IRepository<Car> repo;
@@ -51,5 +56,9 @@ namespace BusinessLogic.Services
                 throw new Exception("Lot not found");
             var result = repo.UpdateAsync(lot);
         }
+=======
+    internal class CarSerivece
+    {
+>>>>>>> origin/main
     }
 }

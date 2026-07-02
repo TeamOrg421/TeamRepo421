@@ -1,10 +1,15 @@
 using BusinessLogic.Interfaces;
 using BusinessLogic.Services;
 using DataAccess.Data;
+<<<<<<< HEAD
 using DataAccess.Entities;
 using DataAccess.IRepositories;
 using DataAccess.Repositories;
 using Microsoft.AspNetCore.Identity;
+=======
+using DataAccess.IRepositories;
+using DataAccess.Repositories;
+>>>>>>> origin/main
 using Microsoft.EntityFrameworkCore;
 using System;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -27,6 +32,11 @@ builder.Services
     .AddIdentityCore<ApplicationUser>()
     .AddRoles<IdentityRole<Guid>>()
     .AddEntityFrameworkStores<ApplicationDbContext>();
+
+builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+builder.Services.AddScoped<IActionLotService, ActionLotService>();
+
+
 
 builder.Services.AddControllers();
 
