@@ -1,6 +1,12 @@
+<<<<<<< HEAD
+﻿using BusinessLogic.Helpers;
+using DataAccess.Data;
+using DataAccess.Entities;
+=======
 ﻿using DataAccess.Data;
 using DataAccess.Entities;
 
+>>>>>>> origin/main
 using DataAccess.IRepositories;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -24,7 +30,10 @@ namespace DataAccess.Repositories
             this.set = context.Set<T>();
         }
 
+<<<<<<< HEAD
+=======
         // IEnumerable vs IQueryble
+>>>>>>> origin/main
         public async Task<IReadOnlyList<T>> GetAllAsync(
             int? pageNumber = null,
             int pageSize = 10,
@@ -43,10 +52,17 @@ namespace DataAccess.Repositories
                 foreach (var prop in includes)
                     query = query.Include(prop);
 
+<<<<<<< HEAD
+            return await query.ToListAsync();
+        }
+
+        public async Task<T?> GetByIdAsync(Guid id)
+=======
             return await query.ToListAsync(); // execute
         }
 
         public async Task<T?> GetByIdAsync(int id)
+>>>>>>> origin/main
         {
             return await set.FindAsync(id);
         }
@@ -62,7 +78,11 @@ namespace DataAccess.Repositories
             await context.SaveChangesAsync();
         }
 
+<<<<<<< HEAD
+        public async Task DeleteAsync(Guid id)
+=======
         public async Task DeleteAsync(int id)
+>>>>>>> origin/main
         {
             var entity = await GetByIdAsync(id);
             await DeleteAsync(entity);
