@@ -11,6 +11,8 @@ namespace DataAccess.Entities
 {
     public class ApplicationUser : IdentityUser<Guid>, BaseEntity
     {
+        public string Name { get; set; } = string.Empty;
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         // Навігаційні колекції
