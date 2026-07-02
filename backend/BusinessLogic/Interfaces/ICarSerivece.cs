@@ -1,17 +1,10 @@
-<<<<<<< HEAD
-﻿using DataAccess.Entities;
+using DataAccess.Entities;
 using System;
-=======
-﻿using System;
->>>>>>> origin/main
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace BusinessLogic.Interfaces
 {
-<<<<<<< HEAD
     public interface ICarSerivece
     {
         Task CreateCarAsync(Car lot);
@@ -19,9 +12,5 @@ namespace BusinessLogic.Interfaces
         Task UpdateCarAsync(Car lot);
         Task<Car> GetCarAsync(Guid lotId);
         Task<IList<Car>> GetListCarAsync(int? page, int size = 10);
-=======
-    internal class ICarSerivece
-    {
->>>>>>> origin/main
     }
 }

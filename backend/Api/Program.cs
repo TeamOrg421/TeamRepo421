@@ -1,15 +1,10 @@
 using BusinessLogic.Interfaces;
 using BusinessLogic.Services;
 using DataAccess.Data;
-<<<<<<< HEAD
 using DataAccess.Entities;
 using DataAccess.IRepositories;
 using DataAccess.Repositories;
 using Microsoft.AspNetCore.Identity;
-=======
-using DataAccess.IRepositories;
-using DataAccess.Repositories;
->>>>>>> origin/main
 using Microsoft.EntityFrameworkCore;
 using System;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -32,11 +27,6 @@ builder.Services
     .AddIdentityCore<ApplicationUser>()
     .AddRoles<IdentityRole<Guid>>()
     .AddEntityFrameworkStores<ApplicationDbContext>();
-
-builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
-builder.Services.AddScoped<IActionLotService, ActionLotService>();
-
-
 
 builder.Services.AddControllers();
 
@@ -62,13 +52,11 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 
 // Налаштування Swagger для підтримки JWT Bearer авторизації
 builder.Services.AddSwaggerGen(options =>
 {
-    // Описуємо схему безпеки (як передавати токен)
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -79,7 +67,6 @@ builder.Services.AddSwaggerGen(options =>
         Description = "Введіть ТІЛЬКИ ваш JWT токен у поле нижче (слово 'Bearer' додавати не потрібно).\n\nПриклад: eyJhbGciOiJIUzI1NiIsInR..."
     });
 
-    // Робимо так, щоб Swagger автоматично додавав токен до кожного запиту
     options.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {

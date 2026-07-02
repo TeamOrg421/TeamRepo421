@@ -1,38 +1,31 @@
-<<<<<<< HEAD
-﻿using BusinessLogic.Interfaces;
+using BusinessLogic.Interfaces;
 using DataAccess.Entities;
 using DataAccess.IRepositories;
-using System;
-=======
-﻿using System;
->>>>>>> origin/main
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BusinessLogic.Services
 {
-<<<<<<< HEAD
     public class CarSerivece : ICarSerivece
     {
         private readonly IRepository<Car> repo;
+
         public CarSerivece(IRepository<Car> repo)
         {
             this.repo = repo;
         }
+
         public async Task CreateCarAsync(Car lot)
         {
-            var result = repo.AddAsync(lot);
-            return;
+            await repo.AddAsync(lot);
         }
 
         public async Task DeleteCarAsync(Guid lotId)
         {
-            var car = repo.GetByIdAsync(lotId);
+            var car = await repo.GetByIdAsync(lotId);
+
             if (car == null)
                 throw new Exception("Lot not found");
-            var result = repo.DeleteAsync(car.Result);
+
+            await repo.DeleteAsync(car);
         }
 
         public async Task<IList<Car>> GetListCarAsync(int? page, int size = 10)
@@ -44,21 +37,21 @@ namespace BusinessLogic.Services
         public async Task<Car> GetCarAsync(Guid lotId)
         {
             var car = await repo.GetByIdAsync(lotId);
+
             if (car == null)
                 throw new Exception("Lot not found");
+
             return car;
         }
 
         public async Task UpdateCarAsync(Car lot)
         {
-            var car = repo.GetByIdAsync(lot.Id);
+            var car = await repo.GetByIdAsync(lot.Id);
+
             if (car == null)
                 throw new Exception("Lot not found");
-            var result = repo.UpdateAsync(lot);
+
+            await repo.UpdateAsync(lot);
         }
-=======
-    internal class CarSerivece
-    {
->>>>>>> origin/main
     }
 }
