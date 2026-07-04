@@ -1,4 +1,9 @@
 <<<<<<< HEAD
+using BusinessLogic.Helpers;
+using DataAccess.Data;
+using DataAccess.Entities;
+=======
+<<<<<<< HEAD
 ﻿using BusinessLogic.Helpers;
 using DataAccess.Data;
 using DataAccess.Entities;
@@ -7,15 +12,10 @@ using DataAccess.Entities;
 using DataAccess.Entities;
 
 >>>>>>> origin/main
+>>>>>>> origin/main
 using DataAccess.IRepositories;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
-using System.Text;
-using System.Threading.Tasks;
-
 
 namespace DataAccess.Repositories
 {
@@ -31,8 +31,12 @@ namespace DataAccess.Repositories
         }
 
 <<<<<<< HEAD
+        // IEnumerable vs IQueryable
+=======
+<<<<<<< HEAD
 =======
         // IEnumerable vs IQueryble
+>>>>>>> origin/main
 >>>>>>> origin/main
         public async Task<IReadOnlyList<T>> GetAllAsync(
             int? pageNumber = null,
@@ -49,9 +53,17 @@ namespace DataAccess.Repositories
                 query = query.Where(filtering);
 
             if (includes != null && includes.Length > 0)
+            {
                 foreach (var prop in includes)
                     query = query.Include(prop);
+            }
 
+<<<<<<< HEAD
+            return await query.ToListAsync();
+        }
+
+        public async Task<T?> GetByIdAsync(Guid id)
+=======
 <<<<<<< HEAD
             return await query.ToListAsync();
         }
@@ -63,6 +75,7 @@ namespace DataAccess.Repositories
 
         public async Task<T?> GetByIdAsync(int id)
 >>>>>>> origin/main
+>>>>>>> origin/main
         {
             return await set.FindAsync(id);
         }
@@ -72,6 +85,7 @@ namespace DataAccess.Repositories
             await set.AddAsync(entity);
             await context.SaveChangesAsync();
         }
+
         public async Task UpdateAsync(T entity)
         {
             context.Entry(entity).State = EntityState.Modified;
@@ -81,18 +95,23 @@ namespace DataAccess.Repositories
 <<<<<<< HEAD
         public async Task DeleteAsync(Guid id)
 =======
+<<<<<<< HEAD
+        public async Task DeleteAsync(Guid id)
+=======
         public async Task DeleteAsync(int id)
+>>>>>>> origin/main
 >>>>>>> origin/main
         {
             var entity = await GetByIdAsync(id);
             await DeleteAsync(entity);
         }
+
         public async Task DeleteAsync(T? entity)
         {
             if (entity != null)
             {
                 set.Remove(entity);
-                await context.SaveChangesAsync(true);
+                await context.SaveChangesAsync();
             }
         }
     }
