@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { apiCall } from '../services/config';
 
 interface RegisterProps {
   onNavigate: (page: string) => void;
@@ -21,9 +22,8 @@ const Register: React.FC<RegisterProps> = ({ onNavigate }) => {
     }
 
     try {
-      const res = await fetch('/api/auth/register', {
+      const res = await apiCall('/auth/register', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, password }),
       });
       const data = await res.json();

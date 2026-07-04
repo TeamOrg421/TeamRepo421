@@ -46,6 +46,19 @@ namespace YourProject.Controllers
         {
             return Ok();
         }
+
+        [HttpGet("config")]
+        [AllowAnonymous]
+        public IActionResult GetConfig()
+        {
+            var apiUrl = $"{Request.Scheme}://{Request.Host}";
+            
+            return Ok(new
+            {
+                apiUrl = apiUrl
+            });
+        }
+
         [HttpGet("testFroAdmin")]
         [Authorize(Roles ="Admin")]
         public async Task<IActionResult> TestForAdmin()
