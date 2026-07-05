@@ -1,58 +1,88 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
-/*
-  Navbar
-  - Displays different UI depending on authentication state from `useAuth()`.
-  - Shows user's `name` or `email` when logged in and provides a logout button.
-*/
-
 interface NavbarProps {
-  currentPage: string;
   onNavigate: (page: string) => void;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ currentPage, onNavigate }) => {
+const Navbar: React.FC<NavbarProps> = ({ onNavigate }) => {
   const { isAuthenticated, user, logout } = useAuth();
+  const [searchValue, setSearchValue] = useState('');
+
+  const navLinks = ['Auctions', 'Community', 'Events', 'About Us', 'Leaderboard'];
+
   return (
     <nav className="navbar">
-      <div className="navbar-brand" onClick={() => onNavigate('home')}>
-        <span style={{ fontSize: '22px' }}>🏎️</span>
-        <span className="gradient-text-accent">Cars & Bids</span>
-      </div>
-      <div className="navbar-links">
-        {isAuthenticated ? (
-          <>
-            <span style={{ color: '#fff', marginRight: '12px' }}>
-              Привіт, {user?.name || user?.email || 'користувач'}
-            </span>
-            <button className="btn btn-secondary" onClick={() => { logout(); onNavigate('home') }}>
-              Вийти
+      <div className="navbar-inner">
+        <div className="navbar-brand" onClick={() => onNavigate('home')}>
+          <span className="brand-cars">Cars</span>
+          <span className="brand-amp">&</span>
+          <span className="brand-bids">Bids</span>
+        </div>
+
+        <div className="navbar-menu">
+          {navLinks.map((item) => (
+            <button key={item} className="navbar-menu-item" type="button">
+              {item}
             </button>
-          </>
-        ) : (
-          <>
-        <button
-          className={`btn btn-text ${currentPage === 'home' ? 'active' : ''}`}
-          onClick={() => onNavigate('home')}
-          style={currentPage === 'home' ? { color: 'var(--text-primary)', fontWeight: 600 } : {}}
-        >
-          Головна
-        </button>
-        <button
-          className="btn btn-secondary"
-          onClick={() => onNavigate('login')}
-        >
-          Увійти
-        </button>
-        <button
-          className="btn btn-primary"
-          onClick={() => onNavigate('register')}
-        >
-          Реєстрація
-        </button>
-          </>
-        )}
+          ))}
+          <button
+            className="btn-sell-car"
+            type="button"
+            onClick={() => onNavigate('register')}
+          >
+            Sell a Car
+          </button>
+        </div>
+
+        <div className="navbar-search">
+          <svg className="search-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.3-4.3" />
+          </svg>
+          <input
+            type="text"
+            placeholder="Search for cars (ex. BMW, Audi, Ford)"
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
+            className="search-input"
+          />
+        </div>
+
+        <div className="navbar-actions">
+          {isAuthenticated ? (
+            <>
+              <span className="navbar-user">{user?.name || user?.email || 'User'}</span>
+              <button
+                className="btn btn-signup"
+                type="button"
+                onClick={() => {
+                  logout();
+                  onNavigate('home');
+                }}
+              >
+                Sign Out
+              </button>
+            </>
+          ) : (
+            <button className="btn btn-signup" type="button" onClick={() => onNavigate('register')}>
+              Sign Up
+            </button>
+          )}
+          <button className="navbar-icon-btn" type="button" aria-label="Notifications">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+            </svg>
+          </button>
+          <button className="navbar-icon-btn" type="button" aria-label="Menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
+        </div>
       </div>
     </nav>
   );

@@ -5,17 +5,12 @@ import Home from './components/Home'
 import Login from './components/Login'
 import Register from './components/Register'
 import MainPage from './components/mainpage'
+import Car from './components/Car'
+
 import { AuthProvider } from './contexts/AuthContext'
 
-/*
-  App
-  - Root application component. Wrapped with `AuthProvider` so any component
-    can access authentication state via `useAuth()`.
-  - Uses simple internal page switching (prototype router). Replace with
-    a real router (react-router) in larger apps.
-*/
 
-type Page = 'home' | 'login' | 'register' | 'mainpage'
+type Page = 'home' | 'login' | 'register' | 'mainpage' | 'car'
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>('home')
@@ -28,12 +23,13 @@ function App() {
   return (
     <AuthProvider>
       <div className="app-container">
-        <Navbar currentPage={currentPage} onNavigate={navigate} />
+        <Navbar onNavigate={navigate} />
         <main className="main-content">
           {currentPage === 'home' && <Home onNavigate={navigate} />}
           {currentPage === 'login' && <Login onNavigate={navigate} />}
           {currentPage === 'register' && <Register onNavigate={navigate} />}
           {currentPage === 'mainpage' && <MainPage />}
+          {currentPage === 'car' && <Car onNavigate={navigate} />}
         </main>
       </div>
     </AuthProvider>
