@@ -1,52 +1,28 @@
 using BusinessLogic.Interfaces;
 using BusinessLogic.Services;
 using DataAccess.Data;
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> origin/main
 using DataAccess.Entities;
 using DataAccess.IRepositories;
 using DataAccess.Repositories;
 using Microsoft.AspNetCore.Identity;
-<<<<<<< HEAD
-=======
-=======
-using DataAccess.IRepositories;
-using DataAccess.Repositories;
->>>>>>> origin/main
->>>>>>> origin/main
 using Microsoft.EntityFrameworkCore;
-using System;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using System.Text;
 using Microsoft.OpenApi.Models;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// DbContext
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-<<<<<<< HEAD
-=======
 
+// DI
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<IActionLotService, ActionLotService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 
-// Конфігурація Identity з використанням Guid для користувачів та ролей
-builder.Services
-    .AddIdentityCore<ApplicationUser>()
-    .AddRoles<IdentityRole<Guid>>()
-    .AddEntityFrameworkStores<ApplicationDbContext>();
->>>>>>> origin/main
-
-builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
-builder.Services.AddScoped<IActionLotService, ActionLotService>();
-builder.Services.AddScoped<IAuthService, AuthService>();
-
-// Конфігурація Identity з використанням Guid для користувачів та ролей
+// Identity (Guid)
 builder.Services
     .AddIdentityCore<ApplicationUser>()
     .AddRoles<IdentityRole<Guid>>()
@@ -54,11 +30,8 @@ builder.Services
 
 builder.Services.AddControllers();
 
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
+// JWT Auth
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 .AddJwtBearer(options =>
 {
     options.TokenValidationParameters = new TokenValidationParameters
@@ -70,25 +43,16 @@ builder.Services.AddAuthentication(options =>
 
         ValidIssuer = builder.Configuration["Jwt:Issuer"],
         ValidAudience = builder.Configuration["Jwt:Audience"],
-
         IssuerSigningKey = new SymmetricSecurityKey(
             Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
     };
 });
 
-<<<<<<< HEAD
-=======
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
->>>>>>> origin/main
+// Swagger
 builder.Services.AddEndpointsApiExplorer();
 
-// Налаштування Swagger для підтримки JWT Bearer авторизації
 builder.Services.AddSwaggerGen(options =>
 {
-<<<<<<< HEAD
-=======
-    // Описуємо схему безпеки (як передавати токен)
->>>>>>> origin/main
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -96,13 +60,9 @@ builder.Services.AddSwaggerGen(options =>
         Scheme = "Bearer",
         BearerFormat = "JWT",
         In = ParameterLocation.Header,
-        Description = "Введіть ТІЛЬКИ ваш JWT токен у поле нижче (слово 'Bearer' додавати не потрібно).\n\nПриклад: eyJhbGciOiJIUzI1NiIsInR..."
+        Description = "Введіть JWT токен без слова Bearer"
     });
 
-<<<<<<< HEAD
-=======
-    // Робимо так, щоб Swagger автоматично додавав токен до кожного запиту
->>>>>>> origin/main
     options.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
@@ -121,7 +81,7 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
-// ===== Створення ролей =====
+// Roles seed
 using (var scope = app.Services.CreateScope())
 {
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
@@ -137,7 +97,7 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-// Configure the HTTP request pipeline.
+// Pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

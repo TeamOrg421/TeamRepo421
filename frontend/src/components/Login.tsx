@@ -1,4 +1,14 @@
 import React, { useState } from 'react';
+import { apiCall } from '../services/config';
+import { useAuth } from '../contexts/AuthContext';
+
+/*
+  Login component
+  - Submits credentials to `/api/auth/login` via `apiCall`.
+  - On success calls `login(token)` from `useAuth()` so token and user
+    are stored in the centralized AuthContext.
+  - Afterwards navigates to `mainpage` (simple internal navigation used here).
+*/
 
 interface LoginProps {
   onNavigate: (page: string) => void;
@@ -8,6 +18,7 @@ const Login: React.FC<LoginProps> = ({ onNavigate }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,17 +30,20 @@ const Login: React.FC<LoginProps> = ({ onNavigate }) => {
     }
 
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await apiCall('/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
       const data = await res.json();
       if (!res.ok) {
         setError(data.message || 'Невірний email або пароль');
       } else {
-        // TODO: зберегти токен, перейти на дашборд
+        const token = data.token || data.Token;
+        if (token) {
+          login(token);
+        }
         console.log('Logged in:', data);
+        onNavigate('mainpage');
       }
     } catch {
       setError('Не вдалося підключитись до сервера');
