@@ -3,6 +3,7 @@ using DataAccess.Data;
 using DataAccess.Entities;
 using DataAccess.IRepositories;
 using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
 using System.Linq.Expressions;
 
 namespace DataAccess.Repositories
@@ -18,7 +19,6 @@ namespace DataAccess.Repositories
             this.set = context.Set<T>();
         }
 
-        // IEnumerable vs IQueryable
         public async Task<IReadOnlyList<T>> GetAllAsync(
             int? pageNumber = null,
             int pageSize = 10,
@@ -72,6 +72,10 @@ namespace DataAccess.Repositories
                 set.Remove(entity);
                 await context.SaveChangesAsync();
             }
+        }
+        public async Task<T?> FindAsync(Expression<Func<T, bool>> predicate)
+        {
+            return await set.FirstOrDefaultAsync(predicate);
         }
     }
 }
