@@ -77,5 +77,15 @@ namespace DataAccess.Repositories
         {
             return await set.FirstOrDefaultAsync(predicate);
         }
+        public async Task<IList<T>?> FindAllAsync(Expression<Func<T, bool>> predicate)
+        {
+            return await set
+               .Where(predicate)
+               .ToListAsync();
+        }
+        public async Task<int> Count()
+        {
+            return await set.CountAsync();
+        }
     }
 }
