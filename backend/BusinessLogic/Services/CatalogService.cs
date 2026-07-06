@@ -1,9 +1,13 @@
+<<<<<<< HEAD
 ﻿using Azure;
 using BusinessLogic.Interfaces;
 using DataAccess.Entities;
 using DataAccess.IRepositories;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using System;
+=======
+﻿using System;
+>>>>>>> 94383dc (ICatalogService)
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -11,6 +15,7 @@ using System.Threading.Tasks;
 
 namespace BusinessLogic.Services
 {
+<<<<<<< HEAD
     public class CatalogService : ICatalogService
     {
         private readonly IRepository<CarBrand> carBrandRepository;
@@ -158,5 +163,9 @@ namespace BusinessLogic.Services
                             m.Name.ToLower().Contains(search.ToLower()));
 
         }
+=======
+    internal class CatalogService
+    {
+>>>>>>> 94383dc (ICatalogService)
     }
 }

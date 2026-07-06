@@ -1,5 +1,9 @@
+<<<<<<< HEAD
 ﻿using DataAccess.Entities;
 using System;
+=======
+﻿using System;
+>>>>>>> 94383dc (ICatalogService)
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -7,6 +11,7 @@ using System.Threading.Tasks;
 
 namespace BusinessLogic.Interfaces
 {
+<<<<<<< HEAD
     public interface ICatalogService
     {
         // CarBrand
@@ -32,5 +37,9 @@ namespace BusinessLogic.Interfaces
         Task<Dictionary<CarBrand, IList<CarModel>>> GetBrandsWithModelsAsync(int? size = 10, int page = 0);
         Task<IList<CarBrand>?> SearchBrandsAsync(string search);
         Task<IList<CarModel>?> SearchModelsAsync(string search);
+=======
+    internal interface ICatalogService
+    {
+>>>>>>> 94383dc (ICatalogService)
     }
 }
