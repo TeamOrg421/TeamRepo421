@@ -177,24 +177,24 @@ namespace BusinessLogic.Services
 =======
     public class CatalogService : ICatalogService
     {
-        private readonly IRepository<Car> carRepository;
         private readonly IRepository<CarBrand> carBrandRepository;
         private readonly IRepository<CarModel> carModelRepository;
 
         public CatalogService(
-            IRepository<Car> carRepository,
             IRepository<CarBrand> carBrandRepository,
             IRepository<CarModel> carModelRepository)
         {
-            this.carRepository = carRepository;
             this.carBrandRepository = carBrandRepository;
             this.carModelRepository = carModelRepository;
         }
 
         // ============= CRUD for CarBrand ===============
-        public async Task CreateCarBrandAsync(CarBrand brand)
+        public async Task<CarBrand> CreateBrandAsync(CarBrand brand)
         {
+            brand.Slug = brand.Name.ToLower().Replace(" ", "-");
             await carBrandRepository.AddAsync(brand);
+
+            return brand;
         }
         public async Task DeleteCarBrandAsync(Guid brandId)
         {
@@ -231,6 +231,9 @@ namespace BusinessLogic.Services
         // ============= CRUD for CarModel ===============
         public async Task CreateCarModelAsync(CarModel model)
         {
+            model.Slug = model.Name
+                .ToLower()
+                .Replace(" ", "-");
             await carModelRepository.AddAsync(model);
         }
         public async Task DeleteCarModelAsync(Guid modelId)
@@ -286,13 +289,7 @@ namespace BusinessLogic.Services
 
             return model;
         }
-        public async Task<string> CreateBrandAsync(CarBrand brand)
-        {
-            brand.Slug = brand.Name.ToLower().Replace(" ", "-");
-            await carBrandRepository.AddAsync(brand);
 
-            return brand.Slug;
-        }
         public async Task<int> BrandCount()
         {
             return await carBrandRepository.Count();
@@ -301,35 +298,29 @@ namespace BusinessLogic.Services
         {
             return await carModelRepository.Count();
         }
-        public async Task<Dictionary<CarBrand, CarModel>> GetBrandsWithModelsAsync(int? size = 10, int page = 0)
+        public async Task<Dictionary<CarBrand, IList<CarModel>>> GetBrandsWithModelsAsync(int? size = 10, int page = 0)
         {
             var brands = await carBrandRepository.GetAllAsync(page, size.Value);
-            Dictionary<CarBrand, CarModel> dict = new Dictionary<CarBrand, CarModel>();
+            Dictionary<CarBrand, IList <CarModel>> dict = new Dictionary<CarBrand, IList<CarModel>>();
+
             foreach (var brand in brands)
             {
                 var models = await carModelRepository.FindAllAsync(m => m.BrandId == brand.Id);
-                foreach (var model in models)
-                {
-                    dict.Add(brand, model);
-                }
+                dict.Add(brand, models.ToList());
             }
             return dict;
         }
-        public async Task<CarBrand> SearchBrandsAsync(string search)
+        public async Task<IList<CarBrand>?> SearchBrandsAsync(string search)
         {
-            var brand = await carBrandRepository.FindAsync(b => b.Name.ToLower() == search.ToLower());
+            return await carBrandRepository.FindAllAsync(m =>
+                            m.Name.ToLower().Contains(search.ToLower()));
 
-            if (brand == null)
-                throw new Exception("Car brand not found");
-            return brand;
         }
-        public async Task<CarModel> SearchModelsAsync(string search)
+        public async Task<IList<CarModel>?> SearchModelsAsync(string search)
         {
-            var model = await carModelRepository.FindAsync(b => b.Name.ToLower() == search.ToLower());
+            return await carModelRepository.FindAllAsync(m =>
+                            m.Name.ToLower().Contains(search.ToLower()));
 
-            if (model == null)
-                throw new Exception("Car brand not found");
-            return model;
         }
 >>>>>>> e347eaf (.)
     }
