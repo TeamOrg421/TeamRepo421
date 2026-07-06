@@ -1,9 +1,12 @@
 :root {
-  --bg-primary: #0a0e17;
+  --bg-primary: #141414;
+  --bg-secondary: #1e1e1e;
+  --bg-tertiary: #2a2a2a;
   --text-primary: #f3f4f6;
-  --text-secondary: #9ca3af;
-  --text-muted: #6b7280;
+  --text-secondary: #d1d5db;
+  --text-muted: #888;
   
+  --accent-green: #1db954;
   --accent-indigo: #6366f1;
   --accent-purple: #8b5cf6;
   --accent-pink: #ec4899;
@@ -33,58 +36,6 @@ body {
   position: relative;
 }
 
-/* Stunning Animated Radial Glow Background */
-body::before,
-body::after {
-  content: '';
-  position: fixed;
-  width: 50vw;
-  height: 50vw;
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: -1;
-  filter: blur(120px);
-  opacity: 0.5;
-  transition: var(--transition-smooth);
-}
-
-body::before {
-  background: radial-gradient(circle, var(--accent-indigo) 0%, rgba(99, 102, 241, 0) 70%);
-  top: -10%;
-  left: -10%;
-  animation: glow-move-1 25s infinite alternate ease-in-out;
-}
-
-body::after {
-  background: radial-gradient(circle, var(--accent-pink) 0%, rgba(236, 72, 153, 0) 70%);
-  bottom: -10%;
-  right: -10%;
-  animation: glow-move-2 20s infinite alternate ease-in-out;
-}
-
-@keyframes glow-move-1 {
-  0% {
-    transform: translate(0, 0) scale(1);
-  }
-  50% {
-    transform: translate(15vw, 10vh) scale(1.2);
-  }
-  100% {
-    transform: translate(-5vw, 20vh) scale(0.9);
-  }
-}
-
-@keyframes glow-move-2 {
-  0% {
-    transform: translate(0, 0) scale(1.1);
-  }
-  50% {
-    transform: translate(-10vw, -15vh) scale(0.85);
-  }
-  100% {
-    transform: translate(10vw, -5vh) scale(1.2);
-  }
-}
 
 /* Scrollbar Stylings */
 ::-webkit-scrollbar {
