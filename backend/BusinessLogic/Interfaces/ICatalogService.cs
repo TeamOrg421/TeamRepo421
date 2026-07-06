@@ -10,7 +10,6 @@ namespace BusinessLogic.Interfaces
     public interface ICatalogService
     {
         // CarBrand
-        Task CreateCarBrandAsync(CarBrand brand);
         Task DeleteCarBrandAsync(Guid brandId);
         Task UpdateCarBrandAsync(CarBrand brand);
         Task<CarBrand> GetCarBrandAsync(Guid brandId);
@@ -27,11 +26,11 @@ namespace BusinessLogic.Interfaces
         // Catalog
         Task<IList<CarModel>?> GetModelsByBrandSlugAsync(string brandSlug);
         Task<CarModel?> GetModelBySlugAsync(string brandSlug, string modelSlug);
-        Task<string> CreateBrandAsync(CarBrand brand);
+        Task<CarBrand> CreateBrandAsync(CarBrand brand);
         Task<int> BrandCount();
         Task<int> ModelCount();
-        Task<Dictionary<CarBrand, CarModel>> GetBrandsWithModelsAsync(int? size = 10, int page = 0);
-        Task<CarBrand> SearchBrandsAsync(string search);
-        Task<CarModel> SearchModelsAsync(string search);
+        Task<Dictionary<CarBrand, IList<CarModel>>> GetBrandsWithModelsAsync(int? size = 10, int page = 0);
+        Task<IList<CarBrand>?> SearchBrandsAsync(string search);
+        Task<IList<CarModel>?> SearchModelsAsync(string search);
     }
 }

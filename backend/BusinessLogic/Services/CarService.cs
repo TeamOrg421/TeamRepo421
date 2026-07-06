@@ -102,15 +102,6 @@ namespace BusinessLogic.Services
             return specification;
         }
 
-        public async Task<CarSpecification> GetCarSpecAsync(Guid specificationId)
-        {
-            var specification = await carSpecificationRepository.GetByIdAsync(specificationId);
-
-            if (specification == null)
-                throw new Exception("Car specification not found");
-
-            return specification;
-        }
         // ==================================================
         public async Task<Car?> GetCarByVinAsync(string vin)
         {
@@ -120,19 +111,19 @@ namespace BusinessLogic.Services
         }
         public async Task<IList<Car>> GetCarsByBrandAsync(Guid brandId)
         {
-            var cars = await carRepository.GetAllAsync(filtering: c => c.Model.Brand.Id == brandId);
+            var cars = await carRepository.GetAllAsync(filtering: c => c.Model.BrandId == brandId);
 
             return cars.ToList();
         }
         public async Task<IList<Car>> GetCarsByModelAsync(Guid modelId)
         {
-            var cars = await carRepository.GetAllAsync(filtering: c => c.Model.Id == modelId);
+            var cars = await carRepository.GetAllAsync(filtering: c => c.ModelId == modelId);
             return cars.ToList();
         }
         public async Task<IList<Car>> SearchCarsAsync(string search)
         {
-            var cars = await carRepository.GetAllAsync(filtering: c => c.Model.Name.Contains(search) 
-                                                        || c.Model.Brand.Name.Contains(search));
+            var cars = await carRepository.GetAllAsync(filtering: c => c.Model.Name.ToLower().Contains(search.ToLower()) 
+                                                        || c.Model.Brand.Name.ToLower().Contains(search.ToLower()));
             return cars.ToList();
         }
         public async Task<IList<Car>> GetAvailableCarsAsync(int? page, int size)

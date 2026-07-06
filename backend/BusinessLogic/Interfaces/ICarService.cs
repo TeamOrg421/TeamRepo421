@@ -18,7 +18,6 @@ namespace BusinessLogic.Interfaces
         Task CreateCarSpecAsync(CarSpecification specification);
         Task DeleteCarSpecAsync(Guid specificationId);
         Task UpdateCarSpecAsync(CarSpecification specification);
-        Task<CarSpecification> GetCarSpecAsync(Guid specificationId);
         Task<CarSpecification> GetByIdAsync(Guid specificationId);
         Task<IList<CarSpecification>> GetListCarSpecAsync(int? page, int size = 10);
 
