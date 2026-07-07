@@ -19,5 +19,9 @@ namespace DataAccess.IRepositories
         Task UpdateAsync(T entity);
         Task DeleteAsync(Guid id);
         Task DeleteAsync(T? entity);
+        Task<T?> FindAsync(Expression<Func<T, bool>> predicate); // пошук одного елемента за умовою
+        Task<IList<T>?> FindAllAsync(Expression<Func<T, bool>> predicate);
+        Task<int> Count();
+
     }
 }

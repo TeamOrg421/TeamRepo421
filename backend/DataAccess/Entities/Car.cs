@@ -10,6 +10,7 @@ namespace DataAccess.Entities
     {
         public Guid Id { get; set; }
         public int Year { get; set; }
+        public bool IsAvailable { get; set; } = true;
         public string Vin { get; set; } = null!;
 
         public Guid ModelId { get; set; }
