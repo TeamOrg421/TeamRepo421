@@ -16,11 +16,11 @@ namespace DataAccess.Entities
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         // Навігаційні колекції
-        public virtual ICollection<AuctionLot> Listings { get; set; } = new List<AuctionLot>();
-        public virtual ICollection<Bid> Bids { get; set; } = new List<Bid>();
-        public virtual ICollection<Comment> Comments { get; set; } = new List<Comment>();
-        public virtual ICollection<Favorite> Favorites { get; set; } = new List<Favorite>();
-        public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification>();
-        public virtual ICollection<ModerationLog> ModerationLogs { get; set; } = new List<ModerationLog>();
+        public virtual ICollection<AuctionLot>? Listings { get; set; }
+        public virtual ICollection<Bid>? Bids { get; set; }
+        public virtual ICollection<Comment>? Comments { get; set; }
+        public virtual ICollection<Favorite>? Favorites { get; set; } 
+        public virtual ICollection<Notification>? Notifications { get; set; }
+        public virtual ICollection<ModerationLog>? ModerationLogs { get; set; } 
     }
 }

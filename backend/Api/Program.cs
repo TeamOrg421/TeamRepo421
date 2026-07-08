@@ -24,6 +24,8 @@ builder.Services.AddScoped(typeof(ICarRepositories<>), typeof(CarRepositories<>)
 builder.Services.AddScoped<IActionLotService, ActionLotService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ICarService, CarService>();
+builder.Services.AddScoped<ICatalogService, CatalogService>();
+
 
 // Identity (Guid)
 builder.Services

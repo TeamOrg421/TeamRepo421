@@ -47,6 +47,19 @@ namespace DataAccess.Repositories
             return await set.FindAsync(id);
         }
 
+        public async Task<T?> GetByIdAsync(Guid id, params string[]? includes)
+        {
+            var query = set.AsQueryable();
+
+            if (includes != null && includes.Length > 0)
+            {
+                foreach (var include in includes)
+                    query = query.Include(include);
+            }
+
+            return await query.FirstOrDefaultAsync(entity => entity.Id == id);
+        }
+
         public async Task AddAsync(T entity)
         {
             await set.AddAsync(entity);

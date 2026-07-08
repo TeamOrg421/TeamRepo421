@@ -15,6 +15,6 @@ namespace DataAccess.Entities
 
         public Guid BrandId { get; set; }
         public virtual CarBrand Brand { get; set; } = null!;
-        public virtual ICollection<Car> Cars { get; set; } = new List<Car>();
+        public virtual ICollection<Car>? Cars { get; set; } 
     }
 }

@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static BusinessLogic.Services.CatalogService;
 
 namespace BusinessLogic.Interfaces
 {
@@ -37,7 +38,7 @@ namespace BusinessLogic.Interfaces
         // Catalog
         Task<IList<CarModel>?> GetModelsByBrandSlugAsync(string brandSlug);
         Task<CarModel?> GetModelBySlugAsync(string brandSlug, string modelSlug);
-        Task<CarBrand> CreateBrandAsync(CarBrand brand);
+        Task<CarBrand> CreateBrandAsync(CarBrandDTO brand);
         Task<int> BrandCount();
         Task<int> ModelCount();
         Task<Dictionary<CarBrand, IList<CarModel>>> GetBrandsWithModelsAsync(int? size = 10, int page = 0);

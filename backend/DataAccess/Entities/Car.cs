@@ -20,8 +20,8 @@ namespace DataAccess.Entities
         public virtual CarSpecification? Specification { get; set; }
 
         // Зв'язки 1:M (характеристики самого авто)
-        public virtual ICollection<CarImage> Images { get; set; } = new List<CarImage>();
-        public virtual ICollection<VehicleHistory> Histories { get; set; } = new List<VehicleHistory>();
-        public virtual ICollection<AuctionLot> Listings { get; set; } = new List<AuctionLot>();
+        public virtual ICollection<CarImage>? Images { get; set; }
+        public virtual ICollection<VehicleHistory>? Histories { get; set; } 
+        public virtual ICollection<AuctionLot>? Listings { get; set; } 
     }
 }

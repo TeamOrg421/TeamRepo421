@@ -36,13 +36,13 @@ namespace BusinessLogic.Services
 
         public async Task<IList<Car>> GetListCarAsync(int? page, int size = 10)
         {
-            var cars = await carRepository.GetAllAsync(page, size);
+            var cars = await carRepository.GetAllAsync(pageNumber: page, pageSize: size, includes: new[] { "Model.Brand", "Specification" });
             return cars.ToList();
         }
 
-        public async Task<Car> GetCarAsync(Guid carId)
+        public async Task<Car?> GetCarAsync(Guid carId)
         {
-            var car = await carRepository.GetByIdAsync(carId);
+            var car = await carRepository.GetByIdAsync(carId, "Model.Brand", "Specification");
 
             if (car == null)
                 throw new Exception("Car not found");
@@ -105,42 +105,42 @@ namespace BusinessLogic.Services
         // ==================================================
         public async Task<Car?> GetCarByVinAsync(string vin)
         {
-            var car = await carRepository.FindAsync(x => x.Vin == vin);
-
-            return car ?? null;
+            var cars = await carRepository.GetAllAsync(filtering: c => c.Vin == vin, includes: new[] { "Model.Brand", "Specification" });
+            return cars.FirstOrDefault();
         }
         public async Task<IList<Car>> GetCarsByBrandAsync(Guid brandId)
         {
-            var cars = await carRepository.GetAllAsync(filtering: c => c.Model.BrandId == brandId);
+            var cars = await carRepository.GetAllAsync(filtering: c => c.Model.BrandId == brandId, includes: new[] { "Model.Brand", "Specification" });
 
             return cars.ToList();
         }
         public async Task<IList<Car>> GetCarsByModelAsync(Guid modelId)
         {
-            var cars = await carRepository.GetAllAsync(filtering: c => c.ModelId == modelId);
+            var cars = await carRepository.GetAllAsync(filtering: c => c.ModelId == modelId, includes: new[] { "Model.Brand", "Specification" });
             return cars.ToList();
         }
         public async Task<IList<Car>> SearchCarsAsync(string search)
         {
-            var cars = await carRepository.GetAllAsync(filtering: c => c.Model.Name.ToLower().Contains(search.ToLower()) 
-                                                        || c.Model.Brand.Name.ToLower().Contains(search.ToLower()));
+            var cars = await carRepository.GetAllAsync(
+                filtering: c => c.Model.Name.ToLower().Contains(search.ToLower()) || c.Model.Brand.Name.ToLower().Contains(search.ToLower()),
+                includes: new[] { "Model.Brand", "Specification" });
             return cars.ToList();
         }
         public async Task<IList<Car>> GetAvailableCarsAsync(int? page, int size)
         {
-            var cars = await carRepository.GetAllAsync(page, size, filtering: c => c.IsAvailable);
+            var cars = await carRepository.GetAllAsync(pageNumber: page, pageSize: size, filtering: c => c.IsAvailable, includes: new[] { "Model.Brand", "Specification" });
             return cars.ToList();
         }
         public async Task<IList<Car>> GetCarsByYearAsync(int year)
         {
-            var cars = await carRepository.GetAllAsync(filtering: c => c.Year == year);
+            var cars = await carRepository.GetAllAsync(filtering: c => c.Year == year, includes: new[] { "Model.Brand", "Specification" });
             return cars.ToList();
         }
         public async Task<IList<Car>> GetCarsByMileageAsync(int minMileage, int maxMileage)
         {
-            var cars = await carRepository.GetAllAsync(filtering: c => c.Specification != null 
-                                                        && c.Specification.Mileage >= minMileage 
-                                                        && c.Specification.Mileage <= maxMileage);
+            var cars = await carRepository.GetAllAsync(
+                filtering: c => c.Specification != null && c.Specification.Mileage >= minMileage && c.Specification.Mileage <= maxMileage,
+                includes: new[] { "Model.Brand", "Specification" });
 
             return cars.ToList();
         }

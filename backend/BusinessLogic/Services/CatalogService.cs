@@ -35,14 +35,21 @@ namespace BusinessLogic.Services
             this.carBrandRepository = carBrandRepository;
             this.carModelRepository = carModelRepository;
         }
-
-        // ============= CRUD for CarBrand ===============
-        public async Task<CarBrand> CreateBrandAsync(CarBrand brand)
+        public class CarBrandDTO
         {
-            brand.Slug = brand.Name.ToLower().Replace(" ", "-");
-            await carBrandRepository.AddAsync(brand);
+            public string Name { get; set; }
+        }
+            // ============= CRUD for CarBrand ===============
+            public async Task<CarBrand> CreateBrandAsync(CarBrandDTO brand)
+        {
+            CarBrand carBrand = new CarBrand
+            {
+                Name = brand.Name,
+            };
+            carBrand.Slug = brand.Name.ToLower().Replace(" ", "-");
+            await carBrandRepository.AddAsync(carBrand);
 
-            return brand;
+            return carBrand;
         }
         public async Task DeleteCarBrandAsync(Guid brandId)
         {

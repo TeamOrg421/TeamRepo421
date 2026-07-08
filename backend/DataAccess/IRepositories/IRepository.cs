@@ -15,6 +15,7 @@ namespace DataAccess.IRepositories
             Expression<Func<T, bool>>? filtering = null,
             params string[]? includes);
         Task<T?> GetByIdAsync(Guid id);
+        Task<T?> GetByIdAsync(Guid id, params string[]? includes);
         Task AddAsync(T entity);
         Task UpdateAsync(T entity);
         Task DeleteAsync(Guid id);
