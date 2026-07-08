@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 interface HomeProps {
-  onNavigate: (page: string) => void;
+  onNavigate: (page: string, params?: { carId?: number | string }) => void;
 }
 
 interface AuctionCar {
@@ -28,82 +28,40 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
   const [selectedTransmission, setSelectedTransmission] = useState('');
   const [selectedBodyStyle, setSelectedBodyStyle] = useState('');
   const [activeSort, setActiveSort] = useState('Ending soon');
+  const [auctionCars, setAuctionCars] = useState<AuctionCar[]>([]);
+  const featuredCarId = auctionCars[0]?.id;
 
-  const auctionCars: AuctionCar[] = [
-    {
-      id: 1,
-      title: '2023 Porsche 911 GT3 Manthey Racing Package',
-      time: '1 Day',
-      bid: '$267,000',
-      description: '6-Speed Manual, 6k Miles',
-      location: 'Portland, OR 97220',
-      featured: true,
-    },
-    {
-      id: 2,
-      title: '2009 Lotus Exige S 260 Sport',
-      time: '1 Day',
-      bid: '$75,500',
-      description: '6-Speed Manual, Supercharged, Ardent Red',
-      location: 'Boston, MA 02061',
-      noReserve: true,
-    },
-    {
-      id: 3,
-      title: '2016 BMW M4 GTS',
-      time: '1 Day',
-      bid: '$61,000',
-      description: '1 of 828 M4 GTS Models, 8k Miles',
-      location: 'Milford, MA 01757',
-      featured: true,
-    },
-    {
-      id: 4,
-      title: '2001 Panoz Esperante',
-      time: '1 Day',
-      bid: '$17,500',
-      description: '9k Miles, V8 Power, Hand-Built Exotic',
-      location: 'Auburn, GA 30011',
-    },
-    {
-      id: 5,
-      title: '2019 Mercedes-AMG GT R',
-      time: '2 Days',
-      bid: '$142,000',
-      description: 'AMG Performance Exhaust, 4k Miles',
-      location: 'Los Angeles, CA 90001',
-    },
-    {
-      id: 6,
-      title: '2020 Audi R8 V10 Performance',
-      time: '3 Days',
-      bid: '$189,500',
-      description: 'Carbon Fiber Package, 7-Speed S-Tronic',
-      location: 'Miami, FL 33101',
-      noReserve: true,
-    },
-    {
-      id: 7,
-      title: '2018 Ford GT',
-      time: '4 Days',
-      bid: '$1,050,000',
-      description: 'Liquid Carbon Edition, 1.2k Miles',
-      location: 'Chicago, IL 60601',
-      featured: true,
-    },
-    {
-      id: 8,
-      title: '1969 Chevrolet Camaro Z/28',
-      time: '2 Days',
-      bid: '$92,000',
-      description: 'Numbers Matching, 4-Speed Manual',
-      location: 'Detroit, MI 48201',
-    },
-  ];
+  useEffect(() => {
+    const loadCars = async () => {
+      try {
+        const response = await fetch('/api/cars');
+        if (!response.ok) {
+          throw new Error('Failed to load cars');
+        }
+
+        const data = await response.json();
+        const mappedCars: AuctionCar[] = data.map((car: any) => ({
+          id: car.id,
+          title: car.title,
+          time: 'Live',
+          bid: car.currentBid ? `$${car.currentBid.toLocaleString()}` : '$0',
+          description: `${car.brand} ${car.model}, ${car.year}`,
+          location: car.location,
+          featured: false,
+        }));
+
+        setAuctionCars(mappedCars);
+      } catch {
+        setAuctionCars([]);
+      }
+    };
+
+    loadCars();
+  }, []);
 
   return (
     <div className="home">
-      <section className="featured-hero" onClick={() => onNavigate('car')}>
+      <section className="featured-hero" onClick={() => featuredCarId !== undefined && onNavigate('car', { carId: featuredCarId })}>
         <div className="featured-main featured-main-empty">
           <span className="badge badge-featured">FEATURED</span>
           <h2 className="featured-title">{FEATURED.title}</h2>
@@ -177,7 +135,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
             <article
               key={car.id}
               className="auction-card"
-              onClick={() => onNavigate('car')}
+              onClick={() => onNavigate('car', { carId: car.id })}
             >
               <div className="auction-card-image auction-card-image-empty">
                 {car.featured && <span className="badge badge-featured">FEATURED</span>}

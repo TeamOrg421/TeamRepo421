@@ -14,9 +14,13 @@ type Page = 'home' | 'login' | 'register' | 'mainpage' | 'car'
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>('home')
+  const [selectedCarId, setSelectedCarId] = useState<string | null>(null)
 
-  const navigate = (page: string) => {
+  const navigate = (page: string, params?: { carId?: number | string }) => {
     setCurrentPage(page as Page)
+    if (params && params.carId !== undefined) {
+      setSelectedCarId(String(params.carId))
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -29,7 +33,7 @@ function App() {
           {currentPage === 'login' && <Login onNavigate={navigate} />}
           {currentPage === 'register' && <Register onNavigate={navigate} />}
           {currentPage === 'mainpage' && <MainPage />}
-          {currentPage === 'car' && <Car onNavigate={navigate} />}
+          {currentPage === 'car' && <Car onNavigate={navigate} carId={selectedCarId} />}
         </main>
       </div>
     </AuthProvider>

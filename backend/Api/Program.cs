@@ -2,6 +2,7 @@ using BusinessLogic.Interfaces;
 using BusinessLogic.Services;
 using DataAccess.Data;
 using DataAccess.Entities;
+using DataAccess.Entities.Enums;
 using DataAccess.IRepositories;
 using DataAccess.Repositories;
 using Microsoft.AspNetCore.Identity;
@@ -62,7 +63,7 @@ builder.Services.AddSwaggerGen(options =>
         Scheme = "Bearer",
         BearerFormat = "JWT",
         In = ParameterLocation.Header,
-        Description = "Введіть JWT токен без слова Bearer"
+        Description = "пїЅпїЅпїЅпїЅпїЅпїЅ JWT пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ Bearer"
     });
 
     options.AddSecurityRequirement(new OpenApiSecurityRequirement
@@ -83,10 +84,12 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
-// Roles seed
+// Roles seed + initial car seed
 using (var scope = app.Services.CreateScope())
 {
-    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
+    var services = scope.ServiceProvider;
+    var roleManager = services.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
+    var dbContext = services.GetRequiredService<ApplicationDbContext>();
 
     string[] roles = { "Admin", "User" };
 
@@ -96,6 +99,69 @@ using (var scope = app.Services.CreateScope())
         {
             await roleManager.CreateAsync(new IdentityRole<Guid> { Name = role });
         }
+    }
+
+    await dbContext.Database.EnsureCreatedAsync();
+
+    if (!await dbContext.Cars.AnyAsync())
+    {
+        var brand = new CarBrand
+        {
+            Id = Guid.NewGuid(),
+            Name = "Porsche",
+            Slug = "porsche"
+        };
+
+        var model = new CarModel
+        {
+            Id = Guid.NewGuid(),
+            Name = "911 GT3",
+            Slug = "911-gt3",
+            Brand = brand
+        };
+
+        var car = new Car
+        {
+            Id = Guid.NewGuid(),
+            Year = 2023,
+            Vin = "WPOZZZ99ZTS123456",
+            Model = model,
+            IsAvailable = true
+        };
+
+        var specification = new CarSpecification
+        {
+            Id = Guid.NewGuid(),
+            Car = car,
+            Mileage = 6200,
+            HorsePower = 502,
+            EngineVolume = 4.0,
+            FuelType = FuelType.Petrol,
+            Transmission = TransmissionType.Manual,
+            DriveType = DataAccess.Entities.Enums.DriveType.RWD,
+            BodyType = BodyType.Coupe,
+            Doors = 2,
+            Seats = 2,
+            Color = "Carrera White Metallic",
+            IsAccidentFree = true,
+            OwnersCount = 1
+        };
+
+        var image = new CarImage
+        {
+            Id = Guid.NewGuid(),
+            Car = car,
+            ImageUrl = "https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?auto=format&fit=crop&w=1200&q=80",
+            IsMain = true
+        };
+
+        dbContext.CarBrands.Add(brand);
+        dbContext.CarModels.Add(model);
+        dbContext.Cars.Add(car);
+        dbContext.CarSpecifications.Add(specification);
+        dbContext.CarImages.Add(image);
+
+        await dbContext.SaveChangesAsync();
     }
 }
 
