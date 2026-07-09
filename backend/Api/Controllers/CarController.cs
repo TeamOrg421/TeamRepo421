@@ -1,6 +1,7 @@
-﻿using BusinessLogic.Interfaces;
+﻿using AutoMapper;
+using BusinessLogic.DTOs;
+using BusinessLogic.Interfaces;
 using DataAccess.Entities;
-using DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,10 +12,12 @@ namespace Api.Controllers
     public class CarController : ControllerBase
     {
         private readonly ICarService carService;
+        private readonly IMapper mapper;
 
-        public CarController(ICarService carService)
+        public CarController(ICarService carService, IMapper mapper)
         {
             this.carService = carService;
+            this.mapper = mapper;
         }
 
         // ============= CRUD for Car ===============
@@ -23,14 +26,8 @@ namespace Api.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> CreateCar([FromBody] CreateCarDto dto)
         {
-            var car = new Car
-            {
-                Id = Guid.NewGuid(),
-                Year = dto.Year,
-                IsAvailable = dto.IsAvailable,
-                Vin = dto.Vin,
-                ModelId = dto.ModelId
-            };
+            var car = mapper.Map<Car>(dto);
+            car.Id = Guid.NewGuid();
 
             await carService.CreateCarAsync(car);
             return CreatedAtAction(nameof(GetCar), new { carId = car.Id }, car.Id);
@@ -61,10 +58,7 @@ namespace Api.Controllers
             try
             {
                 var existing = await carService.GetCarAsync(carId);
-                existing.Year = dto.Year;
-                existing.IsAvailable = dto.IsAvailable;
-                existing.Vin = dto.Vin;
-                existing.ModelId = dto.ModelId;
+                mapper.Map(dto, existing);
 
                 await carService.UpdateCarAsync(existing);
                 return NoContent();
@@ -81,7 +75,7 @@ namespace Api.Controllers
             try
             {
                 var car = await carService.GetCarAsync(carId);
-                return Ok(MapToDto(car));
+                return Ok(mapper.Map<CarDto>(car));
             }
             catch (Exception ex)
             {
@@ -93,7 +87,7 @@ namespace Api.Controllers
         public async Task<ActionResult<IList<CarDto>>> GetCars([FromQuery] int? page, [FromQuery] int size = 10)
         {
             var cars = await carService.GetListCarAsync(page, size);
-            return Ok(cars.Select(MapToDto).ToList());
+            return Ok(cars.Select(c => mapper.Map<CarDto>(c)).ToList());
         }
 
         // ============= CRUD for CarSpecification ===============
@@ -102,23 +96,8 @@ namespace Api.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> CreateCarSpec([FromBody] CreateCarSpecificationDto dto)
         {
-            var specification = new CarSpecification
-            {
-                Id = Guid.NewGuid(),
-                CarId = dto.CarId,
-                Mileage = dto.Mileage,
-                HorsePower = dto.HorsePower,
-                EngineVolume = dto.EngineVolume,
-                FuelType = dto.FuelType,
-                Transmission = dto.Transmission,
-                DriveType = dto.DriveType,
-                BodyType = dto.BodyType,
-                Doors = dto.Doors,
-                Seats = dto.Seats,
-                Color = dto.Color,
-                IsAccidentFree = dto.IsAccidentFree,
-                OwnersCount = dto.OwnersCount
-            };
+            var specification = mapper.Map<CarSpecification>(dto);
+            specification.Id = Guid.NewGuid();
 
             await carService.CreateCarSpecAsync(specification);
             return CreatedAtAction(nameof(GetCarSpec), new { specificationId = specification.Id }, specification.Id);
@@ -149,18 +128,7 @@ namespace Api.Controllers
             try
             {
                 var existing = await carService.GetByIdAsync(specificationId);
-                existing.Mileage = dto.Mileage;
-                existing.HorsePower = dto.HorsePower;
-                existing.EngineVolume = dto.EngineVolume;
-                existing.FuelType = dto.FuelType;
-                existing.Transmission = dto.Transmission;
-                existing.DriveType = dto.DriveType;
-                existing.BodyType = dto.BodyType;
-                existing.Doors = dto.Doors;
-                existing.Seats = dto.Seats;
-                existing.Color = dto.Color;
-                existing.IsAccidentFree = dto.IsAccidentFree;
-                existing.OwnersCount = dto.OwnersCount;
+                mapper.Map(dto, existing);
 
                 await carService.UpdateCarSpecAsync(existing);
                 return NoContent();
@@ -177,7 +145,7 @@ namespace Api.Controllers
             try
             {
                 var specification = await carService.GetByIdAsync(specificationId);
-                return Ok(MapToDto(specification));
+                return Ok(mapper.Map<CarSpecificationDto>(specification));
             }
             catch (Exception ex)
             {
@@ -189,7 +157,7 @@ namespace Api.Controllers
         public async Task<ActionResult<IList<CarSpecificationDto>>> GetCarSpecs([FromQuery] int? page, [FromQuery] int size = 10)
         {
             var specifications = await carService.GetListCarSpecAsync(page, size);
-            return Ok(specifications.Select(MapToDto).ToList());
+            return Ok(specifications.Select(s => mapper.Map<CarSpecificationDto>(s)).ToList());
         }
 
         // ============= Search / Filters ===============
@@ -201,101 +169,49 @@ namespace Api.Controllers
             if (car == null)
                 return NotFound();
 
-            return Ok(MapToDto(car));
+            return Ok(mapper.Map<CarDto>(car));
         }
 
         [HttpGet("by-brand/{brandId:guid}")]
         public async Task<ActionResult<IList<CarDto>>> GetCarsByBrand(Guid brandId)
         {
             var cars = await carService.GetCarsByBrandAsync(brandId);
-            return Ok(cars.Select(MapToDto).ToList());
+            return Ok(cars.Select(c => mapper.Map<CarDto>(c)).ToList());
         }
 
         [HttpGet("by-model/{modelId:guid}")]
         public async Task<ActionResult<IList<CarDto>>> GetCarsByModel(Guid modelId)
         {
             var cars = await carService.GetCarsByModelAsync(modelId);
-            return Ok(cars.Select(MapToDto).ToList());
+            return Ok(cars.Select(c => mapper.Map<CarDto>(c)).ToList());
         }
 
         [HttpGet("search")]
         public async Task<ActionResult<IList<CarDto>>> SearchCars([FromQuery] string search)
         {
             var cars = await carService.SearchCarsAsync(search);
-            return Ok(cars.Select(MapToDto).ToList());
+            return Ok(cars.Select(c => mapper.Map<CarDto>(c)).ToList());
         }
 
         [HttpGet("available")]
         public async Task<ActionResult<IList<CarDto>>> GetAvailableCars([FromQuery] int? page, [FromQuery] int size = 10)
         {
             var cars = await carService.GetAvailableCarsAsync(page, size);
-            return Ok(cars.Select(MapToDto).ToList());
+            return Ok(cars.Select(c => mapper.Map<CarDto>(c)).ToList());
         }
 
         [HttpGet("by-year/{year:int}")]
         public async Task<ActionResult<IList<CarDto>>> GetCarsByYear(int year)
         {
             var cars = await carService.GetCarsByYearAsync(year);
-            return Ok(cars.Select(MapToDto).ToList());
+            return Ok(cars.Select(c => mapper.Map<CarDto>(c)).ToList());
         }
 
         [HttpGet("by-mileage")]
         public async Task<ActionResult<IList<CarDto>>> GetCarsByMileage([FromQuery] int minMileage, [FromQuery] int maxMileage)
         {
             var cars = await carService.GetCarsByMileageAsync(minMileage, maxMileage);
-            return Ok(cars.Select(MapToDto).ToList());
-        }
-
-        private static CarDto MapToDto(Car car)
-        {
-            return new CarDto
-            {
-                Id = car.Id,
-                Year = car.Year,
-                IsAvailable = car.IsAvailable,
-                Vin = car.Vin,
-                ModelId = car.ModelId,
-                ModelName = car.Model?.Name ?? string.Empty,
-                BrandName = car.Model?.Brand?.Name ?? string.Empty,
-                Specification = car.Specification == null ? null : new CarSpecificationDto
-                {
-                    Id = car.Specification.Id,
-                    CarId = car.Specification.CarId,
-                    Mileage = car.Specification.Mileage,
-                    HorsePower = car.Specification.HorsePower,
-                    EngineVolume = car.Specification.EngineVolume,
-                    FuelType = car.Specification.FuelType,
-                    Transmission = car.Specification.Transmission,
-                    DriveType = car.Specification.DriveType,
-                    BodyType = car.Specification.BodyType,
-                    Doors = car.Specification.Doors,
-                    Seats = car.Specification.Seats,
-                    Color = car.Specification.Color,
-                    IsAccidentFree = car.Specification.IsAccidentFree,
-                    OwnersCount = car.Specification.OwnersCount
-                }
-            };
-        }
-
-        private static CarSpecificationDto MapToDto(CarSpecification spec)
-        {
-            return new CarSpecificationDto
-            {
-                Id = spec.Id,
-                CarId = spec.CarId,
-                Mileage = spec.Mileage,
-                HorsePower = spec.HorsePower,
-                EngineVolume = spec.EngineVolume,
-                FuelType = spec.FuelType,
-                Transmission = spec.Transmission,
-                DriveType = spec.DriveType,
-                BodyType = spec.BodyType,
-                Doors = spec.Doors,
-                Seats = spec.Seats,
-                Color = spec.Color,
-                IsAccidentFree = spec.IsAccidentFree,
-                OwnersCount = spec.OwnersCount
-            };
+            return Ok(cars.Select(c => mapper.Map<CarDto>(c)).ToList());
         }
     }
 }

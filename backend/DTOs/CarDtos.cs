@@ -1,8 +1,37 @@
 using System;
 using System.Collections.Generic;
 
-namespace Api.DTOs
+namespace DTOs
 {
+    public class CreateCarDto
+    {
+        public int Year { get; set; }
+        public bool IsAvailable { get; set; } = true;
+        public string Vin { get; set; } = null!;
+        public Guid ModelId { get; set; }
+    }
+
+    public class UpdateCarDto
+    {
+        public Guid Id { get; set; }
+        public int Year { get; set; }
+        public bool IsAvailable { get; set; }
+        public string Vin { get; set; } = null!;
+        public Guid ModelId { get; set; }
+    }
+
+    public class CarDto
+    {
+        public Guid Id { get; set; }
+        public int Year { get; set; }
+        public bool IsAvailable { get; set; }
+        public string Vin { get; set; } = null!;
+        public Guid ModelId { get; set; }
+        public string ModelName { get; set; } = null!;
+        public string BrandName { get; set; } = null!;
+        public CarSpecificationDto? Specification { get; set; }
+    }
+
     public class CarListItemDto
     {
         public Guid Id { get; set; }
