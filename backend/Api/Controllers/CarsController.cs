@@ -2,7 +2,10 @@ using Api.DTOs;
 using BusinessLogic.Interfaces;
 using DataAccess.Entities;
 using DataAccess.Entities.Enums;
+using DataAccess.IRepositories;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace Api.Controllers
 {
@@ -11,10 +14,14 @@ namespace Api.Controllers
     public class CarsController : ControllerBase
     {
         private readonly ICarService _carService;
+    private readonly IRepository<Comment> _commentRepository;
 
-        public CarsController(ICarService carService)
+        public CarsController(
+            ICarService carService,
+            IRepository<Comment> commentRepository)
         {
             _carService = carService;
+            _commentRepository = commentRepository;
         }
 
         [HttpGet]
@@ -49,9 +56,11 @@ namespace Api.Controllers
             try
             {
                 var car = await _carService.GetCarAsync(id);
+                var listing = car.Listings.FirstOrDefault();
 
                 var dto = new CarDetailDto
                 {
+                    ListingId = listing?.Id ?? Guid.Empty,
                     Id = car.Id,
                     Title = $"{car.Year} {car.Model?.Brand?.Name ?? "Unknown"} {car.Model?.Name ?? "Unknown"}",
                     Year = car.Year,
@@ -66,19 +75,38 @@ namespace Api.Controllers
                     InteriorColor = car.Specification?.Color ?? "Unknown",
                     Vin = car.Vin,
                     Location = "Kyiv, Ukraine",
-                    Seller = "seller",
-                    CurrentBid = 0,
-                    BidCount = 0,
-                    TimeRemaining = "1 Day",
-                    EndsAt = DateTime.UtcNow.AddDays(1).ToString("MMMM d, yyyy, h:mm tt"),
+                    Seller = listing?.Seller?.Name ?? "seller",
+                    CurrentBid = listing?.CurrentPrice ?? 0,
+                    BidCount = listing?.Bids.Count ?? 0,
+                    TimeRemaining = listing != null ? (listing.AuctionEnd - DateTime.UtcNow).TotalHours > 24 ? "1 Day" : "Less than 1 Day" : "N/A",
+                    EndsAt = listing?.AuctionEnd.ToString("MMMM d, yyyy, h:mm tt") ?? string.Empty,
                     Images = car.Images.Select(i => i.ImageUrl).ToList(),
                     Highlights = new List<string> { "Real data from database" },
                     Equipment = new List<string>(),
                     Modifications = new List<string>(),
                     Flaws = new List<string>(),
                     Description = $"{car.Year} {car.Model?.Brand?.Name ?? "Unknown"} {car.Model?.Name ?? "Unknown"} available for auction.",
-                    Bids = new List<CarBidDto>(),
-                    Comments = new List<CarCommentDto>()
+                    Bids = listing != null
+                        ? listing.Bids
+                            .OrderByDescending(b => b.CreatedAt)
+                            .Select(b => new CarBidDto
+                            {
+                                Bidder = b.User?.Name ?? b.User?.Email ?? "Anonymous",
+                                Amount = b.Amount,
+                                Time = b.CreatedAt.ToString("g")
+                            }).ToList()
+                        : new List<CarBidDto>(),
+                    Comments = listing != null
+                        ? listing.Comments.Select(comment => new CarCommentDto
+                        {
+                            Id = comment.Id,
+                            User = comment.User.Name ?? comment.User.Email ?? "Anonymous",
+                            Text = comment.Text,
+                            Time = comment.CreatedAt.ToString("g"),
+                            IsSeller = comment.UserId == listing.SellerId,
+                            Likes = comment.Likes
+                        }).ToList()
+                        : new List<CarCommentDto>()
                 };
 
                 return Ok(dto);
@@ -88,5 +116,64 @@ namespace Api.Controllers
                 return NotFound(new { message = ex.Message });
             }
         }
+        [HttpPost("{id:guid}/comments")]
+        [Authorize]
+        public async Task<ActionResult<CarCommentDto>> PostComment(Guid id, [FromBody] CreateCommentDto model)
+        {
+            if (string.IsNullOrWhiteSpace(model.Text))
+                return BadRequest(new { message = "Comment text is required." });
+
+            var car = await _carService.GetCarAsync(id);
+            var listing = car?.Listings.FirstOrDefault();
+            if (listing == null)
+                return NotFound(new { message = "No auction lot found for this car." });
+
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(userIdClaim, out var userId))
+                return Unauthorized(new { message = "Unable to determine user identity." });
+
+            var comment = new Comment
+            {
+                Id = Guid.NewGuid(),
+                Text = model.Text.Trim(),
+                CreatedAt = DateTime.UtcNow,
+                Likes = 0,
+                ListingId = listing.Id,
+                UserId = userId
+            };
+
+            await _commentRepository.AddAsync(comment);
+
+            var dto = new CarCommentDto
+            {
+                Id = comment.Id,
+                User = User.Identity?.Name ?? "Anonymous",
+                Text = comment.Text,
+                Time = comment.CreatedAt.ToString("g"),
+                IsSeller = userId == listing.SellerId,
+                Likes = comment.Likes
+            };
+
+            return CreatedAtAction(nameof(GetCar), new { id }, dto);
+        }
+
+        [HttpPost("comments/{commentId:guid}/like")]
+        [Authorize]
+        public async Task<ActionResult> LikeComment(Guid commentId)
+        {
+            var comment = await _commentRepository.GetByIdAsync(commentId);
+            if (comment == null)
+                return NotFound(new { message = "Comment not found." });
+
+            comment.Likes += 1;
+            await _commentRepository.UpdateAsync(comment);
+
+            return Ok(new { likes = comment.Likes });
+        }
+    }
+
+    public class CreateCommentDto
+    {
+        public string Text { get; set; } = string.Empty;
     }
 }

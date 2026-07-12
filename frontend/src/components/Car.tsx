@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { apiCall } from '../services/config';
 
 interface CarProps {
   onNavigate: (page: string, params?: { carId?: number | string }) => void;
@@ -13,7 +14,7 @@ interface Bid {
 }
 
 interface Comment {
-  id: number;
+  id: string;
   user: string;
   text: string;
   time: string;
@@ -23,6 +24,7 @@ interface Comment {
 
 interface CarDetail {
   id: string;
+  listingId?: string;
   title: string;
   year: number;
   make: string;
@@ -74,7 +76,7 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
   const [localBids, setLocalBids] = useState<Bid[]>([]);
   const [localComments, setLocalComments] = useState<Comment[]>([]);
   const [currentBidPrice, setCurrentBidPrice] = useState(0);
-  const [likedCommentIds, setLikedCommentIds] = useState<number[]>([]);
+  const [likedCommentIds, setLikedCommentIds] = useState<string[]>([]);
   const [commentInput, setCommentInput] = useState('');
 
   useEffect(() => {
@@ -95,7 +97,8 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
 
         const data = await response.json();
         const mappedCar: CarDetail = {
-          id: data.id,
+              id: data.id,
+              listingId: data.listingId ?? data.listingId ?? undefined,
           title: data.title,
           year: data.year,
           make: data.make,
@@ -194,35 +197,67 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
       return;
     }
 
-    // Add bid to local state
-    const newBid: Bid = {
-      bidder: user?.name || user?.email || 'AnonymousBidder',
-      amount: numericalBid,
-      time: 'Just now'
-    };
+    // Send bid to backend
+    (async () => {
+      try {
+        if (!carData?.listingId) {
+          setBidError('Listing information missing.');
+          return;
+        }
 
-    const updatedBids = [newBid, ...localBids];
-    setLocalBids(updatedBids);
-    setCurrentBidPrice(numericalBid);
-    setBidSuccess(`Success! You are currently the highest bidder at $${numericalBid.toLocaleString()}.`);
-    setBidAmount('');
+        const resp = await apiCall('/bids', {
+          method: 'POST',
+          body: JSON.stringify({ listingId: carData.listingId, amount: numericalBid }),
+        });
+
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({ message: 'Bid failed' }));
+          setBidError(err.message || 'Bid failed');
+          return;
+        }
+
+        const result = await resp.json();
+
+        const newBid: Bid = {
+          bidder: user?.name || user?.email || 'You',
+          amount: numericalBid,
+          time: 'Just now'
+        };
+
+        setLocalBids([newBid, ...localBids]);
+        setCurrentBidPrice(numericalBid);
+        setBidSuccess(`Success! You are currently the highest bidder at $${numericalBid.toLocaleString()}.`);
+        setBidAmount('');
+      } catch (ex) {
+        setBidError('Failed to place bid.');
+      }
+    })();
   };
 
   // Liking a Comment
-  const handleLikeComment = (id: number) => {
+  const handleLikeComment = async (id: string) => {
     if (likedCommentIds.includes(id)) {
-      // Unlike
-      setLikedCommentIds(likedCommentIds.filter(item => item !== id));
-      setLocalComments(localComments.map(c => c.id === id ? { ...c, likes: c.likes - 1 } : c));
-    } else {
-      // Like
+      return;
+    }
+
+    try {
+      const response = await apiCall(`/cars/comments/${id}/like`, {
+        method: 'POST'
+      });
+      if (!response.ok) {
+        throw new Error('Failed to like comment');
+      }
+
+      const data = await response.json();
       setLikedCommentIds([...likedCommentIds, id]);
-      setLocalComments(localComments.map(c => c.id === id ? { ...c, likes: c.likes + 1 } : c));
+      setLocalComments(localComments.map(c => c.id === id ? { ...c, likes: data.likes ?? c.likes + 1 } : c));
+    } catch (error) {
+      console.error(error);
     }
   };
 
   // Posting a Comment
-  const handlePostComment = (e: React.FormEvent) => {
+  const handlePostComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!commentInput.trim()) return;
 
@@ -231,17 +266,32 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
       return;
     }
 
-    const newComment: Comment = {
-      id: Date.now(),
-      user: user?.name || user?.email || 'User',
-      text: commentInput.trim(),
-      time: 'Just now',
-      isSeller: user?.name === carData.seller || user?.email === carData.seller,
-      likes: 0
-    };
+    try {
+      const response = await apiCall(`/cars/${activeId}/comments`, {
+        method: 'POST',
+        body: JSON.stringify({ text: commentInput.trim() })
+      });
 
-    setLocalComments([newComment, ...localComments]);
-    setCommentInput('');
+      if (!response.ok) {
+        throw new Error('Failed to post comment');
+      }
+
+      const data = await response.json();
+      const newComment: Comment = {
+        id: data.id,
+        user: data.user,
+        text: data.text,
+        time: data.time,
+        isSeller: data.isSeller,
+        likes: data.likes
+      };
+
+      setLocalComments([newComment, ...localComments]);
+      setCommentInput('');
+    } catch (error) {
+      console.error(error);
+      alert('Unable to post comment. Please try again.');
+    }
   };
 
   return (
@@ -615,7 +665,7 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
 
                 <button 
                   type="button" 
-                  onClick={() => handleLikeComment(comment.id)} 
+                  onClick={() => handleLikeComment(comment.id)}
                   className={`comment-like-action-btn ${likedCommentIds.includes(comment.id) ? 'liked' : ''}`}
                 >
                   <svg viewBox="0 0 24 24" fill={likedCommentIds.includes(comment.id) ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" className="like-icon-svg">
