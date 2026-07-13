@@ -48,7 +48,19 @@ namespace BusinessLogic.Services
         {
             var cars = await carRepository.GetAllAsync(
                 filtering: c => c.Id == carId,
-                includes: new[] { "Model", "Model.Brand", "Specification", "Images" });
+                includes: new[]
+                {
+                    "Model",
+                    "Model.Brand",
+                    "Specification",
+                    "Images",
+                    "Listings",
+                    "Listings.Bids",
+                    "Listings.Bids.User",
+                    "Listings.Comments",
+                    "Listings.Comments.User",
+                    "Listings.Seller"
+                });
 
             var car = cars.FirstOrDefault();
 

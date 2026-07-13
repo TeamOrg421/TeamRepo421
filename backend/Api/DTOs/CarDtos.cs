@@ -23,6 +23,7 @@ namespace Api.DTOs
 
     public class CarDetailDto
     {
+        public Guid ListingId { get; set; }
         public Guid Id { get; set; }
         public string Title { get; set; } = string.Empty;
         public int Year { get; set; }
@@ -61,7 +62,7 @@ namespace Api.DTOs
 
     public class CarCommentDto
     {
-        public int Id { get; set; }
+        public Guid Id { get; set; }
         public string User { get; set; } = string.Empty;
         public string Text { get; set; } = string.Empty;
         public string Time { get; set; } = string.Empty;
