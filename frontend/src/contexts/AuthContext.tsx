@@ -21,6 +21,7 @@ type AuthContextType = {
   isAuthenticated: boolean
   login: (token: string) => void
   logout: () => void
+  updateUser: (updatedUser: Partial<User>) => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -94,20 +95,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const savedToken = localStorage.getItem('token')
     if (savedToken) {
       setToken(savedToken)
-      setUser(getUserFromToken(savedToken))
+      const savedUser = localStorage.getItem('user')
+      if (savedUser) {
+        try {
+          setUser(JSON.parse(savedUser))
+        } catch {
+          setUser(getUserFromToken(savedToken))
+        }
+      } else {
+        setUser(getUserFromToken(savedToken))
+      }
     }
   }, [])
 
   const login = (newToken: string) => {
     localStorage.setItem('token', newToken)
     setToken(newToken)
-    setUser(getUserFromToken(newToken))
+    const userFromToken = getUserFromToken(newToken)
+    setUser(userFromToken)
+    if (userFromToken) {
+      localStorage.setItem('user', JSON.stringify(userFromToken))
+    } else {
+      localStorage.removeItem('user')
+    }
   }
 
   const logout = () => {
     localStorage.removeItem('token')
+    localStorage.removeItem('user')
     setToken(null)
     setUser(null)
+  }
+
+  const updateUser = (updatedUser: Partial<User>) => {
+    setUser(prev => {
+      const nextUser = prev ? { ...prev, ...updatedUser } : updatedUser;
+      localStorage.setItem('user', JSON.stringify(nextUser));
+      return nextUser;
+    });
   }
 
   const value: AuthContextType = {
@@ -116,6 +141,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isAuthenticated: Boolean(token),
     login,
     logout,
+    updateUser,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,6 +13,10 @@ namespace DataAccess.Entities
     {
         public string Name { get; set; } = string.Empty;
 
+        public string? Bio { get; set; }
+
+        public string? GarageItems { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         // Навігаційні колекції
@@ -24,3 +28,4 @@ namespace DataAccess.Entities
         public virtual ICollection<ModerationLog> ModerationLogs { get; set; } = new List<ModerationLog>();
     }
 }
+

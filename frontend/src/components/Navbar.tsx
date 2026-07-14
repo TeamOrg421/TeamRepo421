@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface NavbarProps {
@@ -8,8 +8,21 @@ interface NavbarProps {
 const Navbar: React.FC<NavbarProps> = ({ onNavigate }) => {
   const { isAuthenticated, user, logout } = useAuth();
   const [searchValue, setSearchValue] = useState('');
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const navLinks = ['Auctions', 'Community', 'Events', 'About Us', 'Leaderboard'];
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   return (
     <nav className="navbar">
@@ -50,21 +63,10 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate }) => {
         </div>
 
         <div className="navbar-actions">
-          {isAuthenticated ? (
-            <>
-              <span className="navbar-user">{user?.name || user?.email || 'User'}</span>
-              <button
-                className="btn btn-signup"
-                type="button"
-                onClick={() => {
-                  logout();
-                  onNavigate('home');
-                }}
-              >
-                Sign Out
-              </button>
-            </>
-          ) : (
+          {isAuthenticated && (
+            <span className="navbar-user">{user?.name || user?.email || 'User'}</span>
+          )}
+          {!isAuthenticated && (
             <button className="btn btn-signup" type="button" onClick={() => onNavigate('register')}>
               Sign Up
             </button>
@@ -75,13 +77,86 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate }) => {
               <path d="M13.73 21a2 2 0 0 1-3.46 0" />
             </svg>
           </button>
-          <button className="navbar-icon-btn" type="button" aria-label="Menu">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="3" y1="6" x2="21" y2="6" />
-              <line x1="3" y1="12" x2="21" y2="12" />
-              <line x1="3" y1="18" x2="21" y2="18" />
-            </svg>
-          </button>
+
+          {/* Hamburger menu with dropdown */}
+          <div className="navbar-hamburger-wrapper" ref={menuRef}>
+            <button
+              className={`navbar-icon-btn${menuOpen ? ' active' : ''}`}
+              type="button"
+              aria-label="Menu"
+              onClick={() => setMenuOpen((prev) => !prev)}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            </button>
+
+            {menuOpen && (
+              <div className="hamburger-dropdown">
+                {isAuthenticated && (
+                  <div className="hamburger-dropdown-user">
+                    <span className="hamburger-user-avatar">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="8" r="4" />
+                        <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+                      </svg>
+                    </span>
+                    <span className="hamburger-user-name">{user?.name || user?.email || 'User'}</span>
+                  </div>
+                )}
+                <button
+                  className="hamburger-dropdown-item"
+                  type="button"
+                  onClick={() => { setMenuOpen(false); onNavigate('profile'); }}
+                >
+                  Profile
+                </button>
+                <button
+                  className="hamburger-dropdown-item"
+                  type="button"
+                  onClick={() => { setMenuOpen(false); onNavigate('leaderboard'); }}
+                >
+                  Leaderboard
+                </button>
+                <button
+                  className="hamburger-dropdown-item"
+                  type="button"
+                  onClick={() => { setMenuOpen(false); onNavigate('watchlist'); }}
+                >
+                  Watch List
+                </button>
+                <button
+                  className="hamburger-dropdown-item"
+                  type="button"
+                  onClick={() => { setMenuOpen(false); onNavigate('seller'); }}
+                >
+                  Seller Dashboard
+                </button>
+                <button
+                  className="hamburger-dropdown-item"
+                  type="button"
+                  onClick={() => { setMenuOpen(false); onNavigate('settings'); }}
+                >
+                  Settings
+                </button>
+                {isAuthenticated && (
+                  <button
+                    className="hamburger-dropdown-item hamburger-signout"
+                    type="button"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      logout();
+                      onNavigate('home');
+                    }}
+                  >
+                    Sign Out
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </nav>
