@@ -124,7 +124,24 @@ using (var scope = app.Services.CreateScope())
 
     await dbContext.Database.EnsureCreatedAsync();
 
-    if (!await dbContext.Cars.AnyAsync())
+    // Make sure legacy databases have the `Likes` column on Comments (added later in schema)
+    try
+    {
+        await dbContext.Database.ExecuteSqlRawAsync(
+            "IF COL_LENGTH('dbo.Comments','Likes') IS NULL BEGIN ALTER TABLE dbo.Comments ADD Likes int NOT NULL CONSTRAINT DF_Comments_Likes DEFAULT(0) END"
+        );
+    }
+    catch
+    {
+        // If this fails (e.g., permissions), continue without breaking app startup.
+    }
+
+    var existingCar = await dbContext.Cars
+        .Include(c => c.Model)
+        .ThenInclude(m => m.Brand)
+        .FirstOrDefaultAsync(c => c.Vin == "WPOZZZ99ZTS123456");
+
+    if (existingCar == null)
     {
         var brand = new CarBrand
         {
@@ -182,6 +199,76 @@ using (var scope = app.Services.CreateScope())
         dbContext.CarSpecifications.Add(specification);
         dbContext.CarImages.Add(image);
 
+        await dbContext.SaveChangesAsync();
+        existingCar = car;
+    }
+
+    var seller = await dbContext.Users.FirstOrDefaultAsync(u => u.Email == "seller@example.com");
+    if (seller == null)
+    {
+        seller = new ApplicationUser
+        {
+            Id = Guid.NewGuid(),
+            UserName = "seller@example.com",
+            Email = "seller@example.com",
+            Name = "Test Seller",
+            EmailConfirmed = true
+        };
+
+        dbContext.Users.Add(seller);
+        await dbContext.SaveChangesAsync();
+    }
+
+    var bidder = await dbContext.Users.FirstOrDefaultAsync(u => u.Email == "bidder@example.com");
+    if (bidder == null)
+    {
+        bidder = new ApplicationUser
+        {
+            Id = Guid.NewGuid(),
+            UserName = "bidder@example.com",
+            Email = "bidder@example.com",
+            Name = "Test Bidder",
+            EmailConfirmed = true
+        };
+
+        dbContext.Users.Add(bidder);
+        await dbContext.SaveChangesAsync();
+    }
+
+    var existingLot = await dbContext.CarListings
+        .Include(l => l.Bids)
+        .FirstOrDefaultAsync(l => l.CarId == existingCar.Id);
+
+    if (existingLot == null)
+    {
+        var lot = new AuctionLot
+        {
+            Id = Guid.NewGuid(),
+            Title = $"{existingCar.Year} {existingCar.Model?.Brand?.Name ?? "Porsche"} {existingCar.Model?.Name ?? "911 GT3"}",
+            Description = "Test auction lot seeded for the frontend detail page.",
+            StartingPrice = 95000m,
+            CurrentPrice = 95000m,
+            AuctionStart = DateTime.UtcNow.AddMinutes(-15),
+            AuctionEnd = DateTime.UtcNow.AddDays(3),
+            Status = ListingStatus.Active,
+            SellerId = seller.Id,
+            CarId = existingCar.Id
+        };
+
+        dbContext.CarListings.Add(lot);
+        await dbContext.SaveChangesAsync();
+
+        var initialBid = new Bid
+        {
+            Id = Guid.NewGuid(),
+            Amount = 97000m,
+            CreatedAt = DateTime.UtcNow.AddMinutes(-5),
+            ListingId = lot.Id,
+            UserId = bidder.Id
+        };
+
+        dbContext.Bids.Add(initialBid);
+        lot.CurrentPrice = initialBid.Amount;
         await dbContext.SaveChangesAsync();
     }
 }

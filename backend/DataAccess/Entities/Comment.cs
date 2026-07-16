@@ -11,6 +11,7 @@ namespace DataAccess.Entities
         public Guid Id { get; set; }
         public string Text { get; set; } = null!;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public int Likes { get; set; } = 0;
 
         public Guid ListingId { get; set; }
         public virtual AuctionLot Listing { get; set; } = null!;
