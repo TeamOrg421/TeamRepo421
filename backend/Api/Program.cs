@@ -115,6 +115,21 @@ using (var scope = app.Services.CreateScope())
         // If this fails (e.g., permissions), continue without breaking app startup.
     }
 
+    // Ensure Bio and GarageItems columns exist on AspNetUsers
+    try
+    {
+        await dbContext.Database.ExecuteSqlRawAsync(
+            "IF COL_LENGTH('dbo.AspNetUsers','Bio') IS NULL BEGIN ALTER TABLE dbo.AspNetUsers ADD Bio nvarchar(max) NULL END"
+        );
+        await dbContext.Database.ExecuteSqlRawAsync(
+            "IF COL_LENGTH('dbo.AspNetUsers','GarageItems') IS NULL BEGIN ALTER TABLE dbo.AspNetUsers ADD GarageItems nvarchar(max) NULL END"
+        );
+    }
+    catch
+    {
+        // Ignore if column already exists or lacks permission.
+    }
+
     var existingCar = await dbContext.Cars
         .Include(c => c.Model)
         .ThenInclude(m => m.Brand)
