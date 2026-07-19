@@ -1,9 +1,10 @@
 ﻿
+using AutoMapper;
 using Azure.Core.Pipeline;
-using BusinessLogic.DTOs;
 using BusinessLogic.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using BusinessLogic.DTOs;
 
 namespace YourProject.Controllers
 {
@@ -12,10 +13,12 @@ namespace YourProject.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
+        private readonly IMapper _mapper;
 
-        public AuthController(IAuthService authService)
+        public AuthController(IAuthService authService, IMapper mapper)
         {
             _authService = authService;
+            _mapper = mapper;
         }
 
         [HttpPost("register")]

@@ -42,11 +42,11 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
         const data = await response.json();
         const mappedCars: AuctionCar[] = data.map((car: any) => ({
           id: car.id,
-          title: car.title,
+          title: `${car.brandName || 'Unknown'} ${car.modelName || 'model'}`,
           time: 'Live',
-          bid: car.currentBid ? `$${car.currentBid.toLocaleString()}` : '$0',
-          description: `${car.brand} ${car.model}, ${car.year}`,
-          location: car.location,
+          bid: '$0',
+          description: `${car.year ? `${car.year} ` : ''}${car.brandName || 'Unknown'} ${car.modelName || 'model'}`,
+          location: 'Kyiv, Ukraine',
           featured: false,
         }));
 

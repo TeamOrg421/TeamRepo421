@@ -28,9 +28,9 @@ namespace DataAccess.Entities
         public virtual Car Car { get; set; } = null!;
         public virtual AuctionWinner? Winner { get; set; }
 
-        public virtual ICollection<Bid> Bids { get; set; } = new List<Bid>();
-        public virtual ICollection<Comment> Comments { get; set; } = new List<Comment>();
-        public virtual ICollection<Favorite> Favorites { get; set; } = new List<Favorite>();
-        public virtual ICollection<ModerationLog> ModerationLogs { get; set; } = new List<ModerationLog>();
+        public virtual ICollection<Bid>? Bids { get; set; }
+        public virtual ICollection<Comment>? Comments { get; set; }
+        public virtual ICollection<Favorite>? Favorites { get; set; }
+        public virtual ICollection<ModerationLog>? ModerationLogs { get; set; }
     }
 }

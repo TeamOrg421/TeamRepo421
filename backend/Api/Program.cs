@@ -1,3 +1,4 @@
+using AutoMapper;
 using BusinessLogic.Interfaces;
 using BusinessLogic.Services;
 using DataAccess.Data;
@@ -24,6 +25,8 @@ builder.Services.AddScoped(typeof(ICarRepositories<>), typeof(CarRepositories<>)
 builder.Services.AddScoped<IActionLotService, ActionLotService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ICarService, CarService>();
+builder.Services.AddScoped<ICatalogService, CatalogService>();
+
 
 // Identity (Guid)
 builder.Services
@@ -31,7 +34,25 @@ builder.Services
     .AddRoles<IdentityRole<Guid>>()
     .AddEntityFrameworkStores<ApplicationDbContext>();
 
+// AutoMapper
+builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+
 builder.Services.AddControllers();
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins(
+                "http://localhost:5173",
+                "http://localhost:3000",
+                "https://localhost:5173",
+                "https://localhost:3000")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
 
 // JWT Auth
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -275,6 +296,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
 
