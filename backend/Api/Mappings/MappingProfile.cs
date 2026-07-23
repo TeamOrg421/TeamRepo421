@@ -71,6 +71,11 @@ namespace Api.Mappings
             CreateMap<ModerationLog, ModerationLogDto>();
             CreateMap<CreateModerationLogDto, ModerationLog>();
 
+            // ==================== BANK CARD MAPPINGS ====================
+            CreateMap<BankCard, BankCardDto>();
+            CreateMap<CreateBankCardDto, BankCard>();
+            CreateMap<UpdateBankCardDto, BankCard>();
+
             // ==================== VEHICLE HISTORY MAPPINGS ====================
             CreateMap<VehicleHistory, VehicleHistoryDto>();
             CreateMap<CreateVehicleHistoryDto, VehicleHistory>();

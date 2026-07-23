@@ -1,4 +1,5 @@
 
+using BusinessLogic.Interfaces;
 using DataAccess.Entities;
 using DataAccess.IRepositories;
 using Microsoft.AspNetCore.Authorization;
@@ -13,11 +14,16 @@ namespace Api.Controllers
     {
         private readonly IRepository<Bid> _bidRepo;
         private readonly IRepository<AuctionLot> _lotRepo;
+        private readonly IBankCardService _bankCardService;
 
-        public BidsController(IRepository<Bid> bidRepo, IRepository<AuctionLot> lotRepo)
+        public BidsController(
+            IRepository<Bid> bidRepo,
+            IRepository<AuctionLot> lotRepo,
+            IBankCardService bankCardService)
         {
             _bidRepo = bidRepo;
             _lotRepo = lotRepo;
+            _bankCardService = bankCardService;
         }
 
         public class PlaceBidDto
@@ -49,6 +55,10 @@ namespace Api.Controllers
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (!Guid.TryParse(userIdClaim, out var userId))
                 return Unauthorized(new { message = "Unable to determine user identity." });
+
+            var hasBankCard = await _bankCardService.HasBankCardAsync(userId);
+            if (!hasBankCard)
+                return BadRequest(new { message = "To participate in the auction, you must connect a bank card first." });
 
             var bid = new Bid
             {
