@@ -37,8 +37,8 @@ namespace DataAccess.Data
             base.OnModelCreating(modelBuilder);
 
             modelBuilder.Entity<Favorite>()
-                .HasKey(f => new { f.UserId, f.ListingId });
-
+                .HasIndex(f => new { f.UserId, f.ListingId })
+                .IsUnique();
             modelBuilder.Entity<Favorite>()
                 .HasOne(f => f.User)
                 .WithMany(u => u.Favorites)

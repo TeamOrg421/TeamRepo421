@@ -8,6 +8,6 @@ namespace DataAccess.Entities
 {
     public interface BaseEntity
     {
-        Guid Id { get; set; }
+        public Guid Id { get; set; }
     }
 }
