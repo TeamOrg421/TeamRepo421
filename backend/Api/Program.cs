@@ -1,3 +1,4 @@
+using Api.Middleware;
 using AutoMapper;
 using BusinessLogic.Interfaces;
 using BusinessLogic.Services;
@@ -26,6 +27,7 @@ builder.Services.AddScoped<IActionLotService, ActionLotService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ICarService, CarService>();
 builder.Services.AddScoped<ICatalogService, CatalogService>();
+builder.Services.AddScoped<IBankCardService, BankCardService>();
 
 
 // Identity (Guid)
@@ -295,6 +297,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseMiddleware<ErrorHandlingMiddleware>();
 app.UseHttpsRedirection();
 app.UseCors("AllowFrontend");
 app.UseAuthentication();

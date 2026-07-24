@@ -25,7 +25,8 @@ namespace DataAccess.Entities
         public virtual ICollection<Comment>? Comments { get; set; }
         public virtual ICollection<Favorite>? Favorites { get; set; } 
         public virtual ICollection<Notification>? Notifications { get; set; }
-        public virtual ICollection<ModerationLog>? ModerationLogs { get; set; } 
+        public virtual ICollection<ModerationLog>? ModerationLogs { get; set; }
+        public virtual ICollection<BankCard>? BankCards { get; set; }
     }
 }
 

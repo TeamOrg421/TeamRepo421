@@ -38,15 +38,8 @@ namespace Api.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteBrand(Guid brandId)
         {
-            try
-            {
-                await catalogService.DeleteCarBrandAsync(brandId);
-                return NoContent();
-            }
-            catch (Exception ex)
-            {
-                return NotFound(ex.Message);
-            }
+            await catalogService.DeleteCarBrandAsync(brandId);
+            return NoContent();
         }
 
         [HttpPut("brands/{brandId:guid}")]
@@ -56,33 +49,19 @@ namespace Api.Controllers
             if (brandId != dto.Id)
                 return BadRequest("Id in route does not match Id in body");
 
-            try
-            {
-                var existing = await catalogService.GetCarBrandAsync(brandId);
-                existing.Name = dto.Name;
-                existing.Slug = dto.Slug;
+            var existing = await catalogService.GetCarBrandAsync(brandId);
+            existing.Name = dto.Name;
+            existing.Slug = dto.Slug;
 
-                await catalogService.UpdateCarBrandAsync(existing);
-                return NoContent();
-            }
-            catch (Exception ex)
-            {
-                return NotFound(ex.Message);
-            }
+            await catalogService.UpdateCarBrandAsync(existing);
+            return NoContent();
         }
 
         [HttpGet("brands/{brandId:guid}")]
         public async Task<ActionResult<CarBrandDto>> GetBrand(Guid brandId)
         {
-            try
-            {
-                var brand = await catalogService.GetCarBrandAsync(brandId);
-                return Ok(mapper.Map<CarBrandDto>(brand));
-            }
-            catch (Exception ex)
-            {
-                return NotFound(ex.Message);
-            }
+            var brand = await catalogService.GetCarBrandAsync(brandId);
+            return Ok(mapper.Map<CarBrandDto>(brand));
         }
 
         [HttpGet("brands")]
@@ -123,15 +102,8 @@ namespace Api.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteModel(Guid modelId)
         {
-            try
-            {
-                await catalogService.DeleteCarModelAsync(modelId);
-                return NoContent();
-            }
-            catch (Exception ex)
-            {
-                return NotFound(ex.Message);
-            }
+            await catalogService.DeleteCarModelAsync(modelId);
+            return NoContent();
         }
 
         [HttpPut("models/{modelId:guid}")]
@@ -141,32 +113,18 @@ namespace Api.Controllers
             if (modelId != dto.Id)
                 return BadRequest("Id in route does not match Id in body");
 
-            try
-            {
-                var existing = await catalogService.GetCarModelAsync(modelId);
-                mapper.Map(dto, existing);
+            var existing = await catalogService.GetCarModelAsync(modelId);
+            mapper.Map(dto, existing);
 
-                await catalogService.UpdateCarModelAsync(existing);
-                return NoContent();
-            }
-            catch (Exception ex)
-            {
-                return NotFound(ex.Message);
-            }
+            await catalogService.UpdateCarModelAsync(existing);
+            return NoContent();
         }
 
         [HttpGet("models/{modelId:guid}")]
         public async Task<ActionResult<CarModelDto>> GetModel(Guid modelId)
         {
-            try
-            {
-                var model = await catalogService.GetCarModelAsync(modelId);
-                return Ok(mapper.Map<CarModelDto>(model));
-            }
-            catch (Exception ex)
-            {
-                return NotFound(ex.Message);
-            }
+            var model = await catalogService.GetCarModelAsync(modelId);
+            return Ok(mapper.Map<CarModelDto>(model));
         }
 
         [HttpGet("models")]
@@ -209,15 +167,8 @@ namespace Api.Controllers
         [HttpGet("brands/slug/{brandSlug}/models/{modelSlug}")]
         public async Task<ActionResult<CarModelDto>> GetModelBySlug(string brandSlug, string modelSlug)
         {
-            try
-            {
-                var model = await catalogService.GetModelBySlugAsync(brandSlug, modelSlug);
-                return Ok(mapper.Map<CarModelDto>(model));
-            }
-            catch (Exception ex)
-            {
-                return NotFound(ex.Message);
-            }
+            var model = await catalogService.GetModelBySlugAsync(brandSlug, modelSlug);
+            return Ok(mapper.Map<CarModelDto>(model));
         }
 
         [HttpGet("brands-with-models")]
