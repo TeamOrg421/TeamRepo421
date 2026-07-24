@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace DataAccess.Entities
+﻿namespace DataAccess.Entities
 {
     public class Car : BaseEntity
     {
@@ -21,7 +15,7 @@ namespace DataAccess.Entities
 
         // Зв'язки 1:M (характеристики самого авто)
         public virtual ICollection<CarImage>? Images { get; set; }
-        public virtual ICollection<VehicleHistory>? Histories { get; set; } 
-        public virtual ICollection<AuctionLot>? Listings { get; set; } 
+        public virtual ICollection<VehicleHistory>? Histories { get; set; }
+        public virtual ICollection<AuctionLot>? Listings { get; set; }
     }
 }

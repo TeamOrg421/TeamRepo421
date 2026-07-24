@@ -2,11 +2,9 @@ using AutoMapper;
 using BusinessLogic.DTOs;
 using BusinessLogic.Interfaces;
 using DataAccess.Entities;
-using DataAccess.Entities.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using static BusinessLogic.Services.CatalogService;
-using DriveType = DataAccess.Entities.Enums.DriveType;
 
 namespace Api.Controllers
 {

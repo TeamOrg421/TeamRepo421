@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Linq.Expressions;
 
 namespace DataAccess.IRepositories
 {
@@ -11,7 +6,7 @@ namespace DataAccess.IRepositories
     {
         Task<IReadOnlyList<T>> GetAllAsync(
             int? pageNumber = null,
-            int pageSize = 10,
+            int? pageSize = null,
             Expression<Func<T, bool>>? filtering = null,
             params string[]? includes);
         Task<T?> GetByIdAsync(Guid id);

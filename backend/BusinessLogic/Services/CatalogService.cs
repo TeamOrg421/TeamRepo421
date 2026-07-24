@@ -1,10 +1,6 @@
 using BusinessLogic.Interfaces;
 using DataAccess.Entities;
 using DataAccess.IRepositories;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace BusinessLogic.Services
 {
@@ -70,7 +66,7 @@ namespace BusinessLogic.Services
             return brand;
         }
 
-        public async Task<IList<CarBrand>> GetCarBrandsAsync(int? page, int size = 10)
+        public async Task<IList<CarBrand>> GetCarBrandsAsync(int? page, int? size = null)
         {
             var brands = await carBrandRepository.GetAllAsync(page, size);
             return brands.ToList();
@@ -113,13 +109,13 @@ namespace BusinessLogic.Services
             return model;
         }
 
-        public async Task<IList<CarModel>> GetCarModelsAsync(int? page, int size = 10)
+        public async Task<IList<CarModel>> GetCarModelsAsync(int? page, int? size = null)
         {
             var models = await carModelRepository.GetAllAsync(page, size);
             return models.ToList();
         }
 
-        public async Task<IList<CarModel>> GetCarModelsByBrandAsync(Guid brandId, int? page, int size = 10)
+        public async Task<IList<CarModel>> GetCarModelsByBrandAsync(Guid brandId, int? page, int? size = null)
         {
             var models = await carModelRepository.GetAllAsync(page, size);
             return models.Where(m => m.BrandId == brandId).ToList();
@@ -149,7 +145,7 @@ namespace BusinessLogic.Services
             return await carModelRepository.Count();
         }
 
-        public async Task<Dictionary<CarBrand, IList<CarModel>>> GetBrandsWithModelsAsync(int? size = 10, int page = 0)
+        public async Task<Dictionary<CarBrand, IList<CarModel>>> GetBrandsWithModelsAsync(int? size = 10, int? page = null)
         {
             var brands = await carBrandRepository.GetAllAsync(page, size.Value);
             var dict = new Dictionary<CarBrand, IList<CarModel>>();
