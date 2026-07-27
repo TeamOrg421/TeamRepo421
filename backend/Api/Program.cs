@@ -6,6 +6,8 @@ using BusinessLogic.Interfaces;
 using BusinessLogic.Services;
 using DataAccess.Data;
 using DataAccess.Entities;
+using DataAccess.IRepositories;
+using DataAccess.Repositories;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -45,7 +47,7 @@ using (var scope = app.Services.CreateScope())
 {
     await scope.ServiceProvider.SeedDatabaseAsync();
 }
-ф
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
