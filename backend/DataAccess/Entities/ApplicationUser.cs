@@ -1,11 +1,4 @@
 using Microsoft.AspNetCore.Identity;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml.Linq;
 
 namespace DataAccess.Entities
 {
@@ -23,7 +16,7 @@ namespace DataAccess.Entities
         public virtual ICollection<AuctionLot>? Listings { get; set; }
         public virtual ICollection<Bid>? Bids { get; set; }
         public virtual ICollection<Comment>? Comments { get; set; }
-        public virtual ICollection<Favorite>? Favorites { get; set; } 
+        public virtual ICollection<Favorite>? Favorites { get; set; }
         public virtual ICollection<Notification>? Notifications { get; set; }
         public virtual ICollection<ModerationLog>? ModerationLogs { get; set; }
         public virtual ICollection<BankCard>? BankCards { get; set; }

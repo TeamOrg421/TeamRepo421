@@ -48,7 +48,7 @@ namespace BusinessLogic.Services
             return bankCard;
         }
 
-        public async Task<IList<BankCard>> GetBankCardsAsync(Guid userId, int? page = null, int size = 10)
+        public async Task<IList<BankCard>> GetBankCardsAsync(Guid userId, int? page = null, int? size = null)
         {
             var bankCards = await bankCardRepository.GetAllAsync(
                 pageNumber: page,

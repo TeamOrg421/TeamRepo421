@@ -1,7 +1,4 @@
 ﻿using DataAccess.Entities;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
 
 
@@ -13,6 +10,6 @@ namespace BusinessLogic.Interfaces
         Task DeleteLotAsync(Guid lotId);
         Task UpdateLotAsync(AuctionLot lot);
         Task<AuctionLot> GetLotAsync(Guid lotId);
-        Task<IList<AuctionLot>> GetListLotAsync(Guid lotId, int? page, int size = 10);
+        Task<IList<AuctionLot>> GetListLotAsync(Guid lotId, int? page, int? size = null);
     }
 }
