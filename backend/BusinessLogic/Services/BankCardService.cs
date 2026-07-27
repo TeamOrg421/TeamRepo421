@@ -116,7 +116,7 @@ namespace BusinessLogic.Services
 
             return bankCards.Any();
         }
-        public async Task<bool> DepositeAsync(BankCard card, int amount)
+        public async Task<bool> DepositAsync(BankCard card, int amount)
         {
             if(amount <= 0)
                 throw new Exception("Amount must be greater than zero");
