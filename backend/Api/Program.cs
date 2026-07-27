@@ -1,5 +1,9 @@
 using Api.Extensions;
 using Api.Middleware;
+using Api.Middleware;
+using AutoMapper;
+using BusinessLogic.Interfaces;
+using BusinessLogic.Services;
 using DataAccess.Data;
 using DataAccess.Entities;
 using Microsoft.AspNetCore.Identity;
@@ -12,6 +16,16 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 builder.Services.AddApplicationServices();
 
+builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+builder.Services.AddScoped(typeof(ICarRepositories<>), typeof(CarRepositories<>));
+builder.Services.AddScoped<IActionLotService, ActionLotService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ICarService, CarService>();
+builder.Services.AddScoped<ICatalogService, CatalogService>();
+builder.Services.AddScoped<IBankCardService, BankCardService>();
+
+
+// Identity (Guid)
 builder.Services
     .AddIdentityCore<ApplicationUser>()
     .AddRoles<IdentityRole<Guid>>()
@@ -31,7 +45,7 @@ using (var scope = app.Services.CreateScope())
 {
     await scope.ServiceProvider.SeedDatabaseAsync();
 }
-
+ф
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
