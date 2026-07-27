@@ -37,15 +37,8 @@ namespace Api.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteCar(Guid carId)
         {
-            try
-            {
-                await carService.DeleteCarAsync(carId);
-                return NoContent();
-            }
-            catch (Exception ex)
-            {
-                return NotFound(ex.Message);
-            }
+            await carService.DeleteCarAsync(carId);
+            return NoContent();
         }
 
         [HttpPut("{carId:guid}")]
@@ -55,32 +48,18 @@ namespace Api.Controllers
             if (carId != dto.Id)
                 return BadRequest("Id in route does not match Id in body");
 
-            try
-            {
-                var existing = await carService.GetCarAsync(carId);
-                mapper.Map(dto, existing);
+            var existing = await carService.GetCarAsync(carId);
+            mapper.Map(dto, existing);
 
-                await carService.UpdateCarAsync(existing);
-                return NoContent();
-            }
-            catch (Exception ex)
-            {
-                return NotFound(ex.Message);
-            }
+            await carService.UpdateCarAsync(existing);
+            return NoContent();
         }
 
         [HttpGet("{carId:guid}")]
         public async Task<ActionResult<CarDto>> GetCar(Guid carId)
         {
-            try
-            {
-                var car = await carService.GetCarAsync(carId);
-                return Ok(mapper.Map<CarDto>(car));
-            }
-            catch (Exception ex)
-            {
-                return NotFound(ex.Message);
-            }
+            var car = await carService.GetCarAsync(carId);
+            return Ok(mapper.Map<CarDto>(car));
         }
 
         [HttpGet]
@@ -107,15 +86,8 @@ namespace Api.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteCarSpec(Guid specificationId)
         {
-            try
-            {
-                await carService.DeleteCarSpecAsync(specificationId);
-                return NoContent();
-            }
-            catch (Exception ex)
-            {
-                return NotFound(ex.Message);
-            }
+            await carService.DeleteCarSpecAsync(specificationId);
+            return NoContent();
         }
 
         [HttpPut("specifications/{specificationId:guid}")]
@@ -125,32 +97,18 @@ namespace Api.Controllers
             if (specificationId != dto.Id)
                 return BadRequest("Id in route does not match Id in body");
 
-            try
-            {
-                var existing = await carService.GetByIdAsync(specificationId);
-                mapper.Map(dto, existing);
+            var existing = await carService.GetByIdAsync(specificationId);
+            mapper.Map(dto, existing);
 
-                await carService.UpdateCarSpecAsync(existing);
-                return NoContent();
-            }
-            catch (Exception ex)
-            {
-                return NotFound(ex.Message);
-            }
+            await carService.UpdateCarSpecAsync(existing);
+            return NoContent();
         }
 
         [HttpGet("specifications/{specificationId:guid}")]
         public async Task<ActionResult<CarSpecificationDto>> GetCarSpec(Guid specificationId)
         {
-            try
-            {
-                var specification = await carService.GetByIdAsync(specificationId);
-                return Ok(mapper.Map<CarSpecificationDto>(specification));
-            }
-            catch (Exception ex)
-            {
-                return NotFound(ex.Message);
-            }
+            var specification = await carService.GetByIdAsync(specificationId);
+            return Ok(mapper.Map<CarSpecificationDto>(specification));
         }
 
         [HttpGet("specifications")]
