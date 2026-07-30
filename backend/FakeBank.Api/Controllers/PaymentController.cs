@@ -8,11 +8,6 @@ using System.Threading.Tasks;
 
 namespace FakeBank.Api.Controllers
 {
-    // NOTE: якщо цей контролер приймає запити виключно з іншого твого сервісу (server-to-server),
-    // замість звичайного [Authorize] для кінцевого користувача варто розглянути:
-    //   - API-key middleware (перевірка заголовка X-Api-Key)
-    //   - або client-credentials JWT (service-to-service token, а не user token)
-    // Наразі авторизація не додана — розкоментуй/підключи потрібний варіант нижче.
     [ApiController]
     [Route("api/[controller]")]
     public class PaymentController : ControllerBase
@@ -228,9 +223,6 @@ namespace FakeBank.Api.Controllers
             }
         }
     }
-
-    // ---- Response DTO's, які лишились специфічними для контролера ----
-    // (Deposit/Withdraw/Transfer/Reverse тепер беруться з BusinessLogic.DTOs)
 
     public record BalanceResponse(Guid CardId, decimal Balance);
 

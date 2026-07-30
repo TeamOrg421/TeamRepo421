@@ -61,8 +61,6 @@ namespace FakeBank.BusinessLogic.Service
             };
         }
 
-        // ---- Service methods ----
-
         public async Task<BankCardDto> AddBankCardAsync(CreateBankCardDto card)
         {
             var newCard = new BankCard
