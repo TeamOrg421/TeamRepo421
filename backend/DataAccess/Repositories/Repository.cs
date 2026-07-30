@@ -44,7 +44,7 @@ namespace DataAccess.Repositories
             }
 
             if (pageNumber != null)
-                query = await query.PaginateAsync(pageNumber.Value, pageSize ?? DefaultPageSize);
+                query = await query.PaginateAsync(pageNumber ?? 0, pageSize ?? DefaultPageSize);
 
             return await query.ToListAsync();
         }

@@ -11,7 +11,7 @@ namespace FakeBank.DataAccess
         }
 
         public DbSet<BankCard> BankCards { get; set; } = null!;
-        public DbSet<Transaction> TransactionCards { get; set; } = null!;
+        public DbSet<BankTransaction> BankTransactions { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -20,6 +20,10 @@ namespace FakeBank.DataAccess
             modelBuilder.Entity<BankCard>(entity =>
             {
                 entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.Name)
+                    .IsRequired()
+                    .HasMaxLength(100);
 
                 entity.Property(e => e.CardNumber)
                     .IsRequired()
@@ -49,7 +53,7 @@ namespace FakeBank.DataAccess
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
-            modelBuilder.Entity<Transaction>(entity =>
+            modelBuilder.Entity<BankTransaction>(entity =>
             {
                 entity.HasKey(e => e.Id);
 
@@ -64,6 +68,26 @@ namespace FakeBank.DataAccess
 
                 entity.Property(e => e.CreatedAt)
                     .IsRequired();
+
+                entity.HasOne(t => t.Card)
+                    .WithMany(c => c.Transactions)
+                    .HasForeignKey(t => t.CardId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(t => t.SecondCard)
+                    .WithMany()
+                    .HasForeignKey(t => t.SecondCardId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(t => t.CardId);
+
+                entity.HasIndex(t => t.SecondCardId);
+
+                entity.HasIndex(t => t.CreatedAt);
+
+                entity.HasIndex(t => t.Status);
+
+                entity.HasIndex(t => t.Type);
             });
         }
     }

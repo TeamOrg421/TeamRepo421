@@ -32,6 +32,7 @@ namespace FakeBank.DataAccess.Repositories
             int? pageNumber = null,
             int? pageSize = null,
             Expression<Func<T, bool>>? filtering = null,
+
             params string[]? includes)
         {
             var query = set.AsNoTracking().AsQueryable();
@@ -46,7 +47,7 @@ namespace FakeBank.DataAccess.Repositories
             }
 
             if (pageNumber != null)
-                query = await query.PaginateAsync(pageNumber.Value, pageSize ?? DefaultPageSize);
+                query = await query.PaginateAsync(pageNumber ?? 0, pageSize ?? DefaultPageSize);
 
             return await query.ToListAsync();
         }

@@ -15,7 +15,7 @@ builder.Services.AddDbContext<FakeBankDb>(options =>
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<IBankCardService, BankCardService>();
 builder.Services.AddScoped<ITransactionService, TransactionService>();
-//builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();
 
 builder.Services.AddControllers();
 
