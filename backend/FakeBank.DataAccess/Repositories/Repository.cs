@@ -1,22 +1,24 @@
-using BusinessLogic.Helpers;
-using DataAccess.Data;
-using DataAccess.Entities;
-using DataAccess.IRepositories;
+
+
+using FakeBank.DataAccess.IRepositories;
+using FakeBank.DataAccess;
+using FakeBank.DataAccess.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using System.Linq.Expressions;
-namespace DataAccess.Repositories
+using FakeBank.BusinessLogic.Helpers;
+namespace FakeBank.DataAccess.Repositories
 {
-    public class Repository<T> : IRepository<T> where T : class, BaseEntity
+    public class Repository<T> : IRepository<T> where T : class, BaseEntities
     {
         private readonly IConfiguration configuration;
 
-        internal ApplicationDbContext context;
+        internal FakeBankDb context;
         internal DbSet<T> set;
         private readonly int DefaultPageSize;
 
 
-        public Repository(ApplicationDbContext context,
+        public Repository(FakeBankDb context,
                 IConfiguration configuration)
         {
             this.context = context;
@@ -30,6 +32,7 @@ namespace DataAccess.Repositories
             int? pageNumber = null,
             int? pageSize = null,
             Expression<Func<T, bool>>? filtering = null,
+
             params string[]? includes)
         {
             var query = set.AsNoTracking().AsQueryable();
