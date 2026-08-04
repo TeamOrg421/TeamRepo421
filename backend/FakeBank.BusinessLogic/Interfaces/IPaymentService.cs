@@ -1,9 +1,8 @@
 ﻿using Shared.Contracts;
-﻿using FakeBank.BusinessLogic.DTOs;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using TransactionStatus = FakeBank.DataAccess.Entities.TransactionStatus;
+
 
 namespace FakeBank.BusinessLogic.Interfaces
 {

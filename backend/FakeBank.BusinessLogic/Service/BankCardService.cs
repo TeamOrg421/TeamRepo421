@@ -50,10 +50,13 @@ namespace FakeBank.BusinessLogic.Service
         }
         public async Task<BankCard> GetBankCardByTokenAsync(Guid token)
         {
-            //var bankCard = await repository.GetByIdAsync(cardId);
-            var bankCard = await ctx.BankCards.FirstOrDefaultAsync(i => i.BankCardToken == token);
+            var bankCard = await ctx.BankCards
+                .AsNoTracking()
+                .FirstOrDefaultAsync(i => i.BankCardToken == token);
+
             if (bankCard == null)
                 throw new Exception("Bank card not found");
+
             return bankCard;
         }
 

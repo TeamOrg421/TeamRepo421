@@ -213,7 +213,7 @@ namespace FakeBank.BusinessLogic.Service
         {
             if (dto.Amount <= 0)
                 throw new ArgumentException("Amount must be greater than zero.");
-
+            Console.WriteLine($"CardId = {dto.CardId}");
             var card = await bankCardService.GetBankCardByIdAsync(dto.CardId)
                        ?? throw new KeyNotFoundException("Bank card not found");
 
@@ -328,7 +328,7 @@ namespace FakeBank.BusinessLogic.Service
             if (dto.Amount <= 0)
                 throw new ArgumentException("Amount must be greater than zero.");
 
-            var card = await bankCardService.GetBankCardByIdAsync(dto.CardToken)
+            var card = await bankCardService.GetBankCardByTokenAsync(dto.CardToken)
                 ?? throw new KeyNotFoundException("Bank card not found");
             if (card.IsBlocked)
                 throw new InvalidOperationException("Card is blocked");
@@ -341,7 +341,7 @@ namespace FakeBank.BusinessLogic.Service
             var transaction = new BankTransaction
             {
                 Id = Guid.NewGuid(),
-                CardId = dto.CardToken,
+                CardId = card.Id,
                 Amount = dto.Amount,
                 Type = TransactionType.Withdraw,
                 Status = TransactionStatus.Success,

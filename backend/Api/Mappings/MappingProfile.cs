@@ -28,7 +28,8 @@ namespace Api.Mappings
                             : s.Listings
                                 .Where(x => x.Status == ListingStatus.Active)
                                 .Select(x => x.CurrentPrice)
-                                .FirstOrDefault()));
+                                .FirstOrDefault()))
+            
                 //.ForMember(d => d.BidCount,
                 //    o => o.MapFrom(s =>
                 //        s.Listings
