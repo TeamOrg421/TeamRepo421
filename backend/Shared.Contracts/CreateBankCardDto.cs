@@ -1,12 +1,19 @@
-﻿using FakeBank.DataAccess.Entities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace FakeBank.BusinessLogic.DTOs
+﻿namespace Shared.Contracts
 {
+    public enum TransactionType
+    {
+        Deposit, // Add funds to the card
+        Withdraw, // Remove funds from the card
+        Transfer, // Move funds from one card to another
+        DepositReversal, // Reserved for future use
+        WithdrawReversal, // Reserved for future use
+        TransferReversal // Reserved for future use
+    }
+    public enum TransactionStatus
+    {
+        Success,
+        Failed
+    }
     public class CreateBankCardDto
     {
         public string Name { get; set; } = null!;
@@ -23,7 +30,7 @@ namespace FakeBank.BusinessLogic.DTOs
 
         public string Name { get; set; } = string.Empty;
 
-        public string CardNumber { get; set; } = string.Empty;
+        public string MaskedCardNumber { get; set; } = string.Empty;
 
         public string CardHolderName { get; set; } = string.Empty;
 
@@ -32,6 +39,7 @@ namespace FakeBank.BusinessLogic.DTOs
         public decimal Balance { get; set; }
 
         public bool IsBlocked { get; set; }
+        public Guid BankCardToken { get; set; }
     }
     public class BankTransactionDto
     {
@@ -60,6 +68,12 @@ namespace FakeBank.BusinessLogic.DTOs
     public class WithdrawDto
     {
         public Guid CardId { get; set; }
+
+        public decimal Amount { get; set; }
+    }
+    public class PaymentRequestDto
+    {
+        public Guid CardToken { get; set; }
 
         public decimal Amount { get; set; }
     }

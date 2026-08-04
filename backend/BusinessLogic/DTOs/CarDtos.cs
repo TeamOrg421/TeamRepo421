@@ -27,6 +27,9 @@ namespace BusinessLogic.DTOs
         public string ModelName { get; set; } = null!;
         public string BrandName { get; set; } = null!;
         public CarSpecificationDto? Specification { get; set; }
+        public Guid? ListingId { get; set; }
+        public decimal? CurrentBid { get; set; }
+        public int BidCount { get; set; }
     }
 
     public class CarListItemDto

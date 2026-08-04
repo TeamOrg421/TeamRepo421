@@ -117,6 +117,27 @@ namespace DataAccess.Data
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<BankCard>()
+                .Property(b => b.BankCardToken)
+                .IsRequired();
+
+            modelBuilder.Entity<BankCard>()
+                .HasIndex(b => b.BankCardToken)
+                .IsUnique();
+
+            modelBuilder.Entity<BankCard>()
+                .Property(b => b.MaskedCardNumber)
+                .IsRequired()
+                .HasMaxLength(19);
+
+            modelBuilder.Entity<BankCard>()
+                .Property(b => b.CardHolderName)
+                .IsRequired();
+
+            modelBuilder.Entity<BankCard>()
+                .Property(b => b.ExpiryDate)
+                .IsRequired();
+
+            modelBuilder.Entity<BankCard>()
                 .HasOne(b => b.User)
                 .WithMany(u => u.BankCards)
                 .HasForeignKey(b => b.UserId)

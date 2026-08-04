@@ -1,6 +1,8 @@
 ﻿using FakeBank.BusinessLogic.Interfaces;
+using FakeBank.DataAccess;
 using FakeBank.DataAccess.Entities;
 using FakeBank.DataAccess.IRepositories;
+using Microsoft.EntityFrameworkCore;
 using System.Drawing;
 using System.Linq.Expressions;
 
@@ -9,10 +11,11 @@ namespace FakeBank.BusinessLogic.Service
     public class BankCardService : IBankCardService
     {
         private readonly IRepository<BankCard> repository;
-
-        public BankCardService(IRepository<BankCard> repository)
+        private readonly FakeBankDb ctx;
+        public BankCardService(IRepository<BankCard> repository, FakeBankDb ctx)
         {
             this.repository = repository;
+            this.ctx = ctx;
         }
         public async Task<BankCard> CreateBankCardAsync(BankCard bankCard)
         {
@@ -40,16 +43,19 @@ namespace FakeBank.BusinessLogic.Service
         public async Task<BankCard> GetBankCardByIdAsync(Guid cardId)
         {
             var bankCard = await repository.GetByIdAsync(cardId);
+            //var bankCard = await ctx.BankCards.FirstOrDefaultAsync(i => i.BankCardToken == cardId);
             if (bankCard == null)
                 throw new Exception("Bank card not found");
             return bankCard;
         }
-
-        public Task<bool> HasBankCardAsync(Guid userId)
+        public async Task<BankCard> GetBankCardByTokenAsync(Guid token)
         {
-            throw new NotImplementedException();
+            //var bankCard = await repository.GetByIdAsync(cardId);
+            var bankCard = await ctx.BankCards.FirstOrDefaultAsync(i => i.BankCardToken == token);
+            if (bankCard == null)
+                throw new Exception("Bank card not found");
+            return bankCard;
         }
-
         public async Task<BankCard> UpdateBankCardAsync(BankCard bankCard)
         {
             var existingBankCard = await repository.GetByIdAsync(bankCard.Id);

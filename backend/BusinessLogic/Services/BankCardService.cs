@@ -1,16 +1,19 @@
 using BusinessLogic.Interfaces;
+using DataAccess.Data;
 using DataAccess.Entities;
 using DataAccess.IRepositories;
+using Microsoft.EntityFrameworkCore;
 
 namespace BusinessLogic.Services
 {
     public class BankCardService : IBankCardService
     {
         private readonly IRepository<BankCard> bankCardRepository;
-
-        public BankCardService(IRepository<BankCard> bankCardRepository)
+        private readonly ApplicationDbContext ctx;
+        public BankCardService(IRepository<BankCard> bankCardRepository, ApplicationDbContext ctx)
         {
             this.bankCardRepository = bankCardRepository;
+            this.ctx = ctx;
         }
 
         public async Task CreateBankCardAsync(BankCard bankCard)
@@ -67,5 +70,19 @@ namespace BusinessLogic.Services
 
             return bankCards.Any();
         }
+        public async Task<Guid> GetTokenDefoultBankCard(Guid userId)
+        {
+            //var card = await bankCardRepository.GetAllAsync(
+            //    pageNumber: 1,
+            //    pageSize: 10,
+            //    filtering: card => card.UserId == userId && card.IsDefault == true);
+            //return card.FirstOrDefault()?.BankCardToken ?? Guid.Empty
+            var card = await ctx.BankCards.FirstOrDefaultAsync(i => i.UserId == userId && i.IsDefault == true);
+            if (card == null)
+                throw new Exception("Default bank card not found for the user");
+
+            return card.BankCardToken;
+        }
+
     }
 }

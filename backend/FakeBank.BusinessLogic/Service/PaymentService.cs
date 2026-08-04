@@ -1,9 +1,10 @@
-﻿using FakeBank.BusinessLogic.DTOs;
-using FakeBank.BusinessLogic.Interfaces;
+﻿using FakeBank.BusinessLogic.Interfaces;
 using FakeBank.DataAccess.Entities;
+using Shared.Contracts;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace FakeBank.BusinessLogic.Service
@@ -27,11 +28,12 @@ namespace FakeBank.BusinessLogic.Service
             {
                 Id = card.Id,
                 Name = card.Name,
-                CardNumber = card.CardNumber,
+                MaskedCardNumber = MaskCardNumber(card.CardNumber),
                 CardHolderName = card.CardHolderName,
                 ExpiryDate = card.ExpiryDate,
                 Balance = card.Balance,
-                IsBlocked = card.IsBlocked
+                IsBlocked = card.IsBlocked,
+                BankCardToken = card.BankCardToken
             };
         }
 
@@ -50,6 +52,15 @@ namespace FakeBank.BusinessLogic.Service
             };
         }
 
+        private static string MaskCardNumber(string cardNumber)
+        {
+            var digits = new string(cardNumber.Where(char.IsDigit).ToArray());
+            if (digits.Length < 4)
+                return "****";
+
+            return $"**** **** **** {digits[^4..]}";
+        }
+
         private static PaymentResultDto ToResultDto(BankTransaction transaction, decimal resultingBalance)
         {
             return new PaymentResultDto
@@ -63,18 +74,37 @@ namespace FakeBank.BusinessLogic.Service
 
         public async Task<BankCardDto> AddBankCardAsync(CreateBankCardDto card)
         {
+            var cardNumber = NormalizeCardNumber(card.CardNumber);
+            ValidateCardDetails(cardNumber, card.ExpiryDate, card.Cvv);
+
             var newCard = new BankCard
             {
                 Id = Guid.NewGuid(),
                 Name = card.Name,
-                CardNumber = card.CardNumber,
+                CardNumber = cardNumber,
                 CardHolderName = card.CardHolderName,
                 ExpiryDate = card.ExpiryDate,
                 Cvv = card.Cvv,
-                Balance = card.Balance
+                Balance = card.Balance,
+                BankCardToken = Guid.NewGuid()
             };
             var created = await bankCardService.CreateBankCardAsync(newCard);
             return ToDto(created);
+        }
+
+        private static string NormalizeCardNumber(string cardNumber)
+        {
+            return new string(cardNumber.Where(char.IsDigit).ToArray());
+        }
+
+        private static void ValidateCardDetails(string cardNumber, string expiryDate, string cvv)
+        {
+            if (cardNumber.Length != 16)
+                throw new ArgumentException("Card number must contain exactly 16 digits.");
+            if (!Regex.IsMatch(expiryDate, @"^(0[1-9]|1[0-2])/\d{2}$"))
+                throw new ArgumentException("Expiry date must use the MM/YY format.");
+            if (!Regex.IsMatch(cvv, @"^\d{3}$"))
+                throw new ArgumentException("CVV must contain exactly 3 digits.");
         }
 
         public async Task<PaymentResultDto> ReverseTransactionAsync(ReverseTransactionDto dto)
@@ -293,9 +323,38 @@ namespace FakeBank.BusinessLogic.Service
             return ToDto(transaction);
         }
 
-        public async Task<decimal> GetBalanceAsync(Guid cardId)
+        public async Task<PaymentResultDto> PayAsync(PaymentRequestDto dto)
         {
-            var card = await bankCardService.GetBankCardByIdAsync(cardId)
+            if (dto.Amount <= 0)
+                throw new ArgumentException("Amount must be greater than zero.");
+
+            var card = await bankCardService.GetBankCardByIdAsync(dto.CardToken)
+                ?? throw new KeyNotFoundException("Bank card not found");
+            if (card.IsBlocked)
+                throw new InvalidOperationException("Card is blocked");
+            if (card.Balance < dto.Amount)
+                throw new InvalidOperationException("Insufficient funds");
+
+            card.Balance -= dto.Amount;
+            await bankCardService.UpdateBankCardAsync(card);
+
+            var transaction = new BankTransaction
+            {
+                Id = Guid.NewGuid(),
+                CardId = dto.CardToken,
+                Amount = dto.Amount,
+                Type = TransactionType.Withdraw,
+                Status = TransactionStatus.Success,
+                CreatedAt = DateTime.UtcNow
+            };
+            await transactionService.CreateTransactionAsync(transaction);
+
+            return ToResultDto(transaction, card.Balance);
+        }
+
+        public async Task<decimal> GetBalanceAsync(Guid token)
+        {
+            var card = await bankCardService.GetBankCardByTokenAsync(token)
                         ?? throw new KeyNotFoundException("Bank card not found.");
             return card.Balance;
         }
