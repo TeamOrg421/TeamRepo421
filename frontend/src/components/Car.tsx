@@ -55,7 +55,7 @@ interface CarDetail {
 
 const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
   const { isAuthenticated, user } = useAuth();
-  
+
   const activeId = carId ?? '';
   const [carData, setCarData] = useState<CarDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -67,7 +67,7 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
   const [bidAmount, setBidAmount] = useState('');
   const [bidError, setBidError] = useState('');
   const [bidSuccess, setBidSuccess] = useState('');
-  
+
   // Watchlist state
   const [isWatched, setIsWatched] = useState(false);
   const [watchAnimation, setWatchAnimation] = useState(false);
@@ -78,6 +78,7 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
   const [currentBidPrice, setCurrentBidPrice] = useState(0);
   const [likedCommentIds, setLikedCommentIds] = useState<string[]>([]);
   const [commentInput, setCommentInput] = useState('');
+  const [showQuickInfo, setShowQuickInfo] = useState(false);
 
   useEffect(() => {
     const fetchCar = async () => {
@@ -96,9 +97,12 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
         }
 
         const data = await response.json();
+        console.log(data);
+        console.log(data.currentBid);
+        console.log(data.listing);
         const mappedCar: CarDetail = {
-              id: data.id,
-              listingId: data.listingId ?? data.listingId ?? undefined,
+          id: data.id,
+          listingId: data.listingId ?? data.listingId ?? undefined,
           title: `${data.year || ''} ${data.brandName || 'Unknown'} ${data.modelName || 'model'}`.trim(),
           year: data.year,
           make: data.brandName || 'Unknown',
@@ -113,8 +117,8 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
           vin: data.vin,
           location: 'Kyiv, Ukraine',
           seller: 'seller',
-          currentBid: 0,
-          bidCount: 0,
+          currentBid: data.currentBid ?? 0,
+          bidCount: data.bidCount ?? 0,
           timeRemaining: '1 Day',
           endsAt: new Date(Date.now() + 86400000).toLocaleString(),
           images: [],
@@ -216,7 +220,7 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
           return;
         }
 
-        const result = await resp.json();
+        await resp.json();
 
         const newBid: Bid = {
           bidder: user?.name || user?.email || 'You',
@@ -226,6 +230,15 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
 
         setLocalBids([newBid, ...localBids]);
         setCurrentBidPrice(numericalBid);
+        setCarData(prev =>
+          prev
+            ? {
+              ...prev,
+              currentBid: numericalBid,
+              bidCount: prev.bidCount + 1
+            }
+            : prev
+        );
         setBidSuccess(`Success! You are currently the highest bidder at $${numericalBid.toLocaleString()}.`);
         setBidAmount('');
       } catch (ex) {
@@ -249,6 +262,7 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
       }
 
       const data = await response.json();
+      console.log(data);
       setLikedCommentIds([...likedCommentIds, id]);
       setLocalComments(localComments.map(c => c.id === id ? { ...c, likes: data.likes ?? c.likes + 1 } : c));
     } catch (error) {
@@ -320,15 +334,46 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
             </svg>
             {carData.location}
           </span>
-          <h1 className="vehicle-detail-title">{carData.title}</h1>
+          <div className="vehicle-title-row">
+            <h1 className="vehicle-detail-title">{carData.title}</h1>
+            <div className="quick-info-wrapper">
+              <button
+                type="button"
+                className="quick-info-toggle"
+                onClick={() => setShowQuickInfo(prev => !prev)}
+              >
+                Quick info
+              </button>
+              {showQuickInfo && (
+                <div className="quick-info-card">
+                  <button
+                    type="button"
+                    className="quick-info-close"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowQuickInfo(false);
+                    }}
+                    aria-label="Close quick info"
+                  >
+                    ×
+                  </button>
+                  <p><strong>Make:</strong> {carData.make}</p>
+                  <p><strong>Model:</strong> {carData.model}</p>
+                  <p><strong>Year:</strong> {carData.year}</p>
+                  <p><strong>Location:</strong> {carData.location}</p>
+                  <p><strong>Current bid:</strong> ${currentBidPrice.toLocaleString()}</p>
+                </div>
+              )}
+            </div>
+          </div>
           <p className="seller-attribution">
             Listed by: <span className="seller-username">@{carData.seller}</span>
           </p>
         </div>
 
-        <button 
-          type="button" 
-          onClick={handleWatchToggle} 
+        <button
+          type="button"
+          onClick={handleWatchToggle}
           className={`btn-watch-item ${isWatched ? 'active' : ''} ${watchAnimation ? 'animate-heart' : ''}`}
         >
           <svg viewBox="0 0 24 24" fill={isWatched ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
@@ -343,21 +388,21 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
         {/* Gallery */}
         <div className="gallery-card glass-panel">
           <div className="main-display-container">
-            <img 
-              src={carData.images[selectedImageIndex]} 
-              alt={`${carData.title} view`} 
+            <img
+              src={carData.images[selectedImageIndex]}
+              alt={`${carData.title} view`}
               className="gallery-main-image"
             />
             <div className="gallery-nav-buttons">
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className="gallery-nav-btn prev"
                 onClick={() => setSelectedImageIndex(prev => prev > 0 ? prev - 1 : carData.images.length - 1)}
               >
                 ‹
               </button>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className="gallery-nav-btn next"
                 onClick={() => setSelectedImageIndex(prev => prev < carData.images.length - 1 ? prev + 1 : 0)}
               >
@@ -399,7 +444,7 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
             </div>
             <div className="stat-box">
               <span className="stat-label">Bids</span>
-              <span className="stat-value">{localBids.length}</span>
+              <span className="stat-value">{carData.bidCount}</span>
             </div>
             <div className="stat-box">
               <span className="stat-label">Time Left</span>
@@ -409,15 +454,15 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
 
           <div className="bid-console-body">
             <p className="auction-deadline-notice">Ends on <strong>{carData.endsAt}</strong></p>
-            
+
             <form className="place-bid-form" onSubmit={handlePlaceBid}>
               <div className="input-group">
                 <span className="currency-symbol">$</span>
-                <input 
-                  type="text" 
-                  placeholder={`Min bid: $${(currentBidPrice + 500).toLocaleString()}`} 
-                  value={bidAmount} 
-                  onChange={(e) => setBidAmount(e.target.value)} 
+                <input
+                  type="text"
+                  placeholder={`Min bid: $${(currentBidPrice + 500).toLocaleString()}`}
+                  value={bidAmount}
+                  onChange={(e) => setBidAmount(e.target.value)}
                   className="bid-input-field"
                 />
                 <button type="submit" className="btn btn-primary submit-bid-btn">
@@ -507,22 +552,22 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
       {/* Tabbed Content Navigation */}
       <section className="tabbed-details-section">
         <div className="tabs-header-container glass-panel">
-          <button 
-            type="button" 
+          <button
+            type="button"
             className={`tab-btn ${activeTab === 'overview' ? 'active' : ''}`}
             onClick={() => setActiveTab('overview')}
           >
             Overview & Highlights
           </button>
-          <button 
-            type="button" 
+          <button
+            type="button"
             className={`tab-btn ${activeTab === 'history' ? 'active' : ''}`}
             onClick={() => setActiveTab('history')}
           >
             Modifications & Flaws
           </button>
-          <button 
-            type="button" 
+          <button
+            type="button"
             className={`tab-btn ${activeTab === 'bids' ? 'active' : ''}`}
             onClick={() => setActiveTab('bids')}
           >
@@ -536,9 +581,9 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
             <div className="tab-pane-content">
               <h4>Seller's Description</h4>
               <p className="narrative-description">{carData.description}</p>
-              
+
               <hr className="divider" />
-              
+
               <h4>Auction Highlights</h4>
               <ul className="bulleted-highlights">
                 {carData.highlights.map((highlight, index) => (
@@ -637,9 +682,9 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
             {!isAuthenticated && (
               <span className="auth-helper-text">You must sign in to write comments.</span>
             )}
-            <button 
-              type="submit" 
-              className="btn btn-primary submit-comment-btn" 
+            <button
+              type="submit"
+              className="btn btn-primary submit-comment-btn"
               disabled={!commentInput.trim() || !isAuthenticated}
             >
               Post Comment
@@ -663,8 +708,8 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
                   </div>
                 </div>
 
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => handleLikeComment(comment.id)}
                   className={`comment-like-action-btn ${likedCommentIds.includes(comment.id) ? 'liked' : ''}`}
                 >

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { apiCall } from '../services/config';
+import PaymentMethods from './PaymentMethods';
 
 interface UserProfileProps {
   onNavigate: (page: string, params?: { carId?: number | string }) => void;
@@ -214,7 +215,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ onNavigate }) => {
     : [];
 
   const profileToEdit = profile ?? {
-    id: authUser?.id ?? '',
+    id: '',
     name: displayName,
     email: authUser?.email ?? '',
     bio: '',
@@ -334,6 +335,8 @@ const UserProfile: React.FC<UserProfileProps> = ({ onNavigate }) => {
             </div>
           </div>
         </div>
+
+        <PaymentMethods />
 
       </div>
 

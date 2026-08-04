@@ -11,6 +11,13 @@ namespace BusinessLogic.Services
         {
             this.repo = repo;
         }
+        public async Task<(decimal, int)> GetLotById(Guid lotId)
+        {
+            var lot = await repo.GetByIdAsync(lotId, "Bids");
+            if (lot == null)
+                throw new Exception("Lot not found");
+            return (lot.CurrentPrice, lot.Bids.Count);
+        }
         public async Task CreateLotAsync(AuctionLot lot)
         {
             await repo.AddAsync(lot);

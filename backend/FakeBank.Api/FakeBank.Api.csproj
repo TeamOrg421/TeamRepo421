@@ -19,6 +19,7 @@
 	<ItemGroup>
 	  <ProjectReference Include="..\FakeBank.BusinessLogic\FakeBank.BusinessLogic.csproj" />
 	  <ProjectReference Include="..\FakeBank.DataAccess\FakeBank.DataAccess.csproj" />
+	  <ProjectReference Include="..\Shared.Contracts\Shared.Contracts.csproj" />
 	</ItemGroup>
 
 </Project>

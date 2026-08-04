@@ -1,4 +1,6 @@
-﻿namespace FakeBank.DataAccess.Entities
+﻿using Shared.Contracts;
+
+namespace FakeBank.DataAccess.Entities
 {
     public class BankCard : BaseEntities
     {
@@ -10,6 +12,9 @@
         public string Cvv { get; set; } = string.Empty;
         public decimal Balance { get; set; }
         public bool IsBlocked { get; set; }
+        public Guid UserId { get; set; }
+        public Guid BankCardToken { get; set; } = Guid.NewGuid();
+
         public virtual ICollection<BankTransaction> Transactions { get; set; } = [];
     }
     public class BankTransaction : BaseEntities
@@ -24,19 +29,5 @@
         public TransactionStatus Status { get; set; }
         public DateTime CreatedAt { get; set; }
         public Guid? RelatedTransactionId { get; set; } // For reversals
-    }
-    public enum TransactionType
-    {
-        Deposit, // Add funds to the card
-        Withdraw, // Remove funds from the card
-        Transfer, // Move funds from one card to another
-        DepositReversal, // Reserved for future use
-        WithdrawReversal, // Reserved for future use
-        TransferReversal // Reserved for future use
-    }
-    public enum TransactionStatus
-    {
-        Success,
-        Failed
     }
 }

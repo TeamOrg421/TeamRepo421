@@ -3,6 +3,7 @@ using BusinessLogic.Interfaces;
 using DataAccess.Entities;
 using DataAccess.IRepositories;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
@@ -15,15 +16,21 @@ namespace Api.Controllers
         private readonly IRepository<Bid> _bidRepo;
         private readonly IRepository<AuctionLot> _lotRepo;
         private readonly IBankCardService _bankCardService;
+        private readonly IBankApiClient fakeBankApi;
+        private readonly UserManager<ApplicationUser> userManager;
 
         public BidsController(
             IRepository<Bid> bidRepo,
             IRepository<AuctionLot> lotRepo,
-            IBankCardService bankCardService)
+            IBankCardService bankCardService,
+            IBankApiClient fakeBankApi,
+            UserManager<ApplicationUser> userManager)
         {
             _bidRepo = bidRepo;
             _lotRepo = lotRepo;
             _bankCardService = bankCardService;
+            this.fakeBankApi = fakeBankApi;
+            this.userManager = userManager;
         }
 
         public class PlaceBidDto
@@ -31,6 +38,7 @@ namespace Api.Controllers
             public Guid ListingId { get; set; }
             public decimal Amount { get; set; }
         }
+
 
         [HttpPost]
         [Authorize]
@@ -59,7 +67,16 @@ namespace Api.Controllers
             var hasBankCard = await _bankCardService.HasBankCardAsync(userId);
             if (!hasBankCard)
                 return BadRequest(new { message = "To participate in the auction, you must connect a bank card first." });
+            var user = await userManager.FindByIdAsync(userId.ToString());
+            if (user == null)
+                return Unauthorized(new { message = "User not found." });
 
+            var defoultCard = await _bankCardService.GetTokenDefoultBankCard(userId);
+            Console.WriteLine($"TOKEN = {defoultCard}");
+            var cardBalance = await fakeBankApi.GetBalanceAsync(defoultCard);
+            Console.WriteLine($"\n ÁÀËÀÍÑ ---------> {cardBalance}");
+            if(cardBalance < model.Amount)
+                return BadRequest(new { message = "Insufficient funds on the bank card." });
             var bid = new Bid
             {
                 Id = Guid.NewGuid(),

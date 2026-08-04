@@ -25,6 +25,7 @@ namespace Api.Middleware
 
                 var statusCode = GetStatusCode(ex);
                 context.Response.StatusCode = statusCode;
+                Console.WriteLine(ex.ToString());
 
                 await context.Response.WriteAsJsonAsync(new
                 {

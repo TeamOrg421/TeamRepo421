@@ -5,6 +5,7 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Api", "Api\Api.csproj", "{AA15AB5C-6230-40E8-893D-66EBC544FF6D}"
 	ProjectSection(ProjectDependencies) = postProject
 		{5D90E367-FA8F-4B74-B821-10F20A66E230} = {5D90E367-FA8F-4B74-B821-10F20A66E230}
+		{E602FC2B-B5BD-4964-A301-835FCCBA11D0} = {E602FC2B-B5BD-4964-A301-835FCCBA11D0}
 		{F1BC045F-5924-4699-B908-DE9C08645CA6} = {F1BC045F-5924-4699-B908-DE9C08645CA6}
 	EndProjectSection
 EndProject
@@ -21,12 +22,15 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FakeBank.Api", "FakeBank.Ap
 		{CE969678-03D6-476F-8D98-7D963B6838F8} = {CE969678-03D6-476F-8D98-7D963B6838F8}
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FakeBank.BusinessLogic", "FakeBank.BusinessLogic\FakeBank.BusinessLogic.csproj", "{CE969678-03D6-476F-8D98-7D963B6838F8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FakeBank.BusinessLogic", "FakeBank.BusinessLogic\FakeBank.BusinessLogic.csproj", "{CE969678-03D6-476F-8D98-7D963B6838F8}"
 	ProjectSection(ProjectDependencies) = postProject
 		{77FA0E10-E1E1-4FF8-B79C-CB26ED7FBFF2} = {77FA0E10-E1E1-4FF8-B79C-CB26ED7FBFF2}
+		{E602FC2B-B5BD-4964-A301-835FCCBA11D0} = {E602FC2B-B5BD-4964-A301-835FCCBA11D0}
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FakeBank.DataAccess", "FakeBank.DataAccess\FakeBank.DataAccess.csproj", "{77FA0E10-E1E1-4FF8-B79C-CB26ED7FBFF2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FakeBank.DataAccess", "FakeBank.DataAccess\FakeBank.DataAccess.csproj", "{77FA0E10-E1E1-4FF8-B79C-CB26ED7FBFF2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared.Contracts", "Shared.Contracts\Shared.Contracts.csproj", "{E602FC2B-B5BD-4964-A301-835FCCBA11D0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -58,6 +62,10 @@ Global
 		{77FA0E10-E1E1-4FF8-B79C-CB26ED7FBFF2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{77FA0E10-E1E1-4FF8-B79C-CB26ED7FBFF2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{77FA0E10-E1E1-4FF8-B79C-CB26ED7FBFF2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E602FC2B-B5BD-4964-A301-835FCCBA11D0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E602FC2B-B5BD-4964-A301-835FCCBA11D0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E602FC2B-B5BD-4964-A301-835FCCBA11D0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E602FC2B-B5BD-4964-A301-835FCCBA11D0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
