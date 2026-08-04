@@ -237,7 +237,10 @@ namespace Api.Controllers
         // ─── Helper ─────────────────────────────────────────────────────────
         private Guid? GetUserId()
         {
-            var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                     ?? User.FindFirst("sub")?.Value
+                     ?? User.FindFirst("id")?.Value
+                     ?? User.FindFirst("nameid")?.Value;
             return Guid.TryParse(claim, out var id) ? id : null;
         }
     }

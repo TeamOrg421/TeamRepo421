@@ -151,71 +151,189 @@ using (var scope = app.Services.CreateScope())
         // Ignore if column already exists or lacks permission.
     }
 
-    var existingCar = await dbContext.Cars
-        .Include(c => c.Model)
-        .ThenInclude(m => m.Brand)
-        .FirstOrDefaultAsync(c => c.Vin == "WPOZZZ99ZTS123456");
-
-    if (existingCar == null)
+    var seedCarsData = new[]
     {
-        var brand = new CarBrand
+        new
         {
-            Id = Guid.NewGuid(),
-            Name = "Porsche",
-            Slug = "porsche"
-        };
-
-        var model = new CarModel
-        {
-            Id = Guid.NewGuid(),
-            Name = "911 GT3",
-            Slug = "911-gt3",
-            Brand = brand
-        };
-
-        var car = new Car
-        {
-            Id = Guid.NewGuid(),
+            Brand = "Porsche",
+            BrandSlug = "porsche",
+            Model = "911 GT3",
+            ModelSlug = "911-gt3",
             Year = 2023,
             Vin = "WPOZZZ99ZTS123456",
-            Model = model,
-            IsAvailable = true
-        };
-
-        var specification = new CarSpecification
-        {
-            Id = Guid.NewGuid(),
-            Car = car,
             Mileage = 6200,
             HorsePower = 502,
             EngineVolume = 4.0,
-            FuelType = FuelType.Petrol,
             Transmission = TransmissionType.Manual,
             DriveType = DataAccess.Entities.Enums.DriveType.RWD,
             BodyType = BodyType.Coupe,
-            Doors = 2,
-            Seats = 2,
             Color = "Carrera White Metallic",
-            IsAccidentFree = true,
-            OwnersCount = 1
-        };
-
-        var image = new CarImage
-        {
-            Id = Guid.NewGuid(),
-            Car = car,
             ImageUrl = "https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?auto=format&fit=crop&w=1200&q=80",
-            IsMain = true
-        };
+            StartingPrice = 185000m,
+            Title = "2023 Porsche 911 GT3 Manthey Racing Package"
+        },
+        new
+        {
+            Brand = "BMW",
+            BrandSlug = "bmw",
+            Model = "M5 CS",
+            ModelSlug = "m5-cs",
+            Year = 2022,
+            Vin = "WBS83CH090CH54321",
+            Mileage = 8500,
+            HorsePower = 627,
+            EngineVolume = 4.4,
+            Transmission = TransmissionType.Automatic,
+            DriveType = DataAccess.Entities.Enums.DriveType.AWD,
+            BodyType = BodyType.Sedan,
+            Color = "Frozen Deep Green Metallic",
+            ImageUrl = "https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&w=1200&q=80",
+            StartingPrice = 142000m,
+            Title = "2022 BMW M5 CS Carbon Ceramic Brakes"
+        },
+        new
+        {
+            Brand = "Audi",
+            BrandSlug = "audi",
+            Model = "RS6 Avant",
+            ModelSlug = "rs6-avant",
+            Year = 2021,
+            Vin = "WAUZZZF28MN987654",
+            Mileage = 14200,
+            HorsePower = 591,
+            EngineVolume = 4.0,
+            Transmission = TransmissionType.Automatic,
+            DriveType = DataAccess.Entities.Enums.DriveType.AWD,
+            BodyType = BodyType.Wagon,
+            Color = "Nardo Gray",
+            ImageUrl = "https://images.unsplash.com/photo-1603584173870-7f23fdae1b7a?auto=format&fit=crop&w=1200&q=80",
+            StartingPrice = 118000m,
+            Title = "2021 Audi RS6 Avant Dynamic Package Plus"
+        },
+        new
+        {
+            Brand = "Mercedes-Benz",
+            BrandSlug = "mercedes-benz",
+            Model = "AMG GT Black Series",
+            ModelSlug = "amg-gt-black-series",
+            Year = 2021,
+            Vin = "WDD1903791A012345",
+            Mileage = 3100,
+            HorsePower = 720,
+            EngineVolume = 4.0,
+            Transmission = TransmissionType.Automatic,
+            DriveType = DataAccess.Entities.Enums.DriveType.RWD,
+            BodyType = BodyType.Coupe,
+            Color = "Magmabeam Orange",
+            ImageUrl = "https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?auto=format&fit=crop&w=1200&q=80",
+            StartingPrice = 325000m,
+            Title = "2021 Mercedes-AMG GT Black Series Track Edition"
+        },
+        new
+        {
+            Brand = "Nissan",
+            BrandSlug = "nissan",
+            Model = "GT-R Nismo",
+            ModelSlug = "gt-r-nismo",
+            Year = 2023,
+            Vin = "JN1AR3EF4KM654321",
+            Mileage = 4800,
+            HorsePower = 600,
+            EngineVolume = 3.8,
+            Transmission = TransmissionType.Automatic,
+            DriveType = DataAccess.Entities.Enums.DriveType.AWD,
+            BodyType = BodyType.Coupe,
+            Color = "Stealth Gray",
+            ImageUrl = "https://images.unsplash.com/photo-1617814076367-b759c7d7e738?auto=format&fit=crop&w=1200&q=80",
+            StartingPrice = 215000m,
+            Title = "2023 Nissan GT-R Nismo Special Edition"
+        }
+    };
 
-        dbContext.CarBrands.Add(brand);
-        dbContext.CarModels.Add(model);
-        dbContext.Cars.Add(car);
-        dbContext.CarSpecifications.Add(specification);
-        dbContext.CarImages.Add(image);
+    Car? firstCar = null;
 
-        await dbContext.SaveChangesAsync();
-        existingCar = car;
+    foreach (var carData in seedCarsData)
+    {
+        var existingCar = await dbContext.Cars
+            .Include(c => c.Model)
+            .ThenInclude(m => m.Brand)
+            .FirstOrDefaultAsync(c => c.Vin == carData.Vin);
+
+        if (existingCar == null)
+        {
+            var brand = await dbContext.CarBrands.FirstOrDefaultAsync(b => b.Slug == carData.BrandSlug);
+            if (brand == null)
+            {
+                brand = new CarBrand
+                {
+                    Id = Guid.NewGuid(),
+                    Name = carData.Brand,
+                    Slug = carData.BrandSlug
+                };
+                dbContext.CarBrands.Add(brand);
+                await dbContext.SaveChangesAsync();
+            }
+
+            var model = await dbContext.CarModels.FirstOrDefaultAsync(m => m.Slug == carData.ModelSlug);
+            if (model == null)
+            {
+                model = new CarModel
+                {
+                    Id = Guid.NewGuid(),
+                    Name = carData.Model,
+                    Slug = carData.ModelSlug,
+                    BrandId = brand.Id
+                };
+                dbContext.CarModels.Add(model);
+                await dbContext.SaveChangesAsync();
+            }
+
+            var car = new Car
+            {
+                Id = Guid.NewGuid(),
+                Year = carData.Year,
+                Vin = carData.Vin,
+                ModelId = model.Id,
+                IsAvailable = true
+            };
+
+            var specification = new CarSpecification
+            {
+                Id = Guid.NewGuid(),
+                CarId = car.Id,
+                Mileage = carData.Mileage,
+                HorsePower = carData.HorsePower,
+                EngineVolume = carData.EngineVolume,
+                FuelType = FuelType.Petrol,
+                Transmission = carData.Transmission,
+                DriveType = carData.DriveType,
+                BodyType = carData.BodyType,
+                Doors = 2,
+                Seats = carData.BodyType == BodyType.Sedan || carData.BodyType == BodyType.Wagon ? 5 : 2,
+                Color = carData.Color,
+                IsAccidentFree = true,
+                OwnersCount = 1
+            };
+
+            var image = new CarImage
+            {
+                Id = Guid.NewGuid(),
+                CarId = car.Id,
+                ImageUrl = carData.ImageUrl,
+                IsMain = true
+            };
+
+            dbContext.Cars.Add(car);
+            dbContext.CarSpecifications.Add(specification);
+            dbContext.CarImages.Add(image);
+            await dbContext.SaveChangesAsync();
+
+            if (firstCar == null) firstCar = car;
+        }
+        else if (firstCar == null)
+        {
+            firstCar = existingCar;
+        }
     }
 
     var seller = await dbContext.Users.FirstOrDefaultAsync(u => u.Email == "seller@example.com");
@@ -250,41 +368,44 @@ using (var scope = app.Services.CreateScope())
         await dbContext.SaveChangesAsync();
     }
 
-    var existingLot = await dbContext.CarListings
-        .Include(l => l.Bids)
-        .FirstOrDefaultAsync(l => l.CarId == existingCar.Id);
-
-    if (existingLot == null)
+    if (firstCar != null)
     {
-        var lot = new AuctionLot
+        var existingLot = await dbContext.CarListings
+            .Include(l => l.Bids)
+            .FirstOrDefaultAsync(l => l.CarId == firstCar.Id);
+
+        if (existingLot == null)
         {
-            Id = Guid.NewGuid(),
-            Title = $"{existingCar.Year} {existingCar.Model?.Brand?.Name ?? "Porsche"} {existingCar.Model?.Name ?? "911 GT3"}",
-            Description = "Test auction lot seeded for the frontend detail page.",
-            StartingPrice = 95000m,
-            CurrentPrice = 95000m,
-            AuctionStart = DateTime.UtcNow.AddMinutes(-15),
-            AuctionEnd = DateTime.UtcNow.AddDays(3),
-            Status = ListingStatus.Active,
-            SellerId = seller.Id,
-            CarId = existingCar.Id
-        };
+            var lot = new AuctionLot
+            {
+                Id = Guid.NewGuid(),
+                Title = $"{firstCar.Year} {firstCar.Model?.Brand?.Name ?? "Porsche"} {firstCar.Model?.Name ?? "911 GT3"}",
+                Description = "Test auction lot seeded for the frontend detail page.",
+                StartingPrice = 95000m,
+                CurrentPrice = 95000m,
+                AuctionStart = DateTime.UtcNow.AddMinutes(-15),
+                AuctionEnd = DateTime.UtcNow.AddDays(3),
+                Status = ListingStatus.Active,
+                SellerId = seller.Id,
+                CarId = firstCar.Id
+            };
 
-        dbContext.CarListings.Add(lot);
-        await dbContext.SaveChangesAsync();
+            dbContext.CarListings.Add(lot);
+            await dbContext.SaveChangesAsync();
 
-        var initialBid = new Bid
-        {
-            Id = Guid.NewGuid(),
-            Amount = 97000m,
-            CreatedAt = DateTime.UtcNow.AddMinutes(-5),
-            ListingId = lot.Id,
-            UserId = bidder.Id
-        };
+            var initialBid = new Bid
+            {
+                Id = Guid.NewGuid(),
+                Amount = 97000m,
+                CreatedAt = DateTime.UtcNow.AddMinutes(-5),
+                ListingId = lot.Id,
+                UserId = bidder.Id
+            };
 
-        dbContext.Bids.Add(initialBid);
-        lot.CurrentPrice = initialBid.Amount;
-        await dbContext.SaveChangesAsync();
+            dbContext.Bids.Add(initialBid);
+            lot.CurrentPrice = initialBid.Amount;
+            await dbContext.SaveChangesAsync();
+        }
     }
 }
 
