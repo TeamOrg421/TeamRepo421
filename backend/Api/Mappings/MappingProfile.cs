@@ -9,7 +9,9 @@ namespace Api.Mappings
         public MappingProfile()
         {
             // ==================== CAR MAPPINGS ====================
-            CreateMap<Car, CarDto>();
+            CreateMap<Car, CarDto>()
+                .ForMember(dest => dest.ModelName, opt => opt.MapFrom(src => src.Model != null ? src.Model.Name : string.Empty))
+                .ForMember(dest => dest.BrandName, opt => opt.MapFrom(src => src.Model != null && src.Model.Brand != null ? src.Model.Brand.Name : string.Empty));
             CreateMap<CreateCarDto, Car>();
             CreateMap<UpdateCarDto, Car>();
             CreateMap<Car, CarListItemDto>();
