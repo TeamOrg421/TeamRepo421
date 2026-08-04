@@ -129,10 +129,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateUser = (updatedUser: Partial<User>) => {
     setUser(prev => {
-      const nextUser = prev ? { ...prev, ...updatedUser } : updatedUser;
-      localStorage.setItem('user', JSON.stringify(nextUser));
-      return nextUser;
-    });
+      if (!prev) return null
+      const nextUser: User = { ...prev, ...updatedUser }
+      localStorage.setItem('user', JSON.stringify(nextUser))
+      return nextUser
+    })
   }
 
   const value: AuthContextType = {

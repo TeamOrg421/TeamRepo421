@@ -18,5 +18,7 @@ namespace FakeBank.BusinessLogic.Interfaces
         Task<BankCard> CreateBankCardAsync(BankCard bankCard);
         Task<BankCard> UpdateBankCardAsync(BankCard bankCard);
         Task<bool> DeleteBankCardAsync(Guid cardId);
+        Task<bool> HasBankCardAsync(Guid userId);
+
     }
 }

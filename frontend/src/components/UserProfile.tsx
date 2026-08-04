@@ -57,8 +57,12 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ profile, onClose, o
       });
 
       if (!resp.ok) {
-        const err = await resp.json().catch(() => ({ message: 'Update failed' }));
-        setError(err.message || 'Update failed');
+        if (resp.status === 401) {
+          setError('Необхідно увійти в акаунт (Sign In), щоб зберегти профіль.');
+        } else {
+          const err = await resp.json().catch(() => ({ message: 'Update failed' }));
+          setError(err.message || 'Update failed');
+        }
         return;
       }
 

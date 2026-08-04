@@ -56,6 +56,12 @@ namespace FakeBank.BusinessLogic.Service
                 throw new Exception("Bank card not found");
             return bankCard;
         }
+
+        public Task<bool> HasBankCardAsync(Guid userId)
+        {
+            throw new NotImplementedException();
+        }
+
         public async Task<BankCard> UpdateBankCardAsync(BankCard bankCard)
         {
             var existingBankCard = await repository.GetByIdAsync(bankCard.Id);

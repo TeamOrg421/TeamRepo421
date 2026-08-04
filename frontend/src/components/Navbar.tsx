@@ -114,6 +114,13 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate }) => {
                   Profile
                 </button>
                 <button
+                  className="hamburger-dropdown-item hamburger-admin-item"
+                  type="button"
+                  onClick={() => { setMenuOpen(false); onNavigate('adminCars'); }}
+                >
+                  Admin Panel
+                </button>
+                <button
                   className="hamburger-dropdown-item"
                   type="button"
                   onClick={() => { setMenuOpen(false); onNavigate('leaderboard'); }}
