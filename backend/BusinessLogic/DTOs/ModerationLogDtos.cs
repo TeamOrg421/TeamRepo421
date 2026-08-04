@@ -1,5 +1,3 @@
-using System;
-
 namespace BusinessLogic.DTOs
 {
     public class CreateModerationLogDto

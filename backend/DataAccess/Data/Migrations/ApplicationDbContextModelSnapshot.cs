@@ -17,7 +17,7 @@ namespace DataAccess.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.28")
+                .HasAnnotation("ProductVersion", "8.0.29")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -30,6 +30,9 @@ namespace DataAccess.Migrations
 
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("int");
+
+                    b.Property<string>("Bio")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
@@ -44,6 +47,9 @@ namespace DataAccess.Migrations
 
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("bit");
+
+                    b.Property<string>("GarageItems")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("bit");
@@ -165,6 +171,41 @@ namespace DataAccess.Migrations
                     b.HasIndex("WinnerId");
 
                     b.ToTable("AuctionWinners");
+                });
+
+            modelBuilder.Entity("DataAccess.Entities.BankCard", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("BillingAddress")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CardHolderName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CardNumber")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ExpiryDate")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("BankCards");
                 });
 
             modelBuilder.Entity("DataAccess.Entities.Bid", b =>
@@ -358,6 +399,9 @@ namespace DataAccess.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("Likes")
+                        .HasColumnType("int");
+
                     b.Property<Guid>("ListingId")
                         .HasColumnType("uniqueidentifier");
 
@@ -379,18 +423,22 @@ namespace DataAccess.Migrations
 
             modelBuilder.Entity("DataAccess.Entities.Favorite", b =>
                 {
-                    b.Property<Guid>("UserId")
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("ListingId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<Guid>("Id")
+                    b.Property<Guid>("UserId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.HasKey("UserId", "ListingId");
+                    b.HasKey("Id");
 
                     b.HasIndex("ListingId");
+
+                    b.HasIndex("UserId", "ListingId")
+                        .IsUnique();
 
                     b.ToTable("Favorites");
                 });
@@ -648,6 +696,17 @@ namespace DataAccess.Migrations
                     b.Navigation("Winner");
                 });
 
+            modelBuilder.Entity("DataAccess.Entities.BankCard", b =>
+                {
+                    b.HasOne("DataAccess.Entities.ApplicationUser", "User")
+                        .WithMany("BankCards")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("DataAccess.Entities.Bid", b =>
                 {
                     b.HasOne("DataAccess.Entities.AuctionLot", "Listing")
@@ -843,6 +902,8 @@ namespace DataAccess.Migrations
 
             modelBuilder.Entity("DataAccess.Entities.ApplicationUser", b =>
                 {
+                    b.Navigation("BankCards");
+
                     b.Navigation("Bids");
 
                     b.Navigation("Comments");

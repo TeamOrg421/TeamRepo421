@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.ConstrainedExecution;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace DataAccess.Entities
+﻿namespace DataAccess.Entities
 {
     public class CarModel : BaseEntity
     {
@@ -15,6 +8,6 @@ namespace DataAccess.Entities
 
         public Guid BrandId { get; set; }
         public virtual CarBrand Brand { get; set; } = null!;
-        public virtual ICollection<Car>? Cars { get; set; } 
+        public virtual ICollection<Car>? Cars { get; set; }
     }
 }

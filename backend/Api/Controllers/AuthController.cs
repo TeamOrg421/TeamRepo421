@@ -1,10 +1,9 @@
 ﻿
 using AutoMapper;
-using Azure.Core.Pipeline;
+using BusinessLogic.DTOs;
 using BusinessLogic.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using BusinessLogic.DTOs;
 
 namespace YourProject.Controllers
 {
@@ -55,7 +54,7 @@ namespace YourProject.Controllers
         public IActionResult GetConfig()
         {
             var apiUrl = $"{Request.Scheme}://{Request.Host}";
-            
+
             return Ok(new
             {
                 apiUrl = apiUrl
@@ -63,7 +62,7 @@ namespace YourProject.Controllers
         }
 
         [HttpGet("testFroAdmin")]
-        [Authorize(Roles ="Admin")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> TestForAdmin()
         {
             return Ok();

@@ -1,12 +1,11 @@
 ﻿using DataAccess.Entities;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Api.Controllers
 {
     [Route("api/enums")]
     [ApiController]
-    public class EnumsController : ControllerBase 
+    public class EnumsController : ControllerBase
     {
         // тут використовується -> Reflection (Рефлексія)
         // Bid - для доступу в збірку, де знаходяться всі enum
@@ -16,8 +15,8 @@ namespace Api.Controllers
             var dataAccessAssembly = typeof(Bid).Assembly;
 
             var enumNames = dataAccessAssembly.GetTypes()
-                .Where(t => t.IsEnum) 
-                .Select(t => t.Name)  
+                .Where(t => t.IsEnum)
+                .Select(t => t.Name)
                 .ToList();
 
             return Ok(enumNames);

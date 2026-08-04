@@ -34,7 +34,7 @@ namespace BusinessLogic.Services
             await carRepository.DeleteAsync(car);
         }
 
-        public async Task<IList<Car>> GetListCarAsync(int? page, int size = 10)
+        public async Task<IList<Car>> GetListCarAsync(int? page, int? size = null)
         {
             var cars = await carRepository.GetAllAsync(pageNumber: page, pageSize: size, includes: new[] { "Model.Brand", "Specification" });
             return cars.ToList();
@@ -76,7 +76,7 @@ namespace BusinessLogic.Services
             await carSpecificationRepository.DeleteAsync(specification);
         }
 
-        public async Task<IList<CarSpecification>> GetListCarSpecAsync(int? page, int size = 10)
+        public async Task<IList<CarSpecification>> GetListCarSpecAsync(int? page, int? size = null)
         {
             var specifications = await carSpecificationRepository.GetAllAsync(page, size);
             return specifications.ToList();
@@ -126,7 +126,7 @@ namespace BusinessLogic.Services
                 includes: new[] { "Model.Brand", "Specification" });
             return cars.ToList();
         }
-        public async Task<IList<Car>> GetAvailableCarsAsync(int? page, int size)
+        public async Task<IList<Car>> GetAvailableCarsAsync(int? page, int? size = null)
         {
             var cars = await carRepository.GetAllAsync(pageNumber: page, pageSize: size, filtering: c => c.IsAvailable, includes: new[] { "Model.Brand", "Specification" });
             return cars.ToList();

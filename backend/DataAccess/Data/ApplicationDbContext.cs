@@ -1,12 +1,7 @@
 ﻿using DataAccess.Entities;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace DataAccess.Data
 {
@@ -30,14 +25,15 @@ namespace DataAccess.Data
         public DbSet<Favorite> Favorites { get; set; } = null!;
         public DbSet<Notification> Notifications { get; set; } = null!;
         public DbSet<ModerationLog> ModerationLogs { get; set; } = null!;
+        public DbSet<BankCard> BankCards { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
             modelBuilder.Entity<Favorite>()
-                .HasKey(f => new { f.UserId, f.ListingId });
-
+                .HasIndex(f => new { f.UserId, f.ListingId })
+                .IsUnique();
             modelBuilder.Entity<Favorite>()
                 .HasOne(f => f.User)
                 .WithMany(u => u.Favorites)
@@ -119,6 +115,12 @@ namespace DataAccess.Data
                 .WithMany(u => u.Comments)
                 .HasForeignKey(c => c.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<BankCard>()
+                .HasOne(b => b.User)
+                .WithMany(u => u.BankCards)
+                .HasForeignKey(b => b.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }
