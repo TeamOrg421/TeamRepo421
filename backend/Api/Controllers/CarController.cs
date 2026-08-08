@@ -4,6 +4,7 @@ using BusinessLogic.Interfaces;
 using DataAccess.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace Api.Controllers
 {
@@ -13,25 +14,56 @@ namespace Api.Controllers
     {
         private readonly ICarService carService;
         private readonly IBlobStorageService blobStorageService;
+        private readonly IActionLotService actionService;
         private readonly IMapper mapper;
 
-        public CarController(ICarService carService, IBlobStorageService blobStorageService, IMapper mapper)
+        public CarController(ICarService carService, IBlobStorageService blobStorageService, IActionLotService actionService, IMapper mapper)
         {
             this.carService = carService;
             this.blobStorageService = blobStorageService;
+            this.actionService = actionService;
             this.mapper = mapper;
         }
 
         // ============= CRUD for Car ===============
 
-        [HttpPost]
-        [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> CreateCar([FromBody] CreateCarDto dto)
+        public class ActionLotDto
         {
-            var car = mapper.Map<Car>(dto);
+            public string Title { get; set; }
+            public string Description { get; set; }
+            public decimal StartingPrice { get; set; }
+            public DateTime AuctionStart { get; set; }
+            public DateTime AuctionEnd { get; set; }
+            public string Type { get; set; }
+        }
+        public class CreateCarWithLotDto
+        {
+            public CreateCarDto CreateCarDto { get; set; }
+            public ActionLotDto ActionLotDto { get; set; }
+        }
+        [HttpPost]
+        public async Task<IActionResult> CreateCar([FromBody] CreateCarWithLotDto dto )
+        {
+            var userId = Guid.Parse(
+                User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? throw new Exception("User ID not found in claims"));
+            var car = mapper.Map<Car>(dto.CreateCarDto);
             car.Id = Guid.NewGuid();
-
+            AuctionLot auctionLot = new AuctionLot()
+            {
+                Id = Guid.NewGuid(),
+                Title = dto.ActionLotDto.Title,
+                Description = dto.ActionLotDto.Description,
+                StartingPrice = dto.ActionLotDto.StartingPrice,
+                CurrentPrice = dto.ActionLotDto.StartingPrice,
+                AuctionStart = dto.ActionLotDto.AuctionStart,
+                AuctionEnd = dto.ActionLotDto.AuctionEnd,
+                Status = DataAccess.Entities.Enums.ListingStatus.Active,
+                SellerId = userId,
+                CarId = car.Id
+            };
             await carService.CreateCarAsync(car);
+            await actionService.CreateLotAsync(auctionLot);
             return CreatedAtAction(nameof(GetCar), new { carId = car.Id }, car.Id);
         }
 
@@ -61,14 +93,24 @@ namespace Api.Controllers
         public async Task<ActionResult<CarDto>> GetCar(Guid carId)
         {
             var car = await carService.GetCarAsync(carId);
-            return Ok(mapper.Map<CarDto>(car));
+            var carDto = mapper.Map<CarDto>(car);
+            carDto.BidCount = car.Listings?.SelectMany(l => l.Bids).Count() ?? 0;
+            return Ok(carDto);
         }
 
         [HttpGet]
         public async Task<ActionResult<IList<CarDto>>> GetCars([FromQuery] int? page, [FromQuery] int size = 10)
         {
             var cars = await carService.GetListCarAsync(page, size);
-            return Ok(cars.Select(c => mapper.Map<CarDto>(c)).ToList());
+            var carDtos = cars.Select(c => mapper.Map<CarDto>(c)).ToList();
+
+            for (int i = 0; i < cars.Count; i++)
+            {
+                carDtos[i].BidCount = cars[i].Listings?.SelectMany(l => l.Bids).Count() ?? 0;
+                Console.WriteLine("\n========================Test===================\n");
+                Console.WriteLine($"\n{i} ---> {carDtos[i].BidCount}");
+            }
+            return Ok(carDtos);
         }
 
         // ============= CRUD for CarSpecification ===============

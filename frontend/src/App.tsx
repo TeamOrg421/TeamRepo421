@@ -7,11 +7,12 @@ import Register from './components/Register'
 import MainPage from './components/mainpage'
 import Car from './components/Car'
 import UserProfile from './components/UserProfile'
+import AdminCars from './components/AdminCars'
 
 import { AuthProvider } from './contexts/AuthContext'
 
 
-type Page = 'home' | 'login' | 'register' | 'mainpage' | 'car' | 'profile'
+type Page = 'home' | 'login' | 'register' | 'mainpage' | 'car' | 'profile' | 'adminCars'
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>('home')
@@ -36,6 +37,7 @@ function App() {
           {currentPage === 'mainpage' && <MainPage />}
           {currentPage === 'car' && <Car onNavigate={navigate} carId={selectedCarId} />}
           {currentPage === 'profile' && <UserProfile onNavigate={navigate} />}
+          {currentPage === 'adminCars' && <AdminCars onNavigate={navigate} />}
         </main>
       </div>
     </AuthProvider>

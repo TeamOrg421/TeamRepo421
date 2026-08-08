@@ -6,6 +6,7 @@ namespace BusinessLogic.Interfaces
 {
     public interface IActionLotService
     {
+        Task<(decimal,int)> GetLotById(Guid lotId);
         Task CreateLotAsync(AuctionLot lot);
         Task DeleteLotAsync(Guid lotId);
         Task UpdateLotAsync(AuctionLot lot);

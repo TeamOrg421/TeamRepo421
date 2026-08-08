@@ -4,6 +4,7 @@ using FakeBank.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace FakeBank.DataAccess.Migrations
 {
     [DbContext(typeof(FakeBankDb))]
-    partial class FakeBankDbModelSnapshot : ModelSnapshot
+    [Migration("20260803090053_AddUserId")]
+    partial class AddUserId
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -30,9 +33,6 @@ namespace FakeBank.DataAccess.Migrations
 
                     b.Property<decimal>("Balance")
                         .HasColumnType("decimal(18,2)");
-
-                    b.Property<Guid>("BankCardToken")
-                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("CardHolderName")
                         .IsRequired()

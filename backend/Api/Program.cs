@@ -27,7 +27,10 @@ builder.Services.AddScoped<ICatalogService, CatalogService>();
 builder.Services.AddScoped<IBankCardService, BankCardService>();
 builder.Services.AddScoped<IBlobStorageService, AzureBlobStorageService>();
 
-
+builder.Services.AddHttpClient<IBankApiClient, BankApiClient>(client =>
+{
+    client.BaseAddress = new Uri("https://localhost:7008");
+});
 
 builder.Services
     .AddIdentityCore<ApplicationUser>()

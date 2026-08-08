@@ -11,6 +11,23 @@ public static class SwaggerExtensions
 
         services.AddSwaggerGen(options =>
         {
+            options.CustomSchemaIds(type =>
+            {
+                if (type.FullName == "BusinessLogic.DTOs.CreateBankCardDto")
+                    return "BusinessLogicCreateBankCardDto";
+
+                if (type.FullName == "Shared.Contracts.CreateBankCardDto")
+                    return "SharedCreateBankCardDto";
+
+                if (type.FullName == "BusinessLogic.DTOs.UpdateBankCardDto")
+                    return "BusinessLogicUpdateBankCardDto";
+
+                if (type.FullName == "BusinessLogic.DTOs.BankCardDto")
+                    return "BusinessLogicBankCardDto";
+
+                return type.Name;
+            });
+
             options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
             {
                 Name = "Authorization",

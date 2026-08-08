@@ -10,21 +10,26 @@ namespace BusinessLogic.Services
         private readonly IRepository<Car> carRepository;
         private readonly IRepository<CarSpecification> carSpecificationRepository;
         private readonly IRepository<CarImage> carImageRepository;
+        private readonly IActionLotService actionLotService;
 
         public CarService(
             IRepository<Car> carRepository,
             IRepository<CarSpecification> carSpecificationRepository,
-            IRepository<CarImage> carImageRepository)
+            IRepository<CarImage> carImageRepository,
+            IActionLotService actionLotService)
         {
             this.carRepository = carRepository;
             this.carSpecificationRepository = carSpecificationRepository;
             this.carImageRepository = carImageRepository;
+            this.actionLotService = actionLotService;
         }
 
+
         // ============= CRUD for Car ===============
-        public async Task CreateCarAsync(Car car)
+        public async Task CreateCarAsync(Car car )
         {
             await carRepository.AddAsync(car);
+            
         }
 
         public async Task DeleteCarAsync(Guid carId)
@@ -39,13 +44,13 @@ namespace BusinessLogic.Services
 
         public async Task<IList<Car>> GetListCarAsync(int? page, int? size = null)
         {
-            var cars = await carRepository.GetAllAsync(pageNumber: page, pageSize: size, includes: new[] { "Model.Brand", "Specification", "Images" });
+            var cars = await carRepository.GetAllAsync(pageNumber: page, pageSize: size, includes: new[] { "Model.Brand", "Specification", "Images", "Listings", "Listings.Bids" });
             return cars.ToList();
         }
 
         public async Task<Car?> GetCarAsync(Guid carId)
         {
-            var car = await carRepository.GetByIdAsync(carId, "Model.Brand", "Specification", "Images");
+            var car = await carRepository.GetByIdAsync(carId, "Model.Brand", "Specification", "Images", "Listings", "Listings.Bids");
 
             if (car == null)
                 throw new Exception("Car not found");

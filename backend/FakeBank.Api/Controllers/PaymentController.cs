@@ -1,7 +1,6 @@
-﻿using FakeBank.BusinessLogic.DTOs;
-using FakeBank.BusinessLogic.Interfaces;
-using FakeBank.DataAccess.Entities;
+﻿using FakeBank.BusinessLogic.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Shared.Contracts;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -117,6 +116,31 @@ namespace FakeBank.Api.Controllers
             }
         }
 
+        [HttpPost("pay")]
+        [ProducesResponseType(typeof(PaymentResultDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> Pay([FromBody] PaymentRequestDto dto)
+        {
+            try
+            {
+                var result = await paymentService.PayAsync(dto);
+                return Ok(result);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { error = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
         [HttpPost("transfer")]
         [ProducesResponseType(typeof(BankTransactionDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -207,15 +231,20 @@ namespace FakeBank.Api.Controllers
             return Ok(transactions);
         }
 
-        [HttpGet("card/{cardId:guid}/balance")]
+        [HttpGet("card/{token:guid}/balance")]
         [ProducesResponseType(typeof(BalanceResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> GetBalance(Guid cardId)
+        public async Task<IActionResult> GetBalance(Guid token)
         {
             try
             {
-                var balance = await paymentService.GetBalanceAsync(cardId);
-                return Ok(new BalanceResponse(cardId, balance));
+                Console.WriteLine($"TOKEN FROM API = {token}");
+
+                var balance = await paymentService.GetBalanceAsync(token);
+
+                Console.WriteLine($"BALANCE = {balance}");
+
+                return Ok(new BalanceResponse(token, balance));
             }
             catch (KeyNotFoundException ex)
             {

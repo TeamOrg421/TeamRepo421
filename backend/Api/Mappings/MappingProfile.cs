@@ -1,6 +1,7 @@
 using AutoMapper;
 using BusinessLogic.DTOs;
 using DataAccess.Entities;
+using DataAccess.Entities.Enums;
 
 namespace Api.Mappings
 {
@@ -9,7 +10,33 @@ namespace Api.Mappings
         public MappingProfile()
         {
             // ==================== CAR MAPPINGS ====================
-            CreateMap<Car, CarDto>();
+            CreateMap<Car, CarDto>()
+                .ForMember(
+                    d => d.ListingId,
+                    o => o.MapFrom(s =>
+                        s.Listings == null
+                            ? (Guid?)null
+                            : s.Listings
+                                .Where(x => x.Status == ListingStatus.Active)
+                                .Select(x => (Guid?)x.Id)
+                                .FirstOrDefault()))
+                .ForMember(
+                    d => d.CurrentBid,
+                    o => o.MapFrom(s =>
+                        s.Listings == null
+                            ? 0
+                            : s.Listings
+                                .Where(x => x.Status == ListingStatus.Active)
+                                .Select(x => x.CurrentPrice)
+                                .FirstOrDefault()))
+            
+                //.ForMember(d => d.BidCount,
+                //    o => o.MapFrom(s =>
+                //        s.Listings
+                //            .Select(x => x.Bids.Count)
+                //            .FirstOrDefault()));
+                .ForMember(dest => dest.ModelName, opt => opt.MapFrom(src => src.Model != null ? src.Model.Name : string.Empty))
+                .ForMember(dest => dest.BrandName, opt => opt.MapFrom(src => src.Model != null && src.Model.Brand != null ? src.Model.Brand.Name : string.Empty));
             CreateMap<CreateCarDto, Car>();
             CreateMap<UpdateCarDto, Car>();
             CreateMap<Car, CarListItemDto>();

@@ -667,7 +667,6 @@ const AdminCars: React.FC<AdminCarsProps> = ({ onNavigate }) => {
                   <label className="form-label">Mileage (miles)</label>
                   <input
                     type="number"
-
                     min={0}
                     className="form-input"
                     value={formData.mileage}
