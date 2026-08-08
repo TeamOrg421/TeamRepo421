@@ -11,6 +11,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react'
 */
 
 type User = {
+  id: string
   email?: string
   name?: string
 }
@@ -84,6 +85,7 @@ const getUserFromToken = (token: string): User | null => {
   return {
     email: email || undefined,
     name: name || undefined,
+    id: payload['sub'] || null,
   }
 }
 
@@ -129,11 +131,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateUser = (updatedUser: Partial<User>) => {
     setUser(prev => {
-      const nextUser = prev ? { ...prev, ...updatedUser } : updatedUser;
-      localStorage.setItem('user', JSON.stringify(nextUser));
-      return nextUser;
-    });
+      if (!prev) return null
+      const nextUser: User = { ...prev, ...updatedUser }
+      localStorage.setItem('user', JSON.stringify(nextUser))
+      return nextUser
+    })
   }
+
 
   const value: AuthContextType = {
     token,

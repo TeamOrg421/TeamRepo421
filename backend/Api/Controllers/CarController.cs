@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using BusinessLogic.DTOs;
 using BusinessLogic.Interfaces;
 using DataAccess.Entities;
@@ -12,11 +12,13 @@ namespace Api.Controllers
     public class CarController : ControllerBase
     {
         private readonly ICarService carService;
+        private readonly IBlobStorageService blobStorageService;
         private readonly IMapper mapper;
 
-        public CarController(ICarService carService, IMapper mapper)
+        public CarController(ICarService carService, IBlobStorageService blobStorageService, IMapper mapper)
         {
             this.carService = carService;
+            this.blobStorageService = blobStorageService;
             this.mapper = mapper;
         }
 
@@ -170,6 +172,46 @@ namespace Api.Controllers
         {
             var cars = await carService.GetCarsByMileageAsync(minMileage, maxMileage);
             return Ok(cars.Select(c => mapper.Map<CarDto>(c)).ToList());
+        }
+
+        // ============= Car Image Endpoints ===============
+
+        [HttpPost("{carId:guid}/images")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<CarImageDto>> UploadCarImage(Guid carId, IFormFile file, [FromQuery] bool isMain = false)
+        {
+            var car = await carService.GetCarAsync(carId);
+            if (car == null)
+                return NotFound("Car not found");
+
+            if (file == null || file.Length == 0)
+                return BadRequest("No image file provided");
+
+            var imageUrl = await blobStorageService.UploadFileAsync(file);
+            var carImage = await carService.AddCarImageAsync(carId, imageUrl, isMain);
+
+            return Ok(mapper.Map<CarImageDto>(carImage));
+        }
+
+        [HttpGet("{carId:guid}/images")]
+        public async Task<ActionResult<IList<CarImageDto>>> GetCarImages(Guid carId)
+        {
+            var images = await carService.GetCarImagesAsync(carId);
+            return Ok(images.Select(img => mapper.Map<CarImageDto>(img)).ToList());
+        }
+
+        [HttpDelete("images/{imageId:guid}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> DeleteCarImage(Guid imageId)
+        {
+            var image = await carService.GetCarImageByIdAsync(imageId);
+            if (image == null)
+                return NotFound("Image not found");
+
+            await blobStorageService.DeleteFileAsync(image.ImageUrl);
+            await carService.DeleteCarImageAsync(imageId);
+
+            return NoContent();
         }
     }
 }

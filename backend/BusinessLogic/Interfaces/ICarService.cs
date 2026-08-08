@@ -26,5 +26,11 @@ namespace BusinessLogic.Interfaces
         Task<IList<Car>> GetAvailableCarsAsync(int? page, int? size = null);
         Task<IList<Car>> GetCarsByYearAsync(int year);
         Task<IList<Car>> GetCarsByMileageAsync(int minMileage, int maxMileage);
+
+        // ============= CRUD for CarImage ===============
+        Task<CarImage> AddCarImageAsync(Guid carId, string imageUrl, bool isMain);
+        Task DeleteCarImageAsync(Guid imageId);
+        Task<IList<CarImage>> GetCarImagesAsync(Guid carId);
+        Task<CarImage?> GetCarImageByIdAsync(Guid imageId);
     }
 }
