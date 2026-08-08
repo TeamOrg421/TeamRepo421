@@ -121,7 +121,9 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
           bidCount: data.bidCount ?? 0,
           timeRemaining: '1 Day',
           endsAt: new Date(Date.now() + 86400000).toLocaleString(),
-          images: [],
+          images: Array.isArray(data.images) && data.images.length > 0 
+            ? data.images.map((img: any) => typeof img === 'string' ? img : img.imageUrl) 
+            : ['https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=1200&q=80'],
           highlights: ['Real data from database'],
           equipment: [],
           modifications: [],

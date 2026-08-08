@@ -9,14 +9,18 @@ namespace BusinessLogic.Services
     {
         private readonly IRepository<Car> carRepository;
         private readonly IRepository<CarSpecification> carSpecificationRepository;
+        private readonly IRepository<CarImage> carImageRepository;
         private readonly IActionLotService actionLotService;
+
         public CarService(
             IRepository<Car> carRepository,
             IRepository<CarSpecification> carSpecificationRepository,
+            IRepository<CarImage> carImageRepository,
             IActionLotService actionLotService)
         {
             this.carRepository = carRepository;
             this.carSpecificationRepository = carSpecificationRepository;
+            this.carImageRepository = carImageRepository;
             this.actionLotService = actionLotService;
         }
 
@@ -40,13 +44,13 @@ namespace BusinessLogic.Services
 
         public async Task<IList<Car>> GetListCarAsync(int? page, int? size = null)
         {
-            var cars = await carRepository.GetAllAsync(pageNumber: page, pageSize: size, includes: new[] { "Model.Brand", "Specification", "Listings", "Listings.Bids" });
+            var cars = await carRepository.GetAllAsync(pageNumber: page, pageSize: size, includes: new[] { "Model.Brand", "Specification", "Images", "Listings", "Listings.Bids" });
             return cars.ToList();
         }
 
         public async Task<Car?> GetCarAsync(Guid carId)
         {
-            var car = await carRepository.GetByIdAsync(carId, "Model.Brand", "Specification", "Listings", "Listings.Bids");
+            var car = await carRepository.GetByIdAsync(carId, "Model.Brand", "Specification", "Images", "Listings", "Listings.Bids");
 
             if (car == null)
                 throw new Exception("Car not found");
@@ -147,6 +151,41 @@ namespace BusinessLogic.Services
                 includes: new[] { "Model.Brand", "Specification" });
 
             return cars.ToList();
+        }
+
+        // ============= CRUD for CarImage ===============
+        public async Task<CarImage> AddCarImageAsync(Guid carId, string imageUrl, bool isMain)
+        {
+            var carImage = new CarImage
+            {
+                Id = Guid.NewGuid(),
+                CarId = carId,
+                ImageUrl = imageUrl,
+                IsMain = isMain
+            };
+
+            await carImageRepository.AddAsync(carImage);
+            return carImage;
+        }
+
+        public async Task DeleteCarImageAsync(Guid imageId)
+        {
+            var image = await carImageRepository.GetByIdAsync(imageId);
+            if (image != null)
+            {
+                await carImageRepository.DeleteAsync(image);
+            }
+        }
+
+        public async Task<IList<CarImage>> GetCarImagesAsync(Guid carId)
+        {
+            var images = await carImageRepository.GetAllAsync(filtering: img => img.CarId == carId);
+            return images.ToList();
+        }
+
+        public async Task<CarImage?> GetCarImageByIdAsync(Guid imageId)
+        {
+            return await carImageRepository.GetByIdAsync(imageId);
         }
     }
 }

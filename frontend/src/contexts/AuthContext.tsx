@@ -11,6 +11,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react'
 */
 
 type User = {
+  id: string
   email?: string
   name?: string
 }
@@ -84,6 +85,7 @@ const getUserFromToken = (token: string): User | null => {
   return {
     email: email || undefined,
     name: name || undefined,
+    id: payload['sub'] || null,
   }
 }
 
@@ -135,6 +137,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return nextUser
     })
   }
+
 
   const value: AuthContextType = {
     token,
