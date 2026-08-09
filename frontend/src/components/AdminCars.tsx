@@ -31,6 +31,7 @@ interface CarDto {
   modelName: string;
   brandName: string;
   imageUrl?: string;
+  images?: Array<{ imageUrl?: string } | string>;
   specification?: CarSpecificationDto;
 }
 
@@ -53,15 +54,10 @@ interface CarFormData {
   engineVolume: number;
   color: string;
   imageUrl: string;
+  imageFile?: File | null;
 }
 
-const PHOTO_PRESETS = [
-  { name: 'Audi RS6', url: 'https://images.unsplash.com/photo-1603584173870-7f23fdae1b7a?auto=format&fit=crop&w=1200&q=80' },
-  { name: 'Porsche 911', url: 'https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?auto=format&fit=crop&w=1200&q=80' },
-  { name: 'BMW M5', url: 'https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&w=1200&q=80' },
-  { name: 'Mercedes-AMG', url: 'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?auto=format&fit=crop&w=1200&q=80' },
-  { name: 'Nissan GT-R', url: 'https://images.unsplash.com/photo-1617814076367-b759c7d7e738?auto=format&fit=crop&w=1200&q=80' }
-];
+const FALLBACK_CAR_IMAGE = 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1200&q=80';
 
 const DEFAULT_FORM: CarFormData = {
   year: new Date().getFullYear(),
@@ -72,7 +68,8 @@ const DEFAULT_FORM: CarFormData = {
   horsePower: 400,
   engineVolume: 3.0,
   color: 'Black',
-  imageUrl: PHOTO_PRESETS[0].url,
+  imageUrl: '',
+  imageFile: null,
 };
 
 const AdminCars: React.FC<AdminCarsProps> = ({ onNavigate }) => {
@@ -137,9 +134,37 @@ const AdminCars: React.FC<AdminCarsProps> = ({ onNavigate }) => {
       ...DEFAULT_FORM,
       vin: randomVin,
       modelId: defaultModelId,
-      imageUrl: PHOTO_PRESETS[0].url
+      imageUrl: '',
+      imageFile: null,
     });
     setIsModalOpen(true);
+  };
+
+  const getMainImageUrl = (car: CarDto | null | undefined): string => {
+    if (!car) return '';
+    const images = car.images ?? [];
+    const firstImage = images.find((img) => typeof img === 'string' ? Boolean(img) : Boolean(img?.imageUrl));
+    if (typeof firstImage === 'string') return firstImage;
+    return firstImage && typeof firstImage === 'object' ? (firstImage.imageUrl ?? '') : (car.imageUrl ?? '');
+  };
+
+  const uploadCarImage = async (carId: string) => {
+    if (!formData.imageFile) return;
+
+    const fileForm = new FormData();
+    fileForm.append('file', formData.imageFile);
+
+    const token = localStorage.getItem('token');
+    const response = await fetch(`/api/cars/${carId}/images?isMain=true`, {
+      method: 'POST',
+      body: fileForm,
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text || 'Image upload failed');
+    }
   };
 
   // Open edit modal
@@ -155,7 +180,8 @@ const AdminCars: React.FC<AdminCarsProps> = ({ onNavigate }) => {
       horsePower: car.specification?.horsePower || 400,
       engineVolume: car.specification?.engineVolume || 3.0,
       color: car.specification?.color || 'White',
-      imageUrl: car.imageUrl || PHOTO_PRESETS[0].url,
+      imageUrl: getMainImageUrl(car),
+      imageFile: null,
     });
     setIsModalOpen(true);
   };
@@ -176,7 +202,6 @@ const AdminCars: React.FC<AdminCarsProps> = ({ onNavigate }) => {
 
     try {
       if (editingCar) {
-        // UPDATE (PUT /api/cars/{id})
         const res = await apiCall(`/cars/${editingCar.id}`, {
           method: 'PUT',
           body: JSON.stringify({
@@ -189,7 +214,10 @@ const AdminCars: React.FC<AdminCarsProps> = ({ onNavigate }) => {
         });
 
         if (res.ok) {
-          // Update local state image if modified
+          if (formData.imageFile) {
+            await uploadCarImage(editingCar.id);
+          }
+
           setCars(prev =>
             prev.map(c =>
               c.id === editingCar.id
@@ -199,12 +227,12 @@ const AdminCars: React.FC<AdminCarsProps> = ({ onNavigate }) => {
                   vin: formData.vin,
                   modelId: formData.modelId,
                   isAvailable: formData.isAvailable,
-                  imageUrl: formData.imageUrl,
+                  imageUrl: formData.imageFile ? formData.imageUrl : c.imageUrl,
                 }
                 : c
             )
           );
-          showToast(`✅ Foto and data of car VIN: ${formData.vin} successfully updated!`);
+          showToast(`✅ Data of car VIN: ${formData.vin} successfully updated!`);
           setIsModalOpen(false);
           await fetchCarsAndModels();
         } else {
@@ -212,18 +240,48 @@ const AdminCars: React.FC<AdminCarsProps> = ({ onNavigate }) => {
           showToast(`❌ Update error: ${errText || res.statusText}`);
         }
       } else {
-        // CREATE (POST /api/cars)
-        const res = await apiCall('/cars', {
-          method: 'POST',
-          body: JSON.stringify({
+        const selectedModel = models.find((m) => m.id === formData.modelId);
+        const createPayload = {
+          createCarDto: {
             year: Number(formData.year),
             isAvailable: formData.isAvailable,
             vin: formData.vin,
             modelId: formData.modelId,
-          }),
+          },
+          actionLotDto: {
+            title: `${selectedModel?.brandName || 'Car'} ${selectedModel?.name || 'Model'} ${formData.year}`,
+            description: `Auction listing for ${selectedModel?.brandName || 'Car'} ${selectedModel?.name || 'Model'} (${formData.year}).`,
+            startingPrice: 0,
+            auctionStart: new Date().toISOString(),
+            auctionEnd: new Date(Date.now() + 86400000).toISOString(),
+            type: 'Auction',
+          }
+        };
+
+        const res = await apiCall('/cars', {
+          method: 'POST',
+          body: JSON.stringify(createPayload),
         });
 
         if (res.ok) {
+          const location = res.headers.get('location') || '';
+          const idFromLocation = location.split('/').filter(Boolean).pop();
+          const text = await res.text();
+          let createdCarId = idFromLocation || '';
+
+          if (!createdCarId && text) {
+            try {
+              const parsed = JSON.parse(text);
+              createdCarId = parsed.id ?? parsed.carId ?? '';
+            } catch {
+              createdCarId = text;
+            }
+          }
+
+          if (createdCarId && formData.imageFile) {
+            await uploadCarImage(createdCarId);
+          }
+
           showToast(`🎉 New car added to the database!`);
           setIsModalOpen(false);
           await fetchCarsAndModels();
@@ -234,7 +292,7 @@ const AdminCars: React.FC<AdminCarsProps> = ({ onNavigate }) => {
       }
     } catch (err) {
       console.error('Error:', err);
-      showToast('❌ Failed to save car to database.');
+      showToast(err instanceof Error ? `❌ ${err.message}` : '❌ Failed to save car to database.');
     }
   };
 
@@ -442,7 +500,7 @@ const AdminCars: React.FC<AdminCarsProps> = ({ onNavigate }) => {
                 const matchedModel = models.find(m => m.id === car.modelId);
                 const brand = car.brandName || matchedModel?.brandName || '—';
                 const model = car.modelName || matchedModel?.name || '—';
-                const photoUrl = car.imageUrl || PHOTO_PRESETS[0].url;
+                const photoUrl = getMainImageUrl(car) || FALLBACK_CAR_IMAGE;
 
                 return (
                   <tr key={car.id} className="admin-table-row">
@@ -454,7 +512,7 @@ const AdminCars: React.FC<AdminCarsProps> = ({ onNavigate }) => {
                           alt={`${brand} ${model}`}
                           className="admin-car-thumb"
                           onError={e => {
-                            (e.target as HTMLImageElement).src = PHOTO_PRESETS[0].url;
+                            (e.target as HTMLImageElement).src = FALLBACK_CAR_IMAGE;
                           }}
                         />
                         <div>
@@ -560,40 +618,32 @@ const AdminCars: React.FC<AdminCarsProps> = ({ onNavigate }) => {
 
             <form onSubmit={handleSaveCar} className="admin-modal-form">
               <div className="admin-form-grid">
-                {/* Photo Preview & Edit Section */}
                 <div className="form-group span-2">
-                  <label className="form-label">Car photo (Preview & URL) *</label>
+                  <label className="form-label">Main photo for blob storage *</label>
                   <div className="admin-photo-edit-box">
                     <img
-                      src={formData.imageUrl}
+                      src={formData.imageUrl || FALLBACK_CAR_IMAGE}
                       alt="Car preview"
                       className="admin-photo-preview"
                       onError={e => {
-                        (e.target as HTMLImageElement).src = PHOTO_PRESETS[0].url;
+                        (e.target as HTMLImageElement).src = FALLBACK_CAR_IMAGE;
                       }}
                     />
                     <div className="admin-photo-controls">
                       <input
-                        type="text"
-                        required
+                        type="file"
+                        accept="image/*"
                         className="form-input"
-                        placeholder="Enter image URL (https://...)"
-                        value={formData.imageUrl}
-                        onChange={e => setFormData({ ...formData, imageUrl: e.target.value })}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0] ?? null;
+                          setFormData({
+                            ...formData,
+                            imageFile: file,
+                            imageUrl: file ? URL.createObjectURL(file) : '',
+                          });
+                        }}
                       />
-                      <div className="photo-presets-row">
-                        <span className="preset-label">Quick presets:</span>
-                        {PHOTO_PRESETS.map(preset => (
-                          <button
-                            key={preset.name}
-                            type="button"
-                            className="btn-photo-preset"
-                            onClick={() => setFormData({ ...formData, imageUrl: preset.url })}
-                          >
-                            {preset.name}
-                          </button>
-                        ))}
-                      </div>
+                      <small className="form-hint">Uploaded image is sent to Azure Blob Storage automatically.</small>
                     </div>
                   </div>
                 </div>

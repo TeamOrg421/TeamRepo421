@@ -53,6 +53,22 @@ interface CarDetail {
   comments: Comment[];
 }
 
+const FALLBACK_CAR_IMAGE = 'https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=1200&q=80';
+
+const normaliseImageList = (value: unknown): string[] => {
+  if (!Array.isArray(value)) return [];
+
+  const result = value
+    .map((item) => {
+      if (typeof item === 'string') return item;
+      if (item && typeof item === 'object' && 'imageUrl' in item) return String((item as any).imageUrl ?? '');
+      return '';
+    })
+    .filter((item): item is string => Boolean(item && item.trim()));
+
+  return result;
+};
+
 const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
   const { isAuthenticated, user } = useAuth();
 
@@ -97,38 +113,35 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
         }
 
         const data = await response.json();
-        console.log(data);
-        console.log(data.currentBid);
-        console.log(data.listing);
+        const currentBid = Number(data.currentBid ?? data.listing?.currentPrice ?? 0);
+        const mappedImages = normaliseImageList(data.images);
         const mappedCar: CarDetail = {
-          id: data.id,
-          listingId: data.listingId ?? data.listingId ?? undefined,
-          title: `${data.year || ''} ${data.brandName || 'Unknown'} ${data.modelName || 'model'}`.trim(),
-          year: data.year,
-          make: data.brandName || 'Unknown',
-          model: data.modelName || 'Unknown',
-          mileage: data.specification?.mileage != null ? `${data.specification.mileage.toLocaleString()} miles` : 'N/A',
+          id: String(data.id),
+          listingId: data.listingId ?? data.listing?.id ?? undefined,
+          title: data.title || `${data.year || ''} ${data.brandName || data.make || 'Unknown'} ${data.modelName || data.model || 'model'}`.trim(),
+          year: Number(data.year ?? 0),
+          make: data.brandName || data.make || 'Unknown',
+          model: data.modelName || data.model || 'Unknown',
+          mileage: data.specification?.mileage != null ? `${Number(data.specification.mileage).toLocaleString()} miles` : 'N/A',
           engine: data.specification?.engineVolume != null ? `${Number(data.specification.engineVolume).toFixed(1)}L` : 'Unknown',
           transmission: data.specification?.transmission || 'Unknown',
           drivetrain: data.specification?.driveType || 'Unknown',
           bodyStyle: data.specification?.bodyType || 'Unknown',
           exteriorColor: data.specification?.color || 'Unknown',
           interiorColor: data.specification?.color || 'Unknown',
-          vin: data.vin,
-          location: 'Kyiv, Ukraine',
-          seller: 'seller',
-          currentBid: data.currentBid ?? 0,
-          bidCount: data.bidCount ?? 0,
-          timeRemaining: '1 Day',
-          endsAt: new Date(Date.now() + 86400000).toLocaleString(),
-          images: Array.isArray(data.images) && data.images.length > 0 
-            ? data.images.map((img: any) => typeof img === 'string' ? img : img.imageUrl) 
-            : ['https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=1200&q=80'],
+          vin: data.vin || 'N/A',
+          location: data.location || 'Kyiv, Ukraine',
+          seller: data.seller || 'seller',
+          currentBid,
+          bidCount: Number(data.bidCount ?? data.listing?.bidCount ?? 0),
+          timeRemaining: 'Live',
+          endsAt: data.endsAt ? new Date(data.endsAt).toLocaleString() : new Date(Date.now() + 86400000).toLocaleString(),
+          images: mappedImages.length > 0 ? mappedImages : [FALLBACK_CAR_IMAGE],
           highlights: ['Real data from database'],
           equipment: [],
           modifications: [],
           flaws: [],
-          description: `${data.year || ''} ${data.brandName || 'Unknown'} ${data.modelName || 'Unknown'} available for auction.`.trim(),
+          description: data.description || `${data.year || ''} ${data.brandName || data.make || 'Unknown'} ${data.modelName || data.model || 'Unknown'} available for auction.`.trim(),
           bids: [],
           comments: []
         };
