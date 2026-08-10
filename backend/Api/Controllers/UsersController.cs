@@ -145,6 +145,7 @@ namespace Api.Controllers
             {
                 favoriteId = $"{f.UserId}_{f.ListingId}",
                 listingId = f.ListingId,
+                carId = f.Listing?.CarId,
                 carTitle = f.Listing?.Car != null
                     ? $"{f.Listing.Car.Year} {f.Listing.Car.Model?.Brand?.Name ?? ""} {f.Listing.Car.Model?.Name ?? ""}"
                     : f.Listing?.Title ?? "Unknown",
