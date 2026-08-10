@@ -3,6 +3,7 @@ using BusinessLogic.DTOs;
 using BusinessLogic.Interfaces;
 using DataAccess.Entities;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
@@ -42,14 +43,19 @@ namespace Api.Controllers
             public ActionLotDto ActionLotDto { get; set; }
         }
         [HttpPost]
-        public async Task<IActionResult> CreateCar([FromBody] CreateCarWithLotDto dto )
+        [Authorize]
+        public async Task<IActionResult> CreateCar([FromBody] CreateCarWithLotDto dto)
         {
-            var userId = Guid.Parse(
-                User.FindFirstValue(ClaimTypes.NameIdentifier)
-                ?? throw new Exception("User ID not found in claims"));
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized("Invalid or missing user ID claim");
+            }
+
             var car = mapper.Map<Car>(dto.CreateCarDto);
             car.Id = Guid.NewGuid();
-            AuctionLot auctionLot = new AuctionLot()
+
+            var auctionLot = new AuctionLot
             {
                 Id = Guid.NewGuid(),
                 Title = dto.ActionLotDto.Title,
@@ -62,10 +68,16 @@ namespace Api.Controllers
                 SellerId = userId,
                 CarId = car.Id
             };
+
             await carService.CreateCarAsync(car);
             await actionService.CreateLotAsync(auctionLot);
-            return CreatedAtAction(nameof(GetCar), new { carId = car.Id }, car.Id);
+
+            return CreatedAtAction(
+                nameof(GetCar),
+                new { carId = car.Id },
+                car.Id);
         }
+
 
         [HttpDelete("{carId:guid}")]
         [Authorize(Roles = "Admin")]
