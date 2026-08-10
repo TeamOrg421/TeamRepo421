@@ -5,7 +5,7 @@ interface HomeProps {
 }
 
 interface AuctionCar {
-  id: number;
+  id: string | number;
   title: string;
   time: string;
   bid: string;
@@ -13,15 +13,29 @@ interface AuctionCar {
   location: string;
   featured?: boolean;
   noReserve?: boolean;
+  imageUrl: string;
 }
 
+const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1200&q=80';
+
 const FEATURED = {
-  title: '2026 Porsche 911 Carrera GTS Coupe',
-  time: '5 Days',
-  bid: '$200,000',
+  title: 'Featured auction',
+  time: 'Live',
+  bid: '$0',
 };
 
 const SORT_OPTIONS = ['Ending soon', 'Newly listed', 'No reserve', 'Lowest mileage', 'Closest to me'];
+
+const getCarImageUrl = (car: any): string => {
+  const images: any[] = Array.isArray(car?.images) ? car.images : [];
+  const direct = images
+    .map((img) => (typeof img === 'string' ? img : img?.imageUrl ?? img?.url))
+    .find((img) => typeof img === 'string' && img.trim().length > 0);
+
+  if (direct) return direct;
+  if (typeof car?.imageUrl === 'string' && car.imageUrl.trim()) return car.imageUrl;
+  return FALLBACK_IMAGE;
+};
 
 const Home: React.FC<HomeProps> = ({ onNavigate }) => {
   const [selectedYear, setSelectedYear] = useState('');
@@ -29,7 +43,8 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
   const [selectedBodyStyle, setSelectedBodyStyle] = useState('');
   const [activeSort, setActiveSort] = useState('Ending soon');
   const [auctionCars, setAuctionCars] = useState<AuctionCar[]>([]);
-  const featuredCarId = auctionCars[0]?.id;
+  const featuredCar = auctionCars[0];
+  const featuredCarId = featuredCar?.id;
 
   useEffect(() => {
     const loadCars = async () => {
@@ -40,14 +55,15 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
         }
 
         const data = await response.json();
-        const mappedCars: AuctionCar[] = data.map((car: any) => ({
+        const mappedCars: AuctionCar[] = (Array.isArray(data) ? data : []).map((car: any) => ({
           id: car.id,
-          title: `${car.brandName || 'Unknown'} ${car.modelName || 'model'}`,
+          title: `${car.brandName || car.make || 'Unknown'} ${car.modelName || car.model || 'model'}`.trim(),
           time: 'Live',
-          bid: '$0',
-          description: `${car.year ? `${car.year} ` : ''}${car.brandName || 'Unknown'} ${car.modelName || 'model'}`,
-          location: 'Kyiv, Ukraine',
+          bid: `$${Number(car.currentBid ?? car.currentPrice ?? 0).toLocaleString()}`,
+          description: `${car.year ? `${car.year} ` : ''}${car.brandName || car.make || 'Unknown'} ${car.modelName || car.model || 'model'}`.trim(),
+          location: car.location || 'Kyiv, Ukraine',
           featured: false,
+          imageUrl: getCarImageUrl(car),
         }));
 
         setAuctionCars(mappedCars);
@@ -61,18 +77,22 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
 
   return (
     <div className="home">
-      <section className="featured-hero" onClick={() => featuredCarId !== undefined && onNavigate('car', { carId: featuredCarId })}>
+      <section
+        className="featured-hero"
+        onClick={() => featuredCarId !== undefined && onNavigate('car', { carId: featuredCarId })}
+        style={featuredCar ? { backgroundImage: `linear-gradient(135deg, rgba(10,10,15,0.78), rgba(54,52,79,0.5)), url(${featuredCar.imageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
+      >
         <div className="featured-main featured-main-empty">
           <span className="badge badge-featured">FEATURED</span>
-          <h2 className="featured-title">{FEATURED.title}</h2>
+          <h2 className="featured-title">{featuredCar?.title || FEATURED.title}</h2>
           <div className="featured-meta">
-            <span className="featured-time">{FEATURED.time}</span>
-            <span className="featured-bid">Bid {FEATURED.bid}</span>
+            <span className="featured-time">{featuredCar?.time || FEATURED.time}</span>
+            <span className="featured-bid">Bid {featuredCar?.bid || FEATURED.bid}</span>
           </div>
         </div>
         <div className="featured-thumbs">
-          {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="featured-thumb featured-thumb-empty" />
+          {(featuredCar ? [featuredCar.imageUrl, FALLBACK_IMAGE, FALLBACK_IMAGE, FALLBACK_IMAGE] : [FALLBACK_IMAGE, FALLBACK_IMAGE, FALLBACK_IMAGE, FALLBACK_IMAGE]).map((img, i) => (
+            <div key={i} className="featured-thumb featured-thumb-empty" style={{ backgroundImage: `url(${img})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
           ))}
         </div>
       </section>
@@ -133,11 +153,11 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
         <div className="auction-grid">
           {auctionCars.map((car) => (
             <article
-              key={car.id}
+              key={String(car.id)}
               className="auction-card"
               onClick={() => onNavigate('car', { carId: car.id })}
             >
-              <div className="auction-card-image auction-card-image-empty">
+              <div className="auction-card-image auction-card-image-empty" style={{ backgroundImage: `url(${car.imageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
                 {car.featured && <span className="badge badge-featured">FEATURED</span>}
                 {car.noReserve && <span className="badge badge-no-reserve">NO RESERVE</span>}
                 <div className="auction-card-overlay">
