@@ -17,7 +17,25 @@ namespace FakeBank.Api.Controllers
         {
             this.paymentService = paymentService;
         }
-
+        [HttpGet("GetCards")]
+        [ProducesResponseType(typeof(IList<BankCardDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> GetCards([FromQuery] int page)
+        {
+            try
+            {
+                var cards = await paymentService.GetCardsAsync(page);
+                return Ok(cards);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
         [HttpPost("add-card")]
         [ProducesResponseType(typeof(BankCardDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]

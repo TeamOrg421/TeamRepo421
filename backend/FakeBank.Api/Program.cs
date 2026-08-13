@@ -1,5 +1,3 @@
-
-
 using FakeBank.DataAccess.IRepositories;
 using FakeBank.DataAccess;
 using Microsoft.EntityFrameworkCore;
@@ -9,6 +7,18 @@ using FakeBank.DataAccess.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// 1. Додаємо CORS політику
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
+
+// 2. Реєстрація DbContext та сервісів
 builder.Services.AddDbContext<FakeBankDb>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
@@ -24,6 +34,7 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+// 3. Конфігурація Middleware (послідовність важлива!)
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -31,6 +42,9 @@ if (app.Environment.IsDevelopment())
 }
 
 //app.UseMiddleware<ErrorHandlingMiddleware>();
+
+// CORS має бути підключений до авторизації та контролерів
+app.UseCors("AllowAll");
 
 app.UseHttpsRedirection();
 
