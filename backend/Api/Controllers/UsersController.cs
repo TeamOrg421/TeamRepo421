@@ -65,6 +65,17 @@ namespace Api.Controllers
             if (!string.IsNullOrWhiteSpace(dto.Name))
                 user.Name = dto.Name.Trim();
 
+            if (!string.IsNullOrWhiteSpace(dto.Email))
+            {
+                var normalizedEmail = dto.Email.Trim();
+                var existingUser = await _userManager.FindByEmailAsync(normalizedEmail);
+                if (existingUser != null && existingUser.Id != user.Id)
+                    return Conflict(new { message = "A user with this email already exists." });
+
+                user.Email = normalizedEmail;
+                user.UserName = normalizedEmail;
+            }
+
             user.Bio = dto.Bio?.Trim() ?? user.Bio;
             user.GarageItems = dto.GarageItems?.Trim() ?? user.GarageItems;
 
@@ -80,6 +91,23 @@ namespace Api.Controllers
                 bio = user.Bio ?? string.Empty,
                 garageItems = user.GarageItems ?? string.Empty
             });
+        }
+
+        // ─── DELETE /api/users/me ──────────────────────────────────────────
+        [HttpDelete("me")]
+        public async Task<IActionResult> DeleteMe()
+        {
+            var userId = GetUserId();
+            if (userId == null) return Unauthorized();
+
+            var user = await _userManager.FindByIdAsync(userId.ToString()!);
+            if (user == null) return NotFound();
+
+            var result = await _userManager.DeleteAsync(user);
+            if (!result.Succeeded)
+                return BadRequest(new { message = string.Join("; ", result.Errors.Select(e => e.Description)) });
+
+            return Ok(new { message = "Account deleted successfully." });
         }
 
         // ─── GET /api/users/me/bids ─────────────────────────────────────────
@@ -249,6 +277,7 @@ namespace Api.Controllers
     public class UpdateProfileDto
     {
         public string? Name { get; set; }
+        public string? Email { get; set; }
         public string? Bio { get; set; }
         public string? GarageItems { get; set; }
     }
