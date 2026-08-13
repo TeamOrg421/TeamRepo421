@@ -87,6 +87,7 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
   // Watchlist state
   const [isWatched, setIsWatched] = useState(false);
   const [watchAnimation, setWatchAnimation] = useState(false);
+  const [watchLoading, setWatchLoading] = useState(false);
 
   // Local state for comments & bids to make page interactive
   const [localBids, setLocalBids] = useState<Bid[]>([]);
@@ -166,6 +167,33 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
     fetchCar();
   }, [activeId]);
 
+  useEffect(() => {
+    const syncWatchStatus = async () => {
+      if (!isAuthenticated || !carData?.listingId) {
+        setIsWatched(false);
+        return;
+      }
+
+      try {
+        const response = await apiCall('/users/me/watchlist');
+        if (!response.ok) {
+          if (response.status === 401) {
+            setIsWatched(false);
+          }
+          return;
+        }
+
+        const data = await response.json();
+        const watched = Array.isArray(data) && data.some((item: any) => String(item.listingId) === String(carData.listingId));
+        setIsWatched(watched);
+      } catch {
+        setIsWatched(false);
+      }
+    };
+
+    syncWatchStatus();
+  }, [carData?.listingId, isAuthenticated]);
+
   if (isLoading) {
     return (
       <div className="car-error-page glass-panel">
@@ -188,10 +216,43 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
   }
 
   // Toggle watchlist
-  const handleWatchToggle = () => {
+  const handleWatchToggle = async () => {
+    if (!isAuthenticated) {
+      alert('Please sign in to save this auction to your watch list.');
+      onNavigate('login');
+      return;
+    }
+
+    if (!carData?.listingId) {
+      alert('This auction does not have a listing reference yet.');
+      return;
+    }
+
+    setWatchLoading(true);
     setWatchAnimation(true);
-    setIsWatched(!isWatched);
-    setTimeout(() => setWatchAnimation(false), 600);
+
+    try {
+      const endpoint = isWatched ? `/users/me/watchlist/${carData.listingId}` : '/users/me/watchlist';
+      const options: RequestInit = { method: isWatched ? 'DELETE' : 'POST' };
+
+      if (!isWatched) {
+        options.body = JSON.stringify({ listingId: carData.listingId });
+      }
+
+      const response = await apiCall(endpoint, options);
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ message: 'Unable to update watchlist' }));
+        throw new Error(err.message || 'Unable to update watchlist');
+      }
+
+      setIsWatched(prev => !prev);
+    } catch (error) {
+      console.error(error);
+      alert(error instanceof Error ? error.message : 'Unable to update watchlist.');
+    } finally {
+      setWatchLoading(false);
+      setTimeout(() => setWatchAnimation(false), 600);
+    }
   };
 
   // Placing a Bid
@@ -389,6 +450,7 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
         <button
           type="button"
           onClick={handleWatchToggle}
+          disabled={watchLoading}
           className={`btn-watch-item ${isWatched ? 'active' : ''} ${watchAnimation ? 'animate-heart' : ''}`}
         >
           <svg viewBox="0 0 24 24" fill={isWatched ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
