@@ -208,7 +208,12 @@ namespace FakeBank.BusinessLogic.Service
 
             return ToResultDto(transaction, resultingBalance);
         }
-
+        //GetCardsAsync
+        public async Task<IList<BankCardDto>> GetCardsAsync(int? page)
+        {
+            var cards = await bankCardService.GetAllBankCardsAsync(page, null, null);
+            return cards.Select(ToDto).ToList();
+        }
         public async Task<BankTransactionDto> DepositAsync(DepositDto dto)
         {
             if (dto.Amount <= 0)

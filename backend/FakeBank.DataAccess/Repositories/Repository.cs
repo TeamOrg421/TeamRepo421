@@ -29,11 +29,10 @@ namespace FakeBank.DataAccess.Repositories
         }
 
         public async Task<IReadOnlyList<T>> GetAllAsync(
-            int? pageNumber = null,
-            int? pageSize = null,
-            Expression<Func<T, bool>>? filtering = null,
-
-            params string[]? includes)
+    int? pageNumber = null,
+    int? pageSize = null,
+    Expression<Func<T, bool>>? filtering = null,
+    params string[]? includes)
         {
             var query = set.AsNoTracking().AsQueryable();
 
@@ -47,7 +46,17 @@ namespace FakeBank.DataAccess.Repositories
             }
 
             if (pageNumber != null)
-                query = await query.PaginateAsync(pageNumber ?? 0, pageSize ?? DefaultPageSize);
+            {
+                // Захист: якщо DefaultPageSize не заданий у конфізі, беремо 10
+                int size = (pageSize.HasValue && pageSize.Value > 0)
+                    ? pageSize.Value
+                    : (DefaultPageSize > 0 ? DefaultPageSize : 10);
+
+                int page = pageNumber.Value > 0 ? pageNumber.Value : 1;
+
+                // Формула пагінації для 1-based index (page 1 -> Skip 0)
+                query = query.Skip((page - 1) * size).Take(size);
+            }
 
             return await query.ToListAsync();
         }
