@@ -66,6 +66,15 @@ public static class SeedExtensions
                 "IF COL_LENGTH('dbo.AspNetUsers','GarageItems') IS NULL BEGIN ALTER TABLE dbo.AspNetUsers ADD GarageItems nvarchar(max) NULL END");
         }
         catch { /* ignore: e.g. permissions */ }
+
+        try
+        {
+            await dbContext.Database.ExecuteSqlRawAsync(
+                "IF COL_LENGTH('dbo.CarListings','Location') IS NULL BEGIN ALTER TABLE dbo.CarListings ADD Location nvarchar(200) NOT NULL CONSTRAINT DF_CarListings_Location DEFAULT('') END");
+            await dbContext.Database.ExecuteSqlRawAsync(
+                "IF COL_LENGTH('dbo.CarSpecifications','InteriorColor') IS NULL BEGIN ALTER TABLE dbo.CarSpecifications ADD InteriorColor nvarchar(max) NULL END");
+        }
+        catch { /* The application can still start where schema changes are managed externally. */ }
     }
 
     private static async Task<Car> SeedTestCarAsync(this ApplicationDbContext dbContext)
@@ -94,6 +103,7 @@ public static class SeedExtensions
             Doors = 2,
             Seats = 2,
             Color = "Carrera White Metallic",
+            InteriorColor = "Black",
             IsAccidentFree = true,
             OwnersCount = 1
         };
@@ -145,6 +155,7 @@ public static class SeedExtensions
             Id = Guid.NewGuid(),
             Title = $"{car.Year} {car.Model?.Brand?.Name ?? "Porsche"} {car.Model?.Name ?? "911 GT3"}",
             Description = "Test auction lot seeded for the frontend detail page.",
+            Location = "Kyiv, Ukraine",
             StartingPrice = 95000m,
             CurrentPrice = 95000m,
             AuctionStart = DateTime.UtcNow.AddMinutes(-15),

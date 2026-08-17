@@ -16,8 +16,6 @@ interface AuctionCar {
   imageUrl: string;
 }
 
-const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1200&q=80';
-
 const FEATURED = {
   title: 'Featured auction',
   time: 'Live',
@@ -34,7 +32,17 @@ const getCarImageUrl = (car: any): string => {
 
   if (direct) return direct;
   if (typeof car?.imageUrl === 'string' && car.imageUrl.trim()) return car.imageUrl;
-  return FALLBACK_IMAGE;
+  return '';
+};
+
+const getAuctionStatus = (auctionStart?: string, auctionEnd?: string) => {
+  const now = Date.now();
+  const start = auctionStart ? new Date(auctionStart).getTime() : Number.NaN;
+  const end = auctionEnd ? new Date(auctionEnd).getTime() : Number.NaN;
+
+  if (Number.isFinite(end) && end <= now) return 'Ended';
+  if (Number.isFinite(start) && start > now) return 'Starts soon';
+  return 'Live';
 };
 
 const Home: React.FC<HomeProps> = ({ onNavigate }) => {
@@ -57,11 +65,11 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
         const data = await response.json();
         const mappedCars: AuctionCar[] = (Array.isArray(data) ? data : []).map((car: any) => ({
           id: car.id,
-          title: `${car.brandName || car.make || 'Unknown'} ${car.modelName || car.model || 'model'}`.trim(),
-          time: 'Live',
+          title: car.title || `${car.brandName || car.make || 'Unknown'} ${car.modelName || car.model || 'model'}`.trim(),
+          time: getAuctionStatus(car.auctionStart, car.auctionEnd),
           bid: `$${Number(car.currentBid ?? car.currentPrice ?? 0).toLocaleString()}`,
-          description: `${car.year ? `${car.year} ` : ''}${car.brandName || car.make || 'Unknown'} ${car.modelName || car.model || 'model'}`.trim(),
-          location: car.location || 'Kyiv, Ukraine',
+          description: car.description || `${car.year ? `${car.year} ` : ''}${car.brandName || car.make || 'Unknown'} ${car.modelName || car.model || 'model'}`.trim(),
+          location: car.location || 'Location not specified',
           featured: false,
           imageUrl: getCarImageUrl(car),
         }));
@@ -91,8 +99,8 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
           </div>
         </div>
         <div className="featured-thumbs">
-          {(featuredCar ? [featuredCar.imageUrl, FALLBACK_IMAGE, FALLBACK_IMAGE, FALLBACK_IMAGE] : [FALLBACK_IMAGE, FALLBACK_IMAGE, FALLBACK_IMAGE, FALLBACK_IMAGE]).map((img, i) => (
-            <div key={i} className="featured-thumb featured-thumb-empty" style={{ backgroundImage: `url(${img})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+          {(featuredCar ? [featuredCar.imageUrl] : []).map((img, i) => (
+            <div key={i} className="featured-thumb featured-thumb-empty" style={img ? { backgroundImage: `url(${img})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined} />
           ))}
         </div>
       </section>
@@ -157,7 +165,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate }) => {
               className="auction-card"
               onClick={() => onNavigate('car', { carId: car.id })}
             >
-              <div className="auction-card-image auction-card-image-empty" style={{ backgroundImage: `url(${car.imageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+              <div className="auction-card-image auction-card-image-empty" style={car.imageUrl ? { backgroundImage: `url(${car.imageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}>
                 {car.featured && <span className="badge badge-featured">FEATURED</span>}
                 {car.noReserve && <span className="badge badge-no-reserve">NO RESERVE</span>}
                 <div className="auction-card-overlay">

@@ -242,19 +242,34 @@ const AdminCars: React.FC<AdminCarsProps> = ({ onNavigate }) => {
       } else {
         const selectedModel = models.find((m) => m.id === formData.modelId);
         const createPayload = {
-          createCarDto: {
+          car: {
+            make: selectedModel?.brandName || '',
+            model: selectedModel?.name || '',
             year: Number(formData.year),
-            isAvailable: formData.isAvailable,
             vin: formData.vin,
-            modelId: formData.modelId,
+            specification: {
+              mileage: Number(formData.mileage),
+              horsePower: Number(formData.horsePower),
+              engineVolume: Number(formData.engineVolume),
+              fuelType: 0,
+              transmission: 1,
+              driveType: 0,
+              bodyType: 0,
+              doors: 4,
+              seats: 5,
+              exteriorColor: formData.color,
+              interiorColor: null,
+              isAccidentFree: true,
+              ownersCount: 1,
+            },
           },
-          actionLotDto: {
+          auction: {
             title: `${selectedModel?.brandName || 'Car'} ${selectedModel?.name || 'Model'} ${formData.year}`,
             description: `Auction listing for ${selectedModel?.brandName || 'Car'} ${selectedModel?.name || 'Model'} (${formData.year}).`,
+            location: 'Location not specified',
             startingPrice: 0,
             auctionStart: new Date().toISOString(),
             auctionEnd: new Date(Date.now() + 86400000).toISOString(),
-            type: 'Auction',
           }
         };
 
