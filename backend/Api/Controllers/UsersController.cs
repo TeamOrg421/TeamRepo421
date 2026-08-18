@@ -1,3 +1,5 @@
+using BusinessLogic.Interfaces;
+using BusinessLogic.Services;
 using DataAccess.Data;
 using DataAccess.Entities;
 using DataAccess.IRepositories;
@@ -5,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Net.Mail;
 using System.Security.Claims;
 
 namespace Api.Controllers
@@ -18,17 +21,27 @@ namespace Api.Controllers
         private readonly IRepository<Bid> _bidRepo;
         private readonly IRepository<Comment> _commentRepo;
         private readonly ApplicationDbContext _db;
+        private readonly IWebHostEnvironment _environment;
+        private readonly ILogger<UsersController> _logger;
+        private readonly IEmailSender _emailSender;
+        private const string EmailConfirmationPurpose = "confirm-email";
 
         public UsersController(
             UserManager<ApplicationUser> userManager,
             IRepository<Bid> bidRepo,
             IRepository<Comment> commentRepo,
-            ApplicationDbContext db)
+            ApplicationDbContext db,
+            IWebHostEnvironment environment,
+            ILogger<UsersController> logger,
+            IEmailSender emailSender)
         {
             _userManager = userManager;
             _bidRepo = bidRepo;
             _commentRepo = commentRepo;
             _db = db;
+            _environment = environment;
+            _logger = logger;
+            _emailSender = emailSender;
         }
 
         // ─── GET /api/users/me ──────────────────────────────────────────────
@@ -46,6 +59,9 @@ namespace Api.Controllers
                 id = user.Id,
                 name = user.Name,
                 email = user.Email,
+                emailConfirmed = user.EmailConfirmed,
+                phoneNumber = user.PhoneNumber ?? string.Empty,
+                phoneNumberConfirmed = user.PhoneNumberConfirmed,
                 bio = user.Bio ?? string.Empty,
                 garageItems = user.GarageItems ?? string.Empty,
                 createdAt = user.CreatedAt
@@ -72,8 +88,12 @@ namespace Api.Controllers
                 if (existingUser != null && existingUser.Id != user.Id)
                     return Conflict(new { message = "A user with this email already exists." });
 
-                user.Email = normalizedEmail;
-                user.UserName = normalizedEmail;
+                if (!string.Equals(user.Email, normalizedEmail, StringComparison.OrdinalIgnoreCase))
+                {
+                    user.Email = normalizedEmail;
+                    user.UserName = normalizedEmail;
+                    user.EmailConfirmed = false;
+                }
             }
 
             user.Bio = dto.Bio?.Trim() ?? user.Bio;
@@ -88,9 +108,131 @@ namespace Api.Controllers
                 id = user.Id,
                 name = user.Name,
                 email = user.Email,
+                emailConfirmed = user.EmailConfirmed,
+                phoneNumber = user.PhoneNumber ?? string.Empty,
+                phoneNumberConfirmed = user.PhoneNumberConfirmed,
                 bio = user.Bio ?? string.Empty,
                 garageItems = user.GarageItems ?? string.Empty
             });
+        }
+
+        [HttpPut("me/password")]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
+        {
+            var userId = GetUserId();
+            if (userId == null) return Unauthorized();
+
+            if (string.IsNullOrWhiteSpace(dto.CurrentPassword) || string.IsNullOrWhiteSpace(dto.NewPassword))
+                return BadRequest(new { message = "Current and new passwords are required." });
+
+            if (!string.Equals(dto.NewPassword, dto.ConfirmPassword, StringComparison.Ordinal))
+                return BadRequest(new { message = "The new passwords do not match." });
+
+            var user = await _userManager.FindByIdAsync(userId.ToString()!);
+            if (user == null) return NotFound();
+
+            var result = await _userManager.ChangePasswordAsync(user, dto.CurrentPassword, dto.NewPassword);
+            if (!result.Succeeded)
+                return BadRequest(new { message = string.Join("; ", result.Errors.Select(error => error.Description)) });
+
+            return Ok(new { message = "Password changed successfully." });
+        }
+
+        [HttpPut("me/phone")]
+        public async Task<IActionResult> UpdatePhoneNumber([FromBody] UpdatePhoneNumberDto dto)
+        {
+            var userId = GetUserId();
+            if (userId == null) return Unauthorized();
+
+            var phoneNumber = dto.PhoneNumber?.Trim() ?? string.Empty;
+            if (phoneNumber.Length > 32 || (phoneNumber.Length > 0 && !phoneNumber.All(character => char.IsDigit(character) || character is '+' or ' ' or '-' or '(' or ')')))
+                return BadRequest(new { message = "Enter a valid phone number." });
+
+            var user = await _userManager.FindByIdAsync(userId.ToString()!);
+            if (user == null) return NotFound();
+
+            user.PhoneNumber = string.IsNullOrWhiteSpace(phoneNumber) ? null : phoneNumber;
+            user.PhoneNumberConfirmed = false;
+            var result = await _userManager.UpdateAsync(user);
+            if (!result.Succeeded)
+                return BadRequest(new { message = string.Join("; ", result.Errors.Select(error => error.Description)) });
+
+            return Ok(new { phoneNumber = user.PhoneNumber ?? string.Empty, phoneNumberConfirmed = user.PhoneNumberConfirmed });
+        }
+
+        [HttpPost("me/email/verification")]
+        public async Task<IActionResult> RequestEmailVerification()
+        {
+            var userId = GetUserId();
+            if (userId == null) return Unauthorized();
+
+            var user = await _userManager.FindByIdAsync(userId.ToString()!);
+            if (user == null) return NotFound();
+            if (string.IsNullOrWhiteSpace(user.Email))
+                return BadRequest(new { message = "Add an email address before requesting verification." });
+
+            var code = await _userManager.GenerateUserTokenAsync(user, TokenOptions.DefaultEmailProvider, EmailConfirmationPurpose);
+            var safeCode = System.Net.WebUtility.HtmlEncode(code);
+
+            try
+            {
+                await _emailSender.SendAsync(
+                    user.Email,
+                    "Confirm your Cars & Bids email",
+                    $"Your Cars & Bids confirmation code is: {code}\n\nEnter this code in Settings to confirm your email address.",
+                    $"<p>Your Cars &amp; Bids confirmation code is:</p><p style=\"font-size: 24px; font-weight: 700; letter-spacing: 2px;\">{safeCode}</p><p>Enter this code in Settings to confirm your email address.</p>");
+
+                return Ok(new { message = "A confirmation code was sent to your email.", debugCode = (string?)null });
+            }
+            catch (SmtpNotConfiguredException exception)
+            {
+                _logger.LogWarning(exception, "SMTP is not configured for email confirmation.");
+
+                if (_environment.IsDevelopment())
+                {
+                    return Ok(new
+                    {
+                        message = "SMTP is not configured. Use the development code below to confirm the email.",
+                        debugCode = code
+                    });
+                }
+
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, new
+                {
+                    message = "Email delivery is not configured. Please contact support."
+                });
+            }
+            catch (SmtpException exception)
+            {
+                _logger.LogError(exception, "SMTP delivery failed for email confirmation to {Email}.", user.Email);
+                return StatusCode(StatusCodes.Status502BadGateway, new
+                {
+                    message = "We could not send the confirmation email. Please try again later."
+                });
+            }
+        }
+
+        [HttpPost("me/email/confirm")]
+        public async Task<IActionResult> ConfirmEmail([FromBody] ConfirmEmailDto dto)
+        {
+            var userId = GetUserId();
+            if (userId == null) return Unauthorized();
+            if (string.IsNullOrWhiteSpace(dto.Code))
+                return BadRequest(new { message = "Enter the confirmation code." });
+
+            var user = await _userManager.FindByIdAsync(userId.ToString()!);
+            if (user == null) return NotFound();
+
+            var isValid = await _userManager.VerifyUserTokenAsync(user, TokenOptions.DefaultEmailProvider, EmailConfirmationPurpose, dto.Code.Trim());
+            if (!isValid)
+                return BadRequest(new { message = "The confirmation code is invalid or has expired." });
+
+            user.EmailConfirmed = true;
+            var result = await _userManager.UpdateAsync(user);
+            if (!result.Succeeded)
+                return BadRequest(new { message = string.Join("; ", result.Errors.Select(error => error.Description)) });
+
+            return Ok(new { emailConfirmed = true, message = "Email confirmed successfully." });
         }
 
         // ─── DELETE /api/users/me ──────────────────────────────────────────
@@ -341,5 +483,22 @@ namespace Api.Controllers
     public class WatchlistDto
     {
         public Guid ListingId { get; set; }
+    }
+
+    public class ChangePasswordDto
+    {
+        public string CurrentPassword { get; set; } = string.Empty;
+        public string NewPassword { get; set; } = string.Empty;
+        public string ConfirmPassword { get; set; } = string.Empty;
+    }
+
+    public class UpdatePhoneNumberDto
+    {
+        public string? PhoneNumber { get; set; }
+    }
+
+    public class ConfirmEmailDto
+    {
+        public string Code { get; set; } = string.Empty;
     }
 }

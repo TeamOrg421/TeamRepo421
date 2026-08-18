@@ -18,6 +18,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ICarService, CarService>();
         services.AddScoped<ICatalogService, CatalogService>();
         services.AddScoped<IBankCardService, BankCardService>();
+        services.AddScoped<IEmailSender, SmtpEmailSender>();
 
         return services;
     }
