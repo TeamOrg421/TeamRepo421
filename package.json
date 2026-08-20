@@ -1,10 +1,4 @@
 {
   "name": "teamrepo421",
-  "private": true,
-  "scripts": {
-    "azurite": "azurite --silent --location ./.azurite --blobHost 127.0.0.1 --blobPort 10000"
-  },
-  "devDependencies": {
-    "azurite": "^3.34.0"
-  }
+  "private": true
 }
