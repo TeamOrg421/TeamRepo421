@@ -25,7 +25,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ICarService, CarService>();
 builder.Services.AddScoped<ICatalogService, CatalogService>();
 builder.Services.AddScoped<IBankCardService, BankCardService>();
-builder.Services.AddScoped<IBlobStorageService, AzureBlobStorageService>();
+builder.Services.AddScoped<IFileService, AzureFileService>();
 
 builder.Services.AddHttpClient<IBankApiClient, BankApiClient>(client =>
 {
