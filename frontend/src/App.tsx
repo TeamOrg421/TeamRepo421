@@ -17,6 +17,7 @@ import { AuthProvider } from './contexts/AuthContext'
 
 
 type Page = 'home' | 'login' | 'register' | 'mainpage' | 'car' | 'profile' | 'adminCars' | 'watchlist' | 'settings' | 'sellCar' | 'seller'
+type Page = 'home' | 'login' | 'register' | 'mainpage' | 'car' | 'profile' | 'adminCars' | 'watchlist' | 'settings' | 'sellCar'
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>('home')
