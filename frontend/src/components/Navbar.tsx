@@ -42,7 +42,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate }) => {
           <button
             className="btn-sell-car"
             type="button"
-            onClick={() => onNavigate('register')}
+            onClick={() => onNavigate(isAuthenticated ? 'sellCar' : 'login')}
           >
             Sell a Car
           </button>

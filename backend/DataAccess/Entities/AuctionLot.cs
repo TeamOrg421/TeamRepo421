@@ -7,6 +7,7 @@ namespace DataAccess.Entities
         public Guid Id { get; set; }
         public string Title { get; set; } = null!;
         public string Description { get; set; } = null!;
+        public string Location { get; set; } = string.Empty;
 
         public decimal StartingPrice { get; set; }
         public decimal CurrentPrice { get; set; } // Додано для реального часу (динамічно зростає зі ставками)

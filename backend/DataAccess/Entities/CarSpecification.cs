@@ -21,6 +21,7 @@ namespace DataAccess.Entities
         public int Doors { get; set; }
         public int Seats { get; set; }
         public string Color { get; set; } = null!;
+        public string? InteriorColor { get; set; }
         public bool IsAccidentFree { get; set; }
         public int OwnersCount { get; set; }
     }

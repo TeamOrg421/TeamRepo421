@@ -53,7 +53,7 @@ interface CarDetail {
   comments: Comment[];
 }
 
-const FALLBACK_CAR_IMAGE = 'https://images.unsplash.com/photo-1617814076367-b759c7d7e738?w=1200&q=80';
+const FALLBACK_CAR_IMAGE = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 1200 700%22%3E%3Crect width=%221200%22 height=%22700%22 fill=%22%231b1b1b%22/%3E%3Cpath d=%22M250 440h700l-75-165H380z%22 fill=%22%23353535%22/%3E%3Ccircle cx=%22400%22 cy=%22455%22 r=%2260%22 fill=%22%23111111%22 stroke=%22%237c3aed%22 stroke-width=%2216%22/%3E%3Ccircle cx=%22800%22 cy=%22455%22 r=%2260%22 fill=%22%23111111%22 stroke=%22%237c3aed%22 stroke-width=%2216%22/%3E%3Ctext x=%22600%22 y=%22600%22 fill=%22%23c4b5fd%22 font-family=%22Arial,sans-serif%22 font-size=%2240%22 text-anchor=%22middle%22%3ENo photo uploaded%3C/text%3E%3C/svg%3E';
 
 const normaliseImageList = (value: unknown): string[] => {
   if (!Array.isArray(value)) return [];
@@ -67,6 +67,41 @@ const normaliseImageList = (value: unknown): string[] => {
     .filter((item): item is string => Boolean(item && item.trim()));
 
   return result;
+};
+
+const enumLabels = {
+  fuelType: ['Petrol', 'Diesel', 'Electric', 'Hybrid', 'Gas'],
+  transmission: ['Manual', 'Automatic', 'Automated manual', 'CVT'],
+  driveType: ['All-wheel drive', 'Front-wheel drive', 'Rear-wheel drive'],
+  bodyType: ['Sedan', 'Coupe', 'Hatchback', 'SUV', 'Wagon', 'Convertible', 'Minivan', 'Pickup'],
+};
+
+const formatEnum = (value: unknown, labels: string[]) => {
+  if (typeof value === 'number') return labels[value] ?? 'Not specified';
+  if (typeof value === 'string' && value.trim()) return value;
+  return 'Not specified';
+};
+
+const formatEngine = (specification: any) => {
+  if (!specification) return 'Not specified';
+
+  const details = [];
+  if (specification.engineVolume != null) details.push(`${Number(specification.engineVolume).toFixed(1)}L`);
+  if (specification.fuelType != null) details.push(formatEnum(specification.fuelType, enumLabels.fuelType));
+  if (specification.horsePower != null) details.push(`${Number(specification.horsePower).toLocaleString()} hp`);
+  return details.length ? details.join(' · ') : 'Not specified';
+};
+
+const formatTimeRemaining = (value: unknown) => {
+  if (typeof value !== 'string') return 'Not specified';
+  const end = new Date(value).getTime();
+  if (Number.isNaN(end)) return 'Not specified';
+
+  const milliseconds = end - Date.now();
+  if (milliseconds <= 0) return 'Ended';
+  const hours = Math.floor(milliseconds / 3_600_000);
+  const days = Math.floor(hours / 24);
+  return days > 0 ? `${days}d ${hours % 24}h` : `${Math.max(1, hours)}h`;
 };
 
 const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
@@ -123,20 +158,20 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
           year: Number(data.year ?? 0),
           make: data.brandName || data.make || 'Unknown',
           model: data.modelName || data.model || 'Unknown',
-          mileage: data.specification?.mileage != null ? `${Number(data.specification.mileage).toLocaleString()} miles` : 'N/A',
-          engine: data.specification?.engineVolume != null ? `${Number(data.specification.engineVolume).toFixed(1)}L` : 'Unknown',
-          transmission: data.specification?.transmission || 'Unknown',
-          drivetrain: data.specification?.driveType || 'Unknown',
-          bodyStyle: data.specification?.bodyType || 'Unknown',
-          exteriorColor: data.specification?.color || 'Unknown',
-          interiorColor: data.specification?.color || 'Unknown',
-          vin: data.vin || 'N/A',
-          location: data.location || 'Kyiv, Ukraine',
-          seller: data.seller || 'seller',
+          mileage: data.specification?.mileage != null ? `${Number(data.specification.mileage).toLocaleString()} miles` : 'Not specified',
+          engine: formatEngine(data.specification),
+          transmission: formatEnum(data.specification?.transmission, enumLabels.transmission),
+          drivetrain: formatEnum(data.specification?.driveType, enumLabels.driveType),
+          bodyStyle: formatEnum(data.specification?.bodyType, enumLabels.bodyType),
+          exteriorColor: data.specification?.color || 'Not specified',
+          interiorColor: data.specification?.interiorColor || 'Not specified',
+          vin: data.vin || 'Not specified',
+          location: data.location || 'Location not specified',
+          seller: data.sellerName || data.seller || 'Seller',
           currentBid,
           bidCount: Number(data.bidCount ?? data.listing?.bidCount ?? 0),
-          timeRemaining: 'Live',
-          endsAt: data.endsAt ? new Date(data.endsAt).toLocaleString() : new Date(Date.now() + 86400000).toLocaleString(),
+          timeRemaining: formatTimeRemaining(data.auctionEnd ?? data.endsAt),
+          endsAt: data.auctionEnd || data.endsAt ? new Date(data.auctionEnd ?? data.endsAt).toLocaleString() : 'Not specified',
           images: mappedImages.length > 0 ? mappedImages : [FALLBACK_CAR_IMAGE],
           highlights: ['Real data from database'],
           equipment: [],
