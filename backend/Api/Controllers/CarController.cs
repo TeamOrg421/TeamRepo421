@@ -18,20 +18,20 @@ namespace Api.Controllers
     public class CarController : ControllerBase
     {
         private readonly ICarService carService;
-        private readonly IBlobStorageService blobStorageService;
+        private readonly IFileService fileService;
         private readonly IActionLotService actionService;
         private readonly ApplicationDbContext dbContext;
         private readonly IMapper mapper;
 
         public CarController(
             ICarService carService,
-            IBlobStorageService blobStorageService,
+            IFileService fileService,
             IActionLotService actionService,
             ApplicationDbContext dbContext,
             IMapper mapper)
         {
             this.carService = carService;
-            this.blobStorageService = blobStorageService;
+            this.fileService = fileService;
             this.actionService = actionService;
             this.dbContext = dbContext;
             this.mapper = mapper;
@@ -408,7 +408,7 @@ namespace Api.Controllers
             if (file == null || file.Length == 0)
                 return BadRequest("No image file provided");
 
-            var imageUrl = await blobStorageService.UploadFileAsync(file);
+            var imageUrl = await fileService.SaveFile(file);
             var carImage = await carService.AddCarImageAsync(carId, imageUrl, isMain);
 
             return Ok(mapper.Map<CarImageDto>(carImage));
@@ -429,7 +429,7 @@ namespace Api.Controllers
             if (image == null)
                 return NotFound("Image not found");
 
-            await blobStorageService.DeleteFileAsync(image.ImageUrl);
+            await fileService.DeleteFile(image.ImageUrl);
             await carService.DeleteCarImageAsync(imageId);
 
             return NoContent();

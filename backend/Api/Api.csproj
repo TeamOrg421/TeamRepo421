@@ -4,7 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <UserSecretsId>cars-and-bids-api-8a064b3e-f6d0-4f48-a145-43efbd2d403c</UserSecretsId>
+    <UserSecretsId>teamrepo421-api-secrets</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
