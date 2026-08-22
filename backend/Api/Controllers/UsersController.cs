@@ -110,6 +110,62 @@ namespace Api.Controllers
             return Ok(new { message = "Account deleted successfully." });
         }
 
+        [HttpGet("me/seller-dashboard")]
+        public async Task<IActionResult> GetSellerDashboard()
+        {
+            var userId = GetUserId();
+            if (userId == null) return Unauthorized();
+
+            var listings = await _db.CarListings
+                .Where(listing => listing.SellerId == userId.Value)
+                .Include(listing => listing.Car)
+                    .ThenInclude(car => car.Model)
+                        .ThenInclude(model => model.Brand)
+                .Include(listing => listing.Car)
+                    .ThenInclude(car => car.Images)
+                .Include(listing => listing.Bids)
+                .Include(listing => listing.Favorites)
+                .OrderByDescending(listing => listing.AuctionStart)
+                .ToListAsync();
+
+            var now = DateTime.UtcNow;
+            var totalBids = listings.Sum(listing => listing.Bids?.Count ?? 0);
+            var totalWatchers = listings.Sum(listing => listing.Favorites?.Count ?? 0);
+
+            return Ok(new
+            {
+                stats = new
+                {
+                    totalListings = listings.Count,
+                    liveListings = listings.Count(listing => listing.Status == DataAccess.Entities.Enums.ListingStatus.Active && listing.AuctionEnd > now),
+                    scheduledListings = listings.Count(listing => listing.AuctionStart > now),
+                    completedListings = listings.Count(listing => listing.Status == DataAccess.Entities.Enums.ListingStatus.Completed || listing.AuctionEnd <= now),
+                    totalBids,
+                    totalWatchers
+                },
+                listings = listings.Select(listing => new
+                {
+                    listingId = listing.Id,
+                    carId = listing.CarId,
+                    title = listing.Title,
+                    vehicle = listing.Car == null
+                        ? "Vehicle"
+                        : $"{listing.Car.Year} {listing.Car.Model?.Brand?.Name ?? string.Empty} {listing.Car.Model?.Name ?? string.Empty}".Trim(),
+                    imageUrl = listing.Car?.Images?.FirstOrDefault(image => image.IsMain)?.ImageUrl
+                               ?? listing.Car?.Images?.FirstOrDefault()?.ImageUrl
+                               ?? string.Empty,
+                    location = listing.Location,
+                    startingPrice = listing.StartingPrice,
+                    currentPrice = listing.CurrentPrice,
+                    status = listing.Status.ToString(),
+                    auctionStart = listing.AuctionStart,
+                    auctionEnd = listing.AuctionEnd,
+                    bidCount = listing.Bids?.Count ?? 0,
+                    watcherCount = listing.Favorites?.Count ?? 0
+                })
+            });
+        }
+
         // ─── GET /api/users/me/bids ─────────────────────────────────────────
         [HttpGet("me/bids")]
         public async Task<IActionResult> GetMyBids()
