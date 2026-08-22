@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://localhost:7008', // 👈 Вкажи порт свого backend
+        target: 'https://localhost:5027', // 👈 Вкажи порт свого backend
         changeOrigin: true,
         secure: false, // дозволяє self-signed SSL сертифікати локально
       },
