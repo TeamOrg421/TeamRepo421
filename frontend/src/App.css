@@ -3846,6 +3846,65 @@ select.form-input option {
   }
 }
 
+/* ===== FIGMA CATALOG, HEADER & FOOTER ===== */
+.main-content { max-width: 1280px; padding-top: 92px; }
+.navbar { background: #111; border-bottom: 1px solid #252525; height: 68px; }
+.navbar-inner { max-width: 1280px; justify-content: space-between; gap: 20px; }
+.navbar-brand, .footer-brand { font-size: 22px; font-style: italic; letter-spacing: -1.4px; }
+.navbar-menu { gap: 28px; order: 1; }
+.navbar-brand { order: 0; }
+.navbar-search { background: #2b2b2b; border: 0; border-radius: 6px; order: 2; width: min(300px, 26vw); }
+.navbar-actions { order: 3; }
+.navbar-menu-item { color: #ddd; font-size: 14px; padding: 23px 0 18px; }
+.navbar-menu-item:first-child { border-bottom: 2px solid #3878de; color: #fff; }
+.btn-sell-car { background: transparent; color: #ddd; font-size: 14px; font-weight: 400; padding: 23px 0 18px; }
+.btn-sell-car:hover { background: transparent; color: #fff; }
+.catalog-home { max-width: 1024px; margin: 0 auto; }
+.catalog-featured { display: block; margin-bottom: 32px; }
+.catalog-featured .featured-main { border-radius: 10px; min-height: 260px; background-position: center; background-repeat: no-repeat; background-size: cover; }
+.catalog-featured-label { position: absolute; left: 22px; top: 20px; color: #ddd; font-size: 11px; font-weight: 700; letter-spacing: .12em; }
+.catalog-featured-copy { bottom: 25px; left: 24px; max-width: 560px; position: absolute; z-index: 2; }
+.catalog-featured-copy h1 { font-size: clamp(25px, 3vw, 39px); letter-spacing: -.04em; margin-bottom: 8px; }
+.catalog-featured-copy p { color: #e5e5e5; font-size: 14px; line-height: 1.4; }
+.auctions-header { align-items: flex-end; border-bottom: 1px solid #333; margin-bottom: 13px; padding-bottom: 13px; }
+.auctions-title { font-size: 28px; letter-spacing: -.04em; }
+.catalog-result-copy { color: #a6a6a6; font-size: 13px; margin-top: 5px; }
+.sort-links { gap: 24px; }
+.sort-link { color: #aaa; font-size: 14px; font-weight: 500; }
+.sort-link-active { border-color: #3980e8; color: #fff; }
+.filter-bar { justify-content: flex-end; margin-bottom: 22px; }
+.filter-select { background-color: #272727; border-color: #414141; border-radius: 5px; color: #eee; font-weight: 600; }
+.clear-filters { background: transparent; border: 0; color: #82b5ff; cursor: pointer; font-family: inherit; font-size: 13px; padding: 8px; }
+.auction-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.auction-card { background: #202020; border: 1px solid #4b4b4b; border-radius: 10px; display: grid; grid-template-columns: 54% 46%; min-height: 236px; }
+.auction-card:hover { border-color: #858585; transform: translateY(-2px); }
+.auction-card-image { aspect-ratio: auto; background-position: center; background-repeat: no-repeat; background-size: cover; height: 100%; min-height: 236px; }
+.auction-card-body { display: flex; flex-direction: column; min-width: 0; padding: 15px 13px 12px; }
+.auction-card-title { font-size: 17px; line-height: 1.18; margin-bottom: 12px; }
+.auction-card-desc { color: #d2d2d2; display: -webkit-box; font-size: 13px; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
+.auction-card-location { color: #c8c8c8; font-size: 12px; margin-top: auto; }
+.auction-card-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+.auction-card-tags span { background: #303030; border: 1px solid #4f4f4f; border-radius: 5px; color: #eee; font-size: 11px; padding: 5px 8px; white-space: nowrap; }
+.auction-card-overlay { background: linear-gradient(transparent 10%, rgba(0, 0, 0, .9)); padding: 12px 10px; }
+.auction-card-overlay span { background: rgba(13, 13, 13, .85); border: 1px solid #4a4a4a; border-radius: 4px; font-size: 11px; padding: 5px 7px; }
+.auction-card-overlay span:first-child { border-color: #922a30; color: #ff8787; }
+.auction-card-overlay span:last-child { border-color: #7caa18; color: #d2ff5d; }
+.catalog-empty { background: #202020; border: 1px dashed #555; border-radius: 10px; color: #aaa; padding: 60px 20px; text-align: center; }
+.catalog-empty h3 { color: #fff; font-size: 20px; margin-bottom: 8px; }
+.site-footer { background: #242424; border-top: 1px solid #303030; margin-top: auto; padding: 48px 24px; width: 100%; }
+.site-footer-inner { display: grid; gap: 32px; grid-template-columns: 1.4fr repeat(3, 1fr) 1.05fr; margin: 0 auto; max-width: 1280px; }
+.footer-brand { align-self: start; background: transparent; border: 0; color: #fff; cursor: pointer; padding: 0; text-align: left; }
+.footer-brand b { color: #fff; font-size: .8em; margin: 0 2px; }
+.footer-column { display: flex; flex-direction: column; gap: 9px; }
+.footer-column h2 { color: #939393; font-size: 11px; font-weight: 500; margin-bottom: 4px; }
+.footer-column button { background: transparent; border: 0; color: #dedede; cursor: pointer; font-family: inherit; font-size: 13px; padding: 0; text-align: left; }
+.footer-column button:hover { color: #fff; }
+.footer-meta { color: #b8b8b8; font-size: 11px; line-height: 1.5; }
+.footer-social { color: #eee; display: flex; font-size: 19px; gap: 14px; margin-bottom: 20px; }
+@media (max-width: 1100px) { .auction-card { grid-template-columns: 50% 50%; } .site-footer-inner { grid-template-columns: repeat(3, 1fr); } .footer-meta { grid-column: 2 / 4; } }
+@media (max-width: 760px) { .navbar-menu { display: none; } .navbar-search { width: min(300px, 48vw); } .catalog-featured .featured-main { min-height: 220px; } .auction-grid { grid-template-columns: 1fr; } .site-footer-inner { grid-template-columns: repeat(2, 1fr); } .footer-brand { grid-column: 1 / -1; } .footer-meta { grid-column: auto; } }
+@media (max-width: 520px) { .navbar { padding: 0 12px; } .navbar-brand { font-size: 18px; } .navbar-search { display: none; } .main-content { padding: 84px 12px 32px; } .catalog-featured .featured-main { min-height: 180px; } .catalog-featured-copy { bottom: 16px; left: 16px; } .catalog-featured-copy h1 { font-size: 24px; } .sort-links { gap: 13px; } .auction-card { grid-template-columns: 48% 52%; min-height: 202px; } .auction-card-image { min-height: 202px; } .auction-card-title { font-size: 15px; } .site-footer-inner { grid-template-columns: 1fr 1fr; gap: 26px 18px; } }
+
 
 
 

@@ -12,6 +12,7 @@ import WatchlistPage from './components/WatchlistPage'
 import SettingsPage from './components/SettingsPage'
 import SellCar from './components/SellCar'
 import SellerDashboard from './components/SellerDashboard'
+import Footer from './components/Footer'
 
 import { AuthProvider } from './contexts/AuthContext'
 
@@ -21,6 +22,7 @@ type Page = 'home' | 'login' | 'register' | 'mainpage' | 'car' | 'profile' | 'ad
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>('home')
   const [selectedCarId, setSelectedCarId] = useState<string | null>(null)
+  const [catalogSearch, setCatalogSearch] = useState('')
 
   const navigate = (page: string, params?: { carId?: number | string }) => {
     setCurrentPage(page as Page)
@@ -33,9 +35,9 @@ function App() {
   return (
     <AuthProvider>
       <div className="app-container">
-        <Navbar onNavigate={navigate} />
+        <Navbar onNavigate={navigate} searchValue={catalogSearch} onSearchChange={setCatalogSearch} />
         <main className="main-content">
-          {currentPage === 'home' && <Home onNavigate={navigate} />}
+          {currentPage === 'home' && <Home onNavigate={navigate} searchQuery={catalogSearch} />}
           {currentPage === 'login' && <Login onNavigate={navigate} />}
           {currentPage === 'register' && <Register onNavigate={navigate} />}
           {currentPage === 'mainpage' && <MainPage />}
@@ -47,6 +49,7 @@ function App() {
           {currentPage === 'sellCar' && <SellCar onNavigate={navigate} />}
           {currentPage === 'seller' && <SellerDashboard onNavigate={navigate} />}
         </main>
+        <Footer onNavigate={navigate} />
       </div>
     </AuthProvider>
   )
