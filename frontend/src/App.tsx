@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './App.css'
 import Navbar from './components/Navbar'
 import Home from './components/Home'
@@ -17,13 +17,33 @@ import { AuthProvider } from './contexts/AuthContext'
 
 
 type Page = 'home' | 'login' | 'register' | 'mainpage' | 'car' | 'profile' | 'adminCars' | 'watchlist' | 'settings' | 'sellCar' | 'seller'
+type AuthView = 'login' | 'register-step1' | 'register-step2' | 'forgot' | 'check-email' | 'reset-password' | 'reset-success';
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>('home')
   const [selectedCarId, setSelectedCarId] = useState<string | null>(null)
+  const [authView, setAuthView] = useState<AuthView | null>(null)
 
-  const navigate = (page: string, params?: { carId?: number | string }) => {
+  useEffect(() => {
+    // Перевіримо URL параметри при завантаженні
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    const email = params.get('email');
+
+    // Якщо є параметри для скидання пароля, перейдемо на сторінку login
+    if (token && email) {
+      setCurrentPage('login');
+      setAuthView('reset-password');
+    }
+  }, []);
+
+  const navigate = (page: string, params?: { carId?: number | string; authView?: AuthView }) => {
     setCurrentPage(page as Page)
+    if (params?.authView) {
+      setAuthView(params.authView);
+    } else if (page === 'login') {
+      setAuthView(null); // Reset authView при переходе на login без специфічного view
+    }
     if (params && params.carId !== undefined) {
       setSelectedCarId(String(params.carId))
     }
@@ -36,7 +56,7 @@ function App() {
         <Navbar onNavigate={navigate} />
         <main className="main-content">
           {currentPage === 'home' && <Home onNavigate={navigate} />}
-          {currentPage === 'login' && <Login onNavigate={navigate} />}
+          {currentPage === 'login' && <Login onNavigate={navigate} initialAuthView={authView} />}
           {currentPage === 'register' && <Register onNavigate={navigate} />}
           {currentPage === 'mainpage' && <MainPage />}
           {currentPage === 'car' && <Car onNavigate={navigate} carId={selectedCarId} />}

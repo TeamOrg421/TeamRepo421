@@ -7,7 +7,8 @@
   - Note: if you migrate to httpOnly cookies, this wrapper can be simplified.
 */
 export async function apiCall(endpoint: string, options?: RequestInit) {
-  const url = `/api${endpoint}`;
+  const apiBaseUrl = 'http://localhost:5254';
+  const url = `${apiBaseUrl}/api${endpoint}`;
   const token = localStorage.getItem('token');
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',

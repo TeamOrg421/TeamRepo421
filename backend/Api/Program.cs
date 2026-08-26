@@ -1,6 +1,5 @@
 using Api.Extensions;
 using Api.Middleware;
-using Api.Middleware;
 using AutoMapper;
 using BusinessLogic.Interfaces;
 using BusinessLogic.Services;
@@ -57,10 +56,14 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+    // Для development - вимикаємо HTTPS редирект щоб дозволити HTTP запити
+}
+else
+{
+    app.UseHttpsRedirection();
 }
 
 app.UseMiddleware<ErrorHandlingMiddleware>();
-app.UseHttpsRedirection();
 app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();

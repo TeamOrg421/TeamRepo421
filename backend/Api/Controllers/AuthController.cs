@@ -42,6 +42,18 @@ namespace YourProject.Controllers
             });
         }
 
+        [HttpPost("google")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GoogleLogin(GoogleAuthDto model)
+        {
+            var token = await _authService.GoogleLoginAsync(model);
+
+            return Ok(new
+            {
+                Token = token
+            });
+        }
+
         [HttpGet("test")]
         [Authorize]
         public async Task<IActionResult> Test()
@@ -66,6 +78,36 @@ namespace YourProject.Controllers
         public async Task<IActionResult> TestForAdmin()
         {
             return Ok();
+        }
+
+        [HttpPost("forgot-password")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ForgotPassword(ForgotPasswordDto model)
+        {
+            try
+            {
+                await _authService.ForgotPasswordAsync(model);
+                return Ok(new { message = "Лист із посиланням для скидання пароля було відправлено на вашу пошту" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPost("reset-password")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ResetPassword(ResetPasswordDto model)
+        {
+            try
+            {
+                var token = await _authService.ResetPasswordAsync(model);
+                return Ok(new { Token = token, message = "Пароль успішно змінено" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
     }
 }
