@@ -259,6 +259,7 @@ namespace Api.Controllers
             if (userId == null) return Unauthorized();
 
             var listings = await _db.CarListings
+                .AsNoTracking()
                 .Where(listing => listing.SellerId == userId.Value)
                 .Include(listing => listing.Car)
                     .ThenInclude(car => car.Model)
@@ -268,6 +269,10 @@ namespace Api.Controllers
                 .Include(listing => listing.Bids)
                 .Include(listing => listing.Favorites)
                 .OrderByDescending(listing => listing.AuctionStart)
+                // Images, bids, and favorites are all collections.  Splitting this
+                // query prevents their join from multiplying rows for a listing and
+                // keeps the dashboard reliable when a seller has active auctions.
+                .AsSplitQuery()
                 .ToListAsync();
 
             var now = DateTime.UtcNow;

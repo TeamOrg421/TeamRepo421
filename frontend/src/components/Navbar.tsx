@@ -3,15 +3,21 @@ import { useAuth } from '../contexts/AuthContext';
 
 interface NavbarProps {
   onNavigate: (page: string) => void;
+  searchValue: string;
+  onSearchChange: (value: string) => void;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ onNavigate }) => {
+const Navbar: React.FC<NavbarProps> = ({ onNavigate, searchValue, onSearchChange }) => {
   const { isAuthenticated, user, logout } = useAuth();
-  const [searchValue, setSearchValue] = useState('');
+  const [searchInput, setSearchInput] = useState(searchValue);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const navLinks = ['Auctions', 'Community', 'Events', 'About Us', 'Leaderboard'];
+  const navLinks = [
+    { label: 'Auctions', page: 'home' },
+    { label: "What's Cars & Bids?", page: 'mainpage' },
+    { label: 'Leaderboard', page: 'leaderboard' },
+  ];
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -24,6 +30,16 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    setSearchInput(searchValue);
+  }, [searchValue]);
+
+  const submitSearch = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    onSearchChange(searchInput.trim());
+    onNavigate('home');
+  };
+
   return (
     <nav className="navbar">
       <div className="navbar-inner">
@@ -35,8 +51,8 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate }) => {
 
         <div className="navbar-menu">
           {navLinks.map((item) => (
-            <button key={item} className="navbar-menu-item" type="button">
-              {item}
+            <button key={item.label} className="navbar-menu-item" type="button" onClick={() => onNavigate(item.page)}>
+              {item.label}
             </button>
           ))}
           <button
@@ -48,19 +64,19 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate }) => {
           </button>
         </div>
 
-        <div className="navbar-search">
+        <form className="navbar-search" onSubmit={submitSearch} role="search">
           <svg className="search-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="11" cy="11" r="8" />
             <path d="m21 21-4.3-4.3" />
           </svg>
           <input
             type="text"
-            placeholder="Search for cars (ex. BMW, Audi, Ford)"
-            value={searchValue}
-            onChange={(e) => setSearchValue(e.target.value)}
+            placeholder="Search for car or model"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             className="search-input"
           />
-        </div>
+        </form>
 
         <div className="navbar-actions">
           {isAuthenticated && (
