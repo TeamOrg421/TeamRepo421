@@ -9,14 +9,17 @@ public static class CorsExtensions
         {
             options.AddPolicy("AllowFrontend", policy =>
             {
-                policy.WithOrigins(
+                policy
+                    .WithOrigins(
                         "http://localhost:5173",
                         "http://localhost:3000",
                         "https://localhost:5173",
-                        "https://localhost:3000")
+                        "https://localhost:3000",
+                        "http://localhost:5254")
                     .AllowAnyHeader()
                     .AllowAnyMethod()
-                    .AllowCredentials();
+                    .AllowCredentials()
+                    .WithExposedHeaders("Content-Type", "Authorization");
             });
         });
 
