@@ -12,6 +12,7 @@ import WatchlistPage from './components/WatchlistPage'
 import SettingsPage from './components/SettingsPage'
 import SellCar from './components/SellCar'
 import SellerDashboard from './components/SellerDashboard'
+import Footer from './components/Footer'
 
 import { AuthProvider } from './contexts/AuthContext'
 
@@ -53,7 +54,7 @@ function App() {
   return (
     <AuthProvider>
       <div className="app-container">
-        <Navbar onNavigate={navigate} />
+        <Navbar onNavigate={navigate} searchValue={catalogSearch} onSearchChange={setCatalogSearch} />
         <main className="main-content">
           {currentPage === 'home' && <Home onNavigate={navigate} />}
           {currentPage === 'login' && <Login onNavigate={navigate} initialAuthView={authView} />}
@@ -67,6 +68,7 @@ function App() {
           {currentPage === 'sellCar' && <SellCar onNavigate={navigate} />}
           {currentPage === 'seller' && <SellerDashboard onNavigate={navigate} />}
         </main>
+        <Footer onNavigate={navigate} />
       </div>
     </AuthProvider>
   )
