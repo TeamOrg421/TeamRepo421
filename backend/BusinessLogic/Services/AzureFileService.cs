@@ -14,9 +14,15 @@ namespace BusinessLogic.Services
         public AzureFileService(IConfiguration configuration)
         {
             connectionString = configuration.GetConnectionString("AzureBlobStorage")
+                ?? configuration["ConnectionStrings:AzureBlobStorage"]
+                ?? configuration["AzureBlobStorage"]
+                ?? configuration["AzureStorage:ConnectionString"]
+                ?? configuration["AzureStorageBlob"]
+                ?? configuration["AzureStorage"]
+                ?? configuration["BlobStorage:ConnectionString"]
+                ?? configuration["BlobStorage"]
                 ?? throw new InvalidOperationException(
-                    "Connection string 'AzureBlobStorage' is not configured. " +
-                    "Set it via User Secrets locally or Azure App Service connection strings in production.");
+                    "Azure Blob Storage connection string is not configured in User Secrets or appsettings.json.");
         }
 
         public async Task<string> SaveFile(IFormFile file)

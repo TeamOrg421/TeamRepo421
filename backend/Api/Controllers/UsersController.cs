@@ -24,6 +24,7 @@ namespace Api.Controllers
         private readonly IWebHostEnvironment _environment;
         private readonly ILogger<UsersController> _logger;
         private readonly IEmailSender _emailSender;
+        private readonly IFileService _fileService;
         private const string EmailConfirmationPurpose = "confirm-email";
 
         public UsersController(
@@ -33,7 +34,8 @@ namespace Api.Controllers
             ApplicationDbContext db,
             IWebHostEnvironment environment,
             ILogger<UsersController> logger,
-            IEmailSender emailSender)
+            IEmailSender emailSender,
+            IFileService fileService)
         {
             _userManager = userManager;
             _bidRepo = bidRepo;
@@ -42,6 +44,7 @@ namespace Api.Controllers
             _environment = environment;
             _logger = logger;
             _emailSender = emailSender;
+            _fileService = fileService;
         }
 
         // ─── GET /api/users/me ──────────────────────────────────────────────
@@ -64,6 +67,7 @@ namespace Api.Controllers
                 phoneNumberConfirmed = user.PhoneNumberConfirmed,
                 bio = user.Bio ?? string.Empty,
                 garageItems = user.GarageItems ?? string.Empty,
+                profileImageUrl = user.ProfileImageUrl ?? string.Empty,
                 createdAt = user.CreatedAt
             });
         }
@@ -98,6 +102,8 @@ namespace Api.Controllers
 
             user.Bio = dto.Bio?.Trim() ?? user.Bio;
             user.GarageItems = dto.GarageItems?.Trim() ?? user.GarageItems;
+            if (dto.ProfileImageUrl != null)
+                user.ProfileImageUrl = dto.ProfileImageUrl.Trim();
 
             var result = await _userManager.UpdateAsync(user);
             if (!result.Succeeded)
@@ -112,8 +118,77 @@ namespace Api.Controllers
                 phoneNumber = user.PhoneNumber ?? string.Empty,
                 phoneNumberConfirmed = user.PhoneNumberConfirmed,
                 bio = user.Bio ?? string.Empty,
-                garageItems = user.GarageItems ?? string.Empty
+                garageItems = user.GarageItems ?? string.Empty,
+                profileImageUrl = user.ProfileImageUrl ?? string.Empty,
+                createdAt = user.CreatedAt
             });
+        }
+
+        // ─── POST /api/users/me/avatar ──────────────────────────────────────
+        [HttpPost("me/avatar")]
+        public async Task<IActionResult> UploadAvatar(IFormFile? file)
+        {
+            var userId = GetUserId();
+            if (userId == null) return Unauthorized();
+
+            file ??= Request.Form.Files.FirstOrDefault();
+
+            if (file == null || file.Length == 0)
+                return BadRequest(new { message = "No file was uploaded." });
+
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".webp", ".gif" };
+            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+            if (!allowedExtensions.Contains(extension))
+                return BadRequest(new { message = "Invalid file type. Only JPG, PNG, WEBP, and GIF images are allowed." });
+
+            var user = await _userManager.FindByIdAsync(userId.ToString()!);
+            if (user == null) return NotFound();
+
+            // Delete old avatar if existing in Azure
+            if (!string.IsNullOrWhiteSpace(user.ProfileImageUrl))
+            {
+                try
+                {
+                    await _fileService.DeleteFile(user.ProfileImageUrl);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to delete previous avatar for user {UserId}", userId);
+                }
+            }
+
+            var imageUrl = await _fileService.SaveFile(file);
+            user.ProfileImageUrl = imageUrl;
+
+            var result = await _userManager.UpdateAsync(user);
+            if (!result.Succeeded)
+                return BadRequest(new { message = string.Join("; ", result.Errors.Select(e => e.Description)) });
+
+            return Ok(new
+            {
+                profileImageUrl = imageUrl,
+                message = "Avatar uploaded successfully."
+            });
+        }
+
+        // ─── DELETE /api/users/me/avatar ────────────────────────────────────
+        [HttpDelete("me/avatar")]
+        public async Task<IActionResult> DeleteAvatar()
+        {
+            var userId = GetUserId();
+            if (userId == null) return Unauthorized();
+
+            var user = await _userManager.FindByIdAsync(userId.ToString()!);
+            if (user == null) return NotFound();
+
+            if (!string.IsNullOrWhiteSpace(user.ProfileImageUrl))
+            {
+                await _fileService.DeleteFile(user.ProfileImageUrl);
+                user.ProfileImageUrl = null;
+                await _userManager.UpdateAsync(user);
+            }
+
+            return Ok(new { message = "Avatar removed successfully." });
         }
 
         [HttpPut("me/password")]
@@ -329,6 +404,11 @@ namespace Api.Controllers
                 .Include(b => b.Listing)
                     .ThenInclude(l => l.Car)
                         .ThenInclude(c => c.Images)
+                .Include(b => b.Listing)
+                    .ThenInclude(l => l.Car)
+                        .ThenInclude(c => c.Specification)
+                .Include(b => b.Listing)
+                    .ThenInclude(l => l.Bids)
                 .OrderByDescending(b => b.CreatedAt)
                 .ToListAsync();
 
@@ -338,15 +418,25 @@ namespace Api.Controllers
                 amount = b.Amount,
                 time = b.CreatedAt,
                 listingId = b.ListingId,
+                carId = b.Listing?.CarId,
                 carTitle = b.Listing?.Car != null
                     ? $"{b.Listing.Car.Year} {b.Listing.Car.Model?.Brand?.Name ?? ""} {b.Listing.Car.Model?.Name ?? ""}"
                     : b.Listing?.Title ?? "Unknown",
+                description = !string.IsNullOrWhiteSpace(b.Listing?.Description)
+                    ? b.Listing.Description
+                    : b.Listing?.Car?.Specification != null
+                        ? $"{b.Listing.Car.Specification.HorsePower}hp, {b.Listing.Car.Specification.Transmission}, {b.Listing.Car.Specification.DriveType}"
+                        : "",
                 imageUrl = b.Listing?.Car?.Images?.FirstOrDefault(i => i.IsMain)?.ImageUrl
                           ?? b.Listing?.Car?.Images?.FirstOrDefault()?.ImageUrl
                           ?? string.Empty,
                 currentPrice = b.Listing?.CurrentPrice ?? 0,
+                startingPrice = b.Listing?.StartingPrice ?? 0,
                 auctionEnd = b.Listing?.AuctionEnd,
-                isHighestBid = b.Listing?.CurrentPrice == b.Amount
+                status = b.Listing?.Status.ToString() ?? "Active",
+                isHighestBid = b.Listing?.CurrentPrice == b.Amount,
+                bidCount = b.Listing?.Bids?.Count ?? 1,
+                isWin = (b.Listing != null && (b.Listing.Status == DataAccess.Entities.Enums.ListingStatus.Completed || b.Listing.AuctionEnd <= DateTime.UtcNow) && b.Listing.CurrentPrice == b.Amount)
             });
 
             return Ok(result);
@@ -448,6 +538,9 @@ namespace Api.Controllers
                     .ThenInclude(l => l.Car)
                         .ThenInclude(c2 => c2.Model)
                             .ThenInclude(m => m.Brand)
+                .Include(c => c.Listing)
+                    .ThenInclude(l => l.Car)
+                        .ThenInclude(c2 => c2.Images)
                 .OrderByDescending(c => c.CreatedAt)
                 .ToListAsync();
 
@@ -458,9 +551,13 @@ namespace Api.Controllers
                 time = c.CreatedAt,
                 likes = c.Likes,
                 listingId = c.ListingId,
+                carId = c.Listing?.CarId,
                 carTitle = c.Listing?.Car != null
                     ? $"{c.Listing.Car.Year} {c.Listing.Car.Model?.Brand?.Name ?? ""} {c.Listing.Car.Model?.Name ?? ""}"
-                    : c.Listing?.Title ?? "Unknown"
+                    : c.Listing?.Title ?? "Unknown",
+                imageUrl = c.Listing?.Car?.Images?.FirstOrDefault(i => i.IsMain)?.ImageUrl
+                          ?? c.Listing?.Car?.Images?.FirstOrDefault()?.ImageUrl
+                          ?? string.Empty
             });
 
             return Ok(result);
@@ -483,6 +580,7 @@ namespace Api.Controllers
         public string? Email { get; set; }
         public string? Bio { get; set; }
         public string? GarageItems { get; set; }
+        public string? ProfileImageUrl { get; set; }
     }
 
     public class WatchlistDto

@@ -107,7 +107,7 @@ const formatTimeRemaining = (value: unknown) => {
 };
 
 const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated } = useAuth();
 
   const activeId = carId ?? '';
   const [carData, setCarData] = useState<CarDetail | null>(null);
