@@ -1,4 +1,4 @@
-using Api.Hubs;
+﻿using Api.Hubs;
 using BusinessLogic.Interfaces;
 using DataAccess.Entities;
 using DataAccess.IRepositories;
@@ -15,6 +15,7 @@ namespace Api.Controllers
     public class BidsController : ControllerBase
     {
         private readonly IRepository<Bid> _bidRepo;
+        private readonly IBidsRepositories<Bid> _bidRepoAdd;
         private readonly IRepository<AuctionLot> _lotRepo;
         private readonly IBankCardService _bankCardService;
         private readonly IBankApiClient fakeBankApi;
@@ -23,6 +24,7 @@ namespace Api.Controllers
 
         public BidsController(
             IRepository<Bid> bidRepo,
+            IBidsRepositories<Bid> bidRepoAdd,
             IRepository<AuctionLot> lotRepo,
             IBankCardService bankCardService,
             IBankApiClient fakeBankApi,
@@ -30,6 +32,7 @@ namespace Api.Controllers
             IHubContext<AuctionHub> hubContext)
         {
             _bidRepo = bidRepo;
+            _bidRepoAdd = bidRepoAdd;
             _lotRepo = lotRepo;
             _bankCardService = bankCardService;
             this.fakeBankApi = fakeBankApi;
@@ -79,9 +82,13 @@ namespace Api.Controllers
             var defoultCard = await _bankCardService.GetTokenDefoultBankCard(userId);
             Console.WriteLine($"TOKEN = {defoultCard}");
             var cardBalance = await fakeBankApi.GetBalanceAsync(defoultCard);
-            Console.WriteLine($"\n ------------> {cardBalance}");
+            Console.WriteLine($"\n Balance ---------> {cardBalance}");
             if (cardBalance < model.Amount)
                 return BadRequest(new { message = "Insufficient funds on the bank card." });
+
+            var lastBids = await _bidRepoAdd.GetLastBidAsync(model.ListingId);
+            if (lastBids != null && lastBids.UserId == userId)
+                return BadRequest(new { message = "You cannot place two consecutive bids on the same listing." });
 
             var bid = new Bid
             {

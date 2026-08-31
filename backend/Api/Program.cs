@@ -1,4 +1,4 @@
-using Api.Extensions;
+﻿using Api.Extensions;
 using Api.Hubs;
 using Api.Middleware;
 using AutoMapper;
@@ -19,6 +19,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddApplicationServices();
 
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+builder.Services.AddScoped(typeof(IBidsRepositories<>), typeof(BidsRepositories<>));
 builder.Services.AddScoped(typeof(ICarRepositories<>), typeof(CarRepositories<>));
 builder.Services.AddScoped<IActionLotService, ActionLotService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -26,6 +27,7 @@ builder.Services.AddScoped<ICarService, CarService>();
 builder.Services.AddScoped<ICatalogService, CatalogService>();
 builder.Services.AddScoped<IBankCardService, BankCardService>();
 builder.Services.AddScoped<IFileService, AzureFileService>();
+builder.Services.AddScoped<ILeaderBord, LeaderBord>();
 
 builder.Services.AddHttpClient<IBankApiClient, BankApiClient>(client =>
 {
@@ -61,7 +63,6 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
-    // Для development - вимикаємо HTTPS редирект щоб дозволити HTTP запити
 }
 else
 {
