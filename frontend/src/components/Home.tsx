@@ -1,189 +1,83 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
-interface HomeProps {
-  onNavigate: (page: string, params?: { carId?: number | string }) => void;
-}
-
+interface HomeProps { onNavigate: (page: string, params?: { carId?: number | string }) => void; searchQuery: string; }
 interface AuctionCar {
-  id: string | number;
-  title: string;
-  time: string;
-  bid: string;
-  description: string;
-  location: string;
-  featured?: boolean;
-  noReserve?: boolean;
-  imageUrl: string;
+  id: string | number; title: string; time: string; bid: number; description: string; location: string; imageUrl: string;
+  year?: number; make: string; model: string; transmission: string; bodyStyle: string; mileage?: number; auctionStart?: string; auctionEnd?: string;
 }
 
-const FEATURED = {
-  title: 'Featured auction',
-  time: 'Live',
-  bid: '$0',
-};
-
-const SORT_OPTIONS = ['Ending soon', 'Newly listed', 'No reserve', 'Lowest mileage', 'Closest to me'];
-
+const SORT_OPTIONS = ['Ending soon', 'Newly listed', 'Lowest mileage', 'Highest bid'];
+const enumLabel = (value: unknown, labels: string[]) => typeof value === 'number' ? labels[value] ?? 'Unknown' : String(value ?? 'Unknown');
 const getCarImageUrl = (car: any): string => {
   const images: any[] = Array.isArray(car?.images) ? car.images : [];
-  const direct = images
-    .map((img) => (typeof img === 'string' ? img : img?.imageUrl ?? img?.url))
-    .find((img) => typeof img === 'string' && img.trim().length > 0);
-
-  if (direct) return direct;
-  if (typeof car?.imageUrl === 'string' && car.imageUrl.trim()) return car.imageUrl;
-  return '';
+  return images.map((image) => typeof image === 'string' ? image : image?.imageUrl ?? image?.url)
+    .find((image) => typeof image === 'string' && image.trim()) ?? (typeof car?.imageUrl === 'string' ? car.imageUrl : '');
 };
-
 const getAuctionStatus = (auctionStart?: string, auctionEnd?: string) => {
-  const now = Date.now();
-  const start = auctionStart ? new Date(auctionStart).getTime() : Number.NaN;
-  const end = auctionEnd ? new Date(auctionEnd).getTime() : Number.NaN;
-
+  const now = Date.now(), start = auctionStart ? new Date(auctionStart).getTime() : NaN, end = auctionEnd ? new Date(auctionEnd).getTime() : NaN;
   if (Number.isFinite(end) && end <= now) return 'Ended';
-  if (Number.isFinite(start) && start > now) return 'Starts soon';
-  return 'Live';
+  return Number.isFinite(start) && start > now ? 'Starts soon' : 'Live';
 };
 
-const Home: React.FC<HomeProps> = ({ onNavigate }) => {
+const Home: React.FC<HomeProps> = ({ onNavigate, searchQuery }) => {
   const [selectedYear, setSelectedYear] = useState('');
   const [selectedTransmission, setSelectedTransmission] = useState('');
   const [selectedBodyStyle, setSelectedBodyStyle] = useState('');
   const [activeSort, setActiveSort] = useState('Ending soon');
   const [auctionCars, setAuctionCars] = useState<AuctionCar[]>([]);
-  const featuredCar = auctionCars[0];
-  const featuredCarId = featuredCar?.id;
 
   useEffect(() => {
     const loadCars = async () => {
       try {
         const response = await fetch('/api/cars');
-        if (!response.ok) {
-          throw new Error('Failed to load cars');
-        }
-
+        if (!response.ok) throw new Error('Failed to load cars');
         const data = await response.json();
-        const mappedCars: AuctionCar[] = (Array.isArray(data) ? data : []).map((car: any) => ({
-          id: car.id,
-          title: car.title || `${car.brandName || car.make || 'Unknown'} ${car.modelName || car.model || 'model'}`.trim(),
-          time: getAuctionStatus(car.auctionStart, car.auctionEnd),
-          bid: `$${Number(car.currentBid ?? car.currentPrice ?? 0).toLocaleString()}`,
-          description: car.description || `${car.year ? `${car.year} ` : ''}${car.brandName || car.make || 'Unknown'} ${car.modelName || car.model || 'model'}`.trim(),
-          location: car.location || 'Location not specified',
-          featured: false,
-          imageUrl: getCarImageUrl(car),
+        setAuctionCars((Array.isArray(data) ? data : []).map((car: any) => {
+          const specification = car.specification ?? {}, make = car.brandName || car.make || 'Unknown', model = car.modelName || car.model || 'model';
+          return { id: car.id, title: car.title || `${car.year ? `${car.year} ` : ''}${make} ${model}`.trim(), time: getAuctionStatus(car.auctionStart, car.auctionEnd), bid: Number(car.currentBid ?? car.currentPrice ?? car.startingPrice ?? 0), description: car.description || `${car.year ? `${car.year} ` : ''}${make} ${model}`.trim(), location: car.location || 'Location not specified', imageUrl: getCarImageUrl(car), year: Number(car.year) || undefined, make, model, transmission: enumLabel(specification.transmission, ['Manual', 'Automatic', 'Automated manual', 'CVT']), bodyStyle: enumLabel(specification.bodyType, ['Sedan', 'Coupe', 'Hatchback', 'SUV', 'Wagon', 'Convertible', 'Minivan', 'Pickup']), mileage: Number(specification.mileage) || undefined, auctionStart: car.auctionStart, auctionEnd: car.auctionEnd };
         }));
-
-        setAuctionCars(mappedCars);
-      } catch {
-        setAuctionCars([]);
-      }
+      } catch { setAuctionCars([]); }
     };
-
     loadCars();
   }, []);
 
-  return (
-    <div className="home">
-      <section
-        className="featured-hero"
-        onClick={() => featuredCarId !== undefined && onNavigate('car', { carId: featuredCarId })}
-        style={featuredCar ? { backgroundImage: `linear-gradient(135deg, rgba(10,10,15,0.78), rgba(54,52,79,0.5)), url(${featuredCar.imageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
-      >
-        <div className="featured-main featured-main-empty">
-          <span className="badge badge-featured">FEATURED</span>
-          <h2 className="featured-title">{featuredCar?.title || FEATURED.title}</h2>
-          <div className="featured-meta">
-            <span className="featured-time">{featuredCar?.time || FEATURED.time}</span>
-            <span className="featured-bid">Bid {featuredCar?.bid || FEATURED.bid}</span>
-          </div>
-        </div>
-        <div className="featured-thumbs">
-          {(featuredCar ? [featuredCar.imageUrl] : []).map((img, i) => (
-            <div key={i} className="featured-thumb featured-thumb-empty" style={img ? { backgroundImage: `url(${img})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined} />
-          ))}
-        </div>
-      </section>
+  const filteredCars = useMemo(() => {
+    const query = searchQuery.trim().toLocaleLowerCase();
+    const result = auctionCars.filter((car) => (!query || [car.title, car.description, car.make, car.model, car.location].some((value) => value.toLocaleLowerCase().includes(query)))
+      && (!selectedYear || String(car.year) === selectedYear) && (!selectedTransmission || car.transmission === selectedTransmission) && (!selectedBodyStyle || car.bodyStyle === selectedBodyStyle));
+    return result.sort((left, right) => {
+      if (activeSort === 'Newly listed') return new Date(right.auctionStart ?? 0).getTime() - new Date(left.auctionStart ?? 0).getTime();
+      if (activeSort === 'Lowest mileage') return (left.mileage ?? Number.MAX_SAFE_INTEGER) - (right.mileage ?? Number.MAX_SAFE_INTEGER);
+      if (activeSort === 'Highest bid') return right.bid - left.bid;
+      return new Date(left.auctionEnd ?? '9999-12-31').getTime() - new Date(right.auctionEnd ?? '9999-12-31').getTime();
+    });
+  }, [activeSort, auctionCars, searchQuery, selectedBodyStyle, selectedTransmission, selectedYear]);
 
-      <section className="auctions-section">
-        <div className="auctions-header">
-          <h3 className="auctions-title">Auctions</h3>
-          <div className="sort-links">
-            {SORT_OPTIONS.map((item) => (
-              <button
-                key={item}
-                type="button"
-                className={`sort-link ${activeSort === item ? 'sort-link-active' : ''}`}
-                onClick={() => setActiveSort(item)}
-              >
-                {item}
-              </button>
-            ))}
-          </div>
-        </div>
+  const featuredCar = filteredCars[0] ?? auctionCars[0];
+  const years = Array.from(new Set(auctionCars.map((car) => car.year).filter(Boolean))).sort((a, b) => Number(b) - Number(a));
+  const bodyStyles = Array.from(new Set(auctionCars.map((car) => car.bodyStyle).filter((value) => value !== 'Unknown'))).sort();
+  const resetFilters = () => { setSelectedYear(''); setSelectedTransmission(''); setSelectedBodyStyle(''); };
 
-        <div className="filter-bar">
-          <select
-            className="filter-select"
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(e.target.value)}
-          >
-            <option value="">Years</option>
-            <option value="2020+">2020+</option>
-            <option value="2010-2019">2010–2019</option>
-            <option value="2000-2009">2000–2009</option>
-            <option value="classic">Classic</option>
-          </select>
-
-          <select
-            className="filter-select"
-            value={selectedTransmission}
-            onChange={(e) => setSelectedTransmission(e.target.value)}
-          >
-            <option value="">Transmission</option>
-            <option value="manual">Manual</option>
-            <option value="automatic">Automatic</option>
-          </select>
-
-          <select
-            className="filter-select"
-            value={selectedBodyStyle}
-            onChange={(e) => setSelectedBodyStyle(e.target.value)}
-          >
-            <option value="">Body Style</option>
-            <option value="coupe">Coupe</option>
-            <option value="sedan">Sedan</option>
-            <option value="convertible">Convertible</option>
-            <option value="suv">SUV</option>
-          </select>
-        </div>
-
-        <div className="auction-grid">
-          {auctionCars.map((car) => (
-            <article
-              key={String(car.id)}
-              className="auction-card"
-              onClick={() => onNavigate('car', { carId: car.id })}
-            >
-              <div className="auction-card-image auction-card-image-empty" style={car.imageUrl ? { backgroundImage: `url(${car.imageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}>
-                {car.featured && <span className="badge badge-featured">FEATURED</span>}
-                {car.noReserve && <span className="badge badge-no-reserve">NO RESERVE</span>}
-                <div className="auction-card-overlay">
-                  <span>{car.time}</span>
-                  <span>Bid {car.bid}</span>
-                </div>
-              </div>
-              <div className="auction-card-body">
-                <h4 className="auction-card-title">{car.title}</h4>
-                <p className="auction-card-desc">{car.description}</p>
-                <p className="auction-card-location">{car.location}</p>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-    </div>
-  );
+  return <div className="home catalog-home">
+    <section className="featured-hero catalog-featured" onClick={() => featuredCar && onNavigate('car', { carId: featuredCar.id })}>
+      <div className="featured-main featured-main-empty" style={featuredCar?.imageUrl ? { backgroundImage: `linear-gradient(90deg, rgba(0,0,0,.62), rgba(0,0,0,.08)), url(${featuredCar.imageUrl})` } : undefined}>
+        <span className="catalog-featured-label">FEATURED AUCTION</span><div className="catalog-featured-copy"><h1>{featuredCar?.title || 'Discover your next car'}</h1><p>{featuredCar?.description || 'Browse live vehicle auctions from verified sellers.'}</p></div>
+      </div>
+    </section>
+    <section className="auctions-section">
+      <div className="auctions-header"><div><h2 className="auctions-title">Auctions</h2>{searchQuery && <p className="catalog-result-copy">Results for “{searchQuery}”</p>}</div><div className="sort-links">{SORT_OPTIONS.map((item) => <button key={item} type="button" className={`sort-link ${activeSort === item ? 'sort-link-active' : ''}`} onClick={() => setActiveSort(item)}>{item}</button>)}</div></div>
+      <div className="filter-bar" aria-label="Catalog filters">
+        <select className="filter-select" value={selectedYear} onChange={(event) => setSelectedYear(event.target.value)}><option value="">Year</option>{years.map((year) => <option key={year} value={year}>{year}</option>)}</select>
+        <select className="filter-select" value={selectedTransmission} onChange={(event) => setSelectedTransmission(event.target.value)}><option value="">Transmission</option><option>Manual</option><option>Automatic</option><option>Automated manual</option><option>CVT</option></select>
+        <select className="filter-select" value={selectedBodyStyle} onChange={(event) => setSelectedBodyStyle(event.target.value)}><option value="">Body type</option>{bodyStyles.map((bodyStyle) => <option key={bodyStyle}>{bodyStyle}</option>)}</select>
+        {(selectedYear || selectedTransmission || selectedBodyStyle) && <button type="button" className="clear-filters" onClick={resetFilters}>Clear filters</button>}
+      </div>
+      {filteredCars.length ? <div className="auction-grid">{filteredCars.map((car) => <article key={String(car.id)} className="auction-card" onClick={() => onNavigate('car', { carId: car.id })}>
+        <div className="auction-card-image auction-card-image-empty" style={car.imageUrl ? { backgroundImage: `url(${car.imageUrl})` } : undefined}><div className="auction-card-overlay"><span>{car.time}</span><span>${car.bid.toLocaleString()}</span></div></div>
+        <div className="auction-card-body"><h3 className="auction-card-title">{car.title}</h3><p className="auction-card-desc">{car.description}</p><p className="auction-card-location">{car.location}</p><div className="auction-card-tags"><span>{car.transmission}</span>{car.bodyStyle !== 'Unknown' && <span>{car.bodyStyle}</span>}{car.mileage !== undefined && <span>{car.mileage.toLocaleString()} mi</span>}</div></div>
+      </article>)}</div> : <div className="catalog-empty"><h3>No auctions found</h3><p>Try another search or clear the selected filters.</p></div>}
+    </section>
+  </div>;
 };
 
 export default Home;
