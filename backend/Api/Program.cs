@@ -18,6 +18,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddApplicationServices();
 
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+builder.Services.AddScoped(typeof(IBidsRepositories<>), typeof(BidsRepositories<>));
 builder.Services.AddScoped(typeof(ICarRepositories<>), typeof(CarRepositories<>));
 builder.Services.AddScoped<IActionLotService, ActionLotService>();
 builder.Services.AddScoped<IAuthService, AuthService>();

@@ -1,15 +1,13 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
       '/api': {
-        target: 'https://localhost:5027', // 👈 Вкажи порт свого backend
+        target: 'http://localhost:5027',
         changeOrigin: true,
-        secure: false, // дозволяє self-signed SSL сертифікати локально
       },
     },
   },
