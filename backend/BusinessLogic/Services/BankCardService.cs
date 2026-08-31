@@ -72,14 +72,11 @@ namespace BusinessLogic.Services
         }
         public async Task<Guid> GetTokenDefoultBankCard(Guid userId)
         {
-            //var card = await bankCardRepository.GetAllAsync(
-            //    pageNumber: 1,
-            //    pageSize: 10,
-            //    filtering: card => card.UserId == userId && card.IsDefault == true);
-            //return card.FirstOrDefault()?.BankCardToken ?? Guid.Empty
-            var card = await ctx.BankCards.FirstOrDefaultAsync(i => i.UserId == userId && i.IsDefault == true);
+            var card = await ctx.BankCards.FirstOrDefaultAsync(i => i.UserId == userId && i.IsDefault == true)
+                       ?? await ctx.BankCards.FirstOrDefaultAsync(i => i.UserId == userId);
+
             if (card == null)
-                throw new Exception("Default bank card not found for the user");
+                throw new InvalidOperationException("Default bank card not found for the user");
 
             return card.BankCardToken;
         }

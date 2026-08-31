@@ -1,4 +1,4 @@
-﻿using BusinessLogic.DTOs;
+using BusinessLogic.DTOs;
 using BusinessLogic.Interfaces;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -22,7 +22,7 @@ namespace BusinessLogic.Services
                 CardHolderName = card.CardHolderName,
                 ExpiryDate = card.ExpiryDate,
                 Cvv = card.Cvv,
-                Balance = 0
+                Balance = 1000000m
             };
 
             var response = await _httpClient.PostAsJsonAsync("api/payment/add-card", request);
@@ -97,6 +97,23 @@ namespace BusinessLogic.Services
                 ?? throw new Exception("Empty response.");
             return balance.Balance;
         }
+
+        public async Task<decimal> DepositAsync(Guid token, decimal amount)
+        {
+            var request = new Shared.Contracts.DepositDto
+            {
+                CardId = token,
+                Amount = amount
+            };
+
+            var response = await _httpClient.PostAsJsonAsync("api/payment/deposit", request);
+
+            if (!response.IsSuccessStatusCode)
+                throw new InvalidOperationException(await ReadErrorAsync(response));
+
+            return await GetBalanceAsync(token);
+        }
+
         public class CardBalanceDto
         {
             public Guid CardId { get; set; }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,5 +10,6 @@ namespace BusinessLogic.Interfaces
         Task<BusinessLogic.DTOs.PaymentResponseDto> PayAsync(Shared.Contracts.PaymentRequestDto dto);
         Task<BusinessLogic.DTOs.BankCardDto> AddBankCardAsync(BusinessLogic.DTOs.CreateBankCardDto card);
         Task<decimal> GetBalanceAsync(Guid token);
+        Task<decimal> DepositAsync(Guid token, decimal amount);
     }
 }

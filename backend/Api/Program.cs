@@ -1,4 +1,5 @@
 using Api.Extensions;
+using Api.Hubs;
 using Api.Middleware;
 using AutoMapper;
 using BusinessLogic.Interfaces;
@@ -28,7 +29,10 @@ builder.Services.AddScoped<IFileService, AzureFileService>();
 
 builder.Services.AddHttpClient<IBankApiClient, BankApiClient>(client =>
 {
-    client.BaseAddress = new Uri("https://localhost:7008");
+    client.BaseAddress = new Uri(builder.Configuration["FakeBank:BaseUrl"] ?? "https://localhost:7008");
+}).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+{
+    ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
 });
 
 builder.Services
@@ -40,6 +44,7 @@ builder.Services
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
 builder.Services.AddControllers();
+builder.Services.AddSignalR();
 
 builder.Services.AddFrontendCors();
 builder.Services.AddJwtAuthentication(builder.Configuration);
@@ -69,5 +74,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<AuctionHub>("/hubs/auction");
 
 app.Run();

@@ -1,4 +1,4 @@
-﻿using FakeBank.BusinessLogic.Interfaces;
+using FakeBank.BusinessLogic.Interfaces;
 using FakeBank.DataAccess;
 using FakeBank.DataAccess.Entities;
 using FakeBank.DataAccess.IRepositories;
@@ -40,24 +40,16 @@ namespace FakeBank.BusinessLogic.Service
 
         }
 
-        public async Task<BankCard> GetBankCardByIdAsync(Guid cardId)
+        public async Task<BankCard?> GetBankCardByIdAsync(Guid cardId)
         {
-            var bankCard = await repository.GetByIdAsync(cardId);
-            //var bankCard = await ctx.BankCards.FirstOrDefaultAsync(i => i.BankCardToken == cardId);
-            if (bankCard == null)
-                throw new Exception("Bank card not found");
-            return bankCard;
+            return await ctx.BankCards.FirstOrDefaultAsync(i => i.Id == cardId)
+                   ?? await ctx.BankCards.FirstOrDefaultAsync(i => i.BankCardToken == cardId);
         }
-        public async Task<BankCard> GetBankCardByTokenAsync(Guid token)
+
+        public async Task<BankCard?> GetBankCardByTokenAsync(Guid token)
         {
-            var bankCard = await ctx.BankCards
-                .AsNoTracking()
-                .FirstOrDefaultAsync(i => i.BankCardToken == token);
-
-            if (bankCard == null)
-                throw new Exception("Bank card not found");
-
-            return bankCard;
+            return await ctx.BankCards.FirstOrDefaultAsync(i => i.BankCardToken == token)
+                   ?? await ctx.BankCards.FirstOrDefaultAsync(i => i.Id == token);
         }
 
         public Task<bool> HasBankCardAsync(Guid userId)
@@ -67,10 +59,22 @@ namespace FakeBank.BusinessLogic.Service
 
         public async Task<BankCard> UpdateBankCardAsync(BankCard bankCard)
         {
-            var existingBankCard = await repository.GetByIdAsync(bankCard.Id);
+            var tracked = ctx.BankCards.Local.FirstOrDefault(e => e.Id == bankCard.Id);
+            if (tracked != null)
+            {
+                tracked.CardNumber = bankCard.CardNumber;
+                tracked.CardHolderName = bankCard.CardHolderName;
+                tracked.ExpiryDate = bankCard.ExpiryDate;
+                tracked.Cvv = bankCard.Cvv;
+                tracked.Balance = bankCard.Balance;
+                tracked.IsBlocked = bankCard.IsBlocked;
+                await ctx.SaveChangesAsync();
+                return tracked;
+            }
 
+            var existingBankCard = await ctx.BankCards.FirstOrDefaultAsync(c => c.Id == bankCard.Id);
             if (existingBankCard == null)
-                throw new Exception("Bank card not found");
+                throw new KeyNotFoundException("Bank card not found");
 
             existingBankCard.CardNumber = bankCard.CardNumber;
             existingBankCard.CardHolderName = bankCard.CardHolderName;
@@ -79,8 +83,7 @@ namespace FakeBank.BusinessLogic.Service
             existingBankCard.Balance = bankCard.Balance;
             existingBankCard.IsBlocked = bankCard.IsBlocked;
 
-            await repository.UpdateAsync(existingBankCard);
-
+            await ctx.SaveChangesAsync();
             return existingBankCard;
         }
     }

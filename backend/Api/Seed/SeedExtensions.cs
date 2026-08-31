@@ -1,4 +1,4 @@
-﻿using DataAccess.Data;
+using DataAccess.Data;
 using DataAccess.Entities;
 using DataAccess.Entities.Enums;
 using Microsoft.AspNetCore.Identity;
@@ -47,6 +47,15 @@ public static class SeedExtensions
         {
             await dbContext.SeedTestAuctionLotAsync(existingCar, seller, bidder);
         }
+        else
+        {
+            // Always refresh auction window so the test lot never expires between dev restarts
+            // ListingStatus.Active == 2 in the enum (Draft=0, Pending=1, Active=2)
+            existingLot.AuctionStart = DateTime.UtcNow.AddMinutes(-30);
+            existingLot.AuctionEnd   = DateTime.UtcNow.AddDays(7);
+            existingLot.Status       = ListingStatus.Active;
+            await dbContext.SaveChangesAsync();
+        }
     }
 
     private static async Task ApplyLegacySchemaPatchesAsync(this ApplicationDbContext dbContext)
@@ -75,6 +84,42 @@ public static class SeedExtensions
                 "IF COL_LENGTH('dbo.CarSpecifications','InteriorColor') IS NULL BEGIN ALTER TABLE dbo.CarSpecifications ADD InteriorColor nvarchar(max) NULL END");
         }
         catch { /* The application can still start where schema changes are managed externally. */ }
+
+        try
+        {
+            await dbContext.Database.ExecuteSqlRawAsync(@"
+                IF OBJECT_ID('dbo.BankCards', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE dbo.BankCards (
+                        Id uniqueidentifier NOT NULL,
+                        BankCardToken uniqueidentifier NOT NULL DEFAULT NEWID(),
+                        MaskedCardNumber nvarchar(19) NOT NULL DEFAULT '',
+                        ExpiryDate nvarchar(max) NOT NULL DEFAULT '',
+                        CardHolderName nvarchar(max) NOT NULL DEFAULT '',
+                        BillingAddress nvarchar(max) NOT NULL DEFAULT '',
+                        IsDefault bit NOT NULL DEFAULT 0,
+                        UserId uniqueidentifier NOT NULL,
+                        CONSTRAINT PK_BankCards PRIMARY KEY (Id),
+                        CONSTRAINT FK_BankCards_AspNetUsers_UserId FOREIGN KEY (UserId) REFERENCES dbo.AspNetUsers (Id) ON DELETE CASCADE
+                    );
+                    CREATE UNIQUE NONCLUSTERED INDEX IX_BankCards_BankCardToken ON dbo.BankCards (BankCardToken);
+                    CREATE NONCLUSTERED INDEX IX_BankCards_UserId ON dbo.BankCards (UserId);
+                END
+                ELSE
+                BEGIN
+                    IF COL_LENGTH('dbo.BankCards', 'BankCardToken') IS NULL
+                    BEGIN
+                        ALTER TABLE dbo.BankCards ADD BankCardToken uniqueidentifier NOT NULL CONSTRAINT DF_BankCards_BankCardToken DEFAULT NEWID();
+                        CREATE UNIQUE NONCLUSTERED INDEX IX_BankCards_BankCardToken ON dbo.BankCards (BankCardToken);
+                    END
+                    IF COL_LENGTH('dbo.BankCards', 'MaskedCardNumber') IS NULL
+                    BEGIN
+                        ALTER TABLE dbo.BankCards ADD MaskedCardNumber nvarchar(19) NOT NULL CONSTRAINT DF_BankCards_MaskedCardNumber DEFAULT '';
+                    END
+                END
+            ");
+        }
+        catch { /* ignore: e.g. permissions */ }
     }
 
     private static async Task<Car> SeedTestCarAsync(this ApplicationDbContext dbContext)

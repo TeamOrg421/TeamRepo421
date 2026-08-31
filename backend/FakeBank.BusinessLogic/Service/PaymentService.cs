@@ -1,4 +1,4 @@
-﻿using FakeBank.BusinessLogic.Interfaces;
+using FakeBank.BusinessLogic.Interfaces;
 using FakeBank.DataAccess.Entities;
 using Shared.Contracts;
 using System;
@@ -85,7 +85,7 @@ namespace FakeBank.BusinessLogic.Service
                 CardHolderName = card.CardHolderName,
                 ExpiryDate = card.ExpiryDate,
                 Cvv = card.Cvv,
-                Balance = card.Balance,
+                Balance = card.Balance > 0 ? card.Balance : 1000000m,
                 BankCardToken = Guid.NewGuid()
             };
             var created = await bankCardService.CreateBankCardAsync(newCard);
@@ -220,6 +220,7 @@ namespace FakeBank.BusinessLogic.Service
                 throw new ArgumentException("Amount must be greater than zero.");
             Console.WriteLine($"CardId = {dto.CardId}");
             var card = await bankCardService.GetBankCardByIdAsync(dto.CardId)
+                       ?? await bankCardService.GetBankCardByTokenAsync(dto.CardId)
                        ?? throw new KeyNotFoundException("Bank card not found");
 
             card.Balance += dto.Amount;
@@ -228,7 +229,7 @@ namespace FakeBank.BusinessLogic.Service
             var transaction = new BankTransaction
             {
                 Id = Guid.NewGuid(),
-                CardId = dto.CardId,
+                CardId = card.Id,
                 Amount = dto.Amount,
                 Type = TransactionType.Deposit,
                 Status = TransactionStatus.Success,

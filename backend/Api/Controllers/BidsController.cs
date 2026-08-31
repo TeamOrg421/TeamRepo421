@@ -1,10 +1,11 @@
-
+using Api.Hubs;
 using BusinessLogic.Interfaces;
 using DataAccess.Entities;
 using DataAccess.IRepositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using System.Security.Claims;
 
 namespace Api.Controllers
@@ -18,19 +19,22 @@ namespace Api.Controllers
         private readonly IBankCardService _bankCardService;
         private readonly IBankApiClient fakeBankApi;
         private readonly UserManager<ApplicationUser> userManager;
+        private readonly IHubContext<AuctionHub> _hubContext;
 
         public BidsController(
             IRepository<Bid> bidRepo,
             IRepository<AuctionLot> lotRepo,
             IBankCardService bankCardService,
             IBankApiClient fakeBankApi,
-            UserManager<ApplicationUser> userManager)
+            UserManager<ApplicationUser> userManager,
+            IHubContext<AuctionHub> hubContext)
         {
             _bidRepo = bidRepo;
             _lotRepo = lotRepo;
             _bankCardService = bankCardService;
             this.fakeBankApi = fakeBankApi;
             this.userManager = userManager;
+            _hubContext = hubContext;
         }
 
         public class PlaceBidDto
@@ -67,6 +71,7 @@ namespace Api.Controllers
             var hasBankCard = await _bankCardService.HasBankCardAsync(userId);
             if (!hasBankCard)
                 return BadRequest(new { message = "To participate in the auction, you must connect a bank card first." });
+
             var user = await userManager.FindByIdAsync(userId.ToString());
             if (user == null)
                 return Unauthorized(new { message = "User not found." });
@@ -74,9 +79,10 @@ namespace Api.Controllers
             var defoultCard = await _bankCardService.GetTokenDefoultBankCard(userId);
             Console.WriteLine($"TOKEN = {defoultCard}");
             var cardBalance = await fakeBankApi.GetBalanceAsync(defoultCard);
-            Console.WriteLine($"\n ÁÀËÀÍÑ ---------> {cardBalance}");
-            if(cardBalance < model.Amount)
+            Console.WriteLine($"\n ------------> {cardBalance}");
+            if (cardBalance < model.Amount)
                 return BadRequest(new { message = "Insufficient funds on the bank card." });
+
             var bid = new Bid
             {
                 Id = Guid.NewGuid(),
@@ -90,6 +96,19 @@ namespace Api.Controllers
 
             listing.CurrentPrice = model.Amount;
             await _lotRepo.UpdateAsync(listing);
+
+            // Broadcast the new bid to all clients watching this auction in real-time
+            var bidderName = User.Identity?.Name ?? userIdClaim;
+            var broadcastPayload = new
+            {
+                bidder = bidderName,
+                amount = bid.Amount,
+                time = bid.CreatedAt,
+                currentPrice = bid.Amount
+            };
+            await _hubContext.Clients
+                .Group($"auction_{listing.Id}")
+                .SendAsync("ReceiveBid", broadcastPayload);
 
             return CreatedAtAction(null, new { id = bid.Id }, new { bidder = User.Identity?.Name ?? userIdClaim, amount = bid.Amount, time = bid.CreatedAt });
         }
