@@ -18,6 +18,15 @@ namespace BusinessLogic.Services
 
         public async Task CreateBankCardAsync(BankCard bankCard)
         {
+            if (bankCard.IsDefault == true)
+            {
+                var cards = await bankCardRepository.GetAllAsync(filtering: x => x.UserId == bankCard.UserId);
+                foreach(var card in cards)
+                {
+                    card.IsDefault = false;
+                    await bankCardRepository.UpdateAsync(card);
+                }
+            }
             await bankCardRepository.AddAsync(bankCard);
         }
 
