@@ -10,6 +10,8 @@ namespace DataAccess.Entities
 
         public string? GarageItems { get; set; }
 
+        public string? ProfileImageUrl { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         // Навігаційні колекції

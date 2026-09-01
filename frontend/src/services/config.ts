@@ -10,18 +10,24 @@ export async function apiCall(endpoint: string, options?: RequestInit) {
   const apiBaseUrl = 'http://localhost:5254';
   const url = `${apiBaseUrl}/api${endpoint}`;
   const token = localStorage.getItem('token');
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    ...Object.fromEntries(Object.entries(options?.headers || {}).map(([key, value]) => [key, String(value)])),
-  };
+  const headers: Record<string, string> = {};
+
+  if (!(options?.body instanceof FormData)) {
+    headers['Content-Type'] = 'application/json';
+  }
+
+  if (options?.headers) {
+    Object.entries(options.headers).forEach(([key, value]) => {
+      headers[key] = String(value);
+    });
+  }
 
   if (token) {
     headers.Authorization = `Bearer ${token}`;
   }
-  localStorage.getItem("token")
+
   return fetch(url, {
     ...options,
     headers,
   });
-  
 }

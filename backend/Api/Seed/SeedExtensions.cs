@@ -73,6 +73,12 @@ public static class SeedExtensions
                 "IF COL_LENGTH('dbo.AspNetUsers','Bio') IS NULL BEGIN ALTER TABLE dbo.AspNetUsers ADD Bio nvarchar(max) NULL END");
             await dbContext.Database.ExecuteSqlRawAsync(
                 "IF COL_LENGTH('dbo.AspNetUsers','GarageItems') IS NULL BEGIN ALTER TABLE dbo.AspNetUsers ADD GarageItems nvarchar(max) NULL END");
+            await dbContext.Database.ExecuteSqlRawAsync(
+                "IF COL_LENGTH('dbo.AspNetUsers','ProfileImageUrl') IS NULL BEGIN ALTER TABLE dbo.AspNetUsers ADD ProfileImageUrl nvarchar(max) NULL END");
+            await dbContext.Database.ExecuteSqlRawAsync(
+                "UPDATE dbo.AspNetUsers SET ProfileImageUrl = NULL WHERE ProfileImageUrl LIKE '%127.0.0.1:10000%' OR ProfileImageUrl LIKE '%localhost:10000%' OR ProfileImageUrl LIKE '%devstoreaccount1%';");
+            await dbContext.Database.ExecuteSqlRawAsync(
+                "UPDATE dbo.CarImages SET ImageUrl = 'https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?auto=format&fit=crop&w=1200&q=80' WHERE ImageUrl LIKE '%127.0.0.1:10000%' OR ImageUrl LIKE '%localhost:10000%' OR ImageUrl LIKE '%devstoreaccount1%';");
         }
         catch { /* ignore: e.g. permissions */ }
 

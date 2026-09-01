@@ -14,6 +14,7 @@ type User = {
   id: string
   email?: string
   name?: string
+  profileImageUrl?: string
 }
 
 type AuthContextType = {
@@ -100,7 +101,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const savedUser = localStorage.getItem('user')
       if (savedUser) {
         try {
-          setUser(JSON.parse(savedUser))
+          const parsed = JSON.parse(savedUser)
+          if (parsed?.profileImageUrl && (parsed.profileImageUrl.includes('10000') || parsed.profileImageUrl.includes('devstoreaccount1'))) {
+            parsed.profileImageUrl = undefined;
+          }
+          setUser(parsed)
         } catch {
           setUser(getUserFromToken(savedToken))
         }
