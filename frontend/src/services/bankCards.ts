@@ -16,9 +16,15 @@ export interface BankCardDto {
   expiryDate: string;
   billingAddress: string;
   isDefault: boolean;
+  balance?: number;
 }
 
 export interface PaymentRequestDto {
+  cardId: string;
+  amount: number;
+}
+
+export interface DepositRequestDto {
   cardId: string;
   amount: number;
 }
@@ -29,6 +35,12 @@ export interface PaymentResponseDto {
   transactionId?: string;
   balance?: number;
   createdAt?: string;
+}
+
+export interface DepositResponseDto {
+  success: boolean;
+  message: string;
+  balance: number;
 }
 
 async function readJson<T>(response: Response): Promise<T> {
@@ -51,6 +63,13 @@ export async function addBankCard(dto: CreateBankCardDto): Promise<BankCardDto> 
 
 export async function getBankCards(): Promise<BankCardDto[]> {
   return readJson<BankCardDto[]>(await apiCall('/bank-cards'));
+}
+
+export async function topUpBankCard(dto: DepositRequestDto): Promise<DepositResponseDto> {
+  return readJson<DepositResponseDto>(await apiCall('/payments/deposit', {
+    method: 'POST',
+    body: JSON.stringify(dto),
+  }));
 }
 
 export async function pay(dto: PaymentRequestDto): Promise<PaymentResponseDto> {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import './App.css'
 import Navbar from './components/Navbar'
 import Home from './components/Home'
@@ -13,12 +13,11 @@ import SettingsPage from './components/SettingsPage'
 import SellCar from './components/SellCar'
 import SellerDashboard from './components/SellerDashboard'
 import Footer from './components/Footer'
-import Leaderboard from './components/Leaderboard' // Убедитесь, что путь к файлу верный
+import Leaderboard from './components/Leaderboard'
 
 import { AuthProvider } from './contexts/AuthContext'
 
-
-type Page = 'home' | "leaderboard" | 'login' | 'register' | 'mainpage' | 'car' | 'profile' | 'adminCars' | 'watchlist' | 'settings' | 'sellCar' | 'seller'
+type Page = 'home' | 'leaderboard' | 'login' | 'register' | 'mainpage' | 'car' | 'profile' | 'adminCars' | 'watchlist' | 'settings' | 'sellCar' | 'seller'
 type AuthView = 'login' | 'register-step1' | 'register-step2' | 'forgot' | 'check-email' | 'reset-password' | 'reset-success';
 
 function App() {
@@ -26,6 +25,7 @@ function App() {
   const [selectedCarId, setSelectedCarId] = useState<string | null>(null)
   const [authView, setAuthView] = useState<AuthView | null>(null)
   const [catalogSearch, setCatalogSearch] = useState<string>('')
+
   useEffect(() => {
     // Перевіримо URL параметри при завантаженні
     const params = new URLSearchParams(window.location.search);
@@ -44,7 +44,7 @@ function App() {
     if (params?.authView) {
       setAuthView(params.authView);
     } else if (page === 'login') {
-      setAuthView(null); // Reset authView при переходе на login без специфічного view
+      setAuthView(null);
     }
     if (params && params.carId !== undefined) {
       setSelectedCarId(String(params.carId))

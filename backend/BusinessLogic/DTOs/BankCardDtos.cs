@@ -30,5 +30,19 @@ namespace BusinessLogic.DTOs
         public string BillingAddress { get; set; } = string.Empty;
         public bool IsDefault { get; set; }
         public Guid BankCardToken { get; set; }
+        public decimal? Balance { get; set; }
+    }
+
+    public class DepositRequestDto
+    {
+        public Guid CardId { get; set; }
+        public decimal Amount { get; set; }
+    }
+
+    public class DepositResponseDto
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public decimal Balance { get; set; }
     }
 }

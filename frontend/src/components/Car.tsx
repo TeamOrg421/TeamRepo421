@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { apiCall } from '../services/config';
+import { createAuctionConnection, destroyAuctionConnection } from '../services/auctionHub';
+import type { BidPayload } from '../services/auctionHub';
 
 interface CarProps {
   onNavigate: (page: string, params?: { carId?: number | string }) => void;
@@ -202,6 +204,57 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
     fetchCar();
   }, [activeId]);
 
+  // ── SignalR real-time connection ──────────────────────────────────────────
+  // When the listing ID is known, open a SignalR connection and join the
+  // auction group. Any bid placed by any user triggers ReceiveBid, which
+  // updates the shared state for every viewer simultaneously.
+  const connectionRef = useRef<import('@microsoft/signalr').HubConnection | null>(null);
+
+  useEffect(() => {
+    const listingId = carData?.listingId;
+    if (!listingId) return;
+
+    let cancelled = false;
+
+    const connect = async () => {
+      try {
+        const conn = await createAuctionConnection(listingId);
+        if (cancelled) {
+          await destroyAuctionConnection(conn, listingId);
+          return;
+        }
+        connectionRef.current = conn;
+
+        conn.on('ReceiveBid', (payload: BidPayload) => {
+          const incoming: Bid = {
+            bidder: payload.bidder,
+            amount: payload.amount,
+            time: new Date(payload.time).toLocaleTimeString(),
+          };
+          setLocalBids(prev => [incoming, ...prev]);
+          setCurrentBidPrice(payload.currentPrice);
+          setCarData(prev =>
+            prev
+              ? { ...prev, currentBid: payload.currentPrice, bidCount: prev.bidCount + 1 }
+              : prev
+          );
+        });
+      } catch (err) {
+        console.warn('[SignalR] Could not connect to auction hub:', err);
+      }
+    };
+
+    connect();
+
+    return () => {
+      cancelled = true;
+      if (connectionRef.current && listingId) {
+        destroyAuctionConnection(connectionRef.current, listingId).catch(() => {});
+        connectionRef.current = null;
+      }
+    };
+  }, [carData?.listingId]);
+
   useEffect(() => {
     const syncWatchStatus = async () => {
       if (!isAuthenticated || !carData?.listingId) {
@@ -327,29 +380,15 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
 
         if (!resp.ok) {
           const err = await resp.json().catch(() => ({ message: 'Bid failed' }));
+          console.error('[BidsController]', resp.status, err.message);
           setBidError(err.message || 'Bid failed');
           return;
         }
 
         await resp.json();
 
-        const newBid: Bid = {
-          bidder: user?.name || user?.email || 'You',
-          amount: numericalBid,
-          time: 'Just now'
-        };
-
-        setLocalBids([newBid, ...localBids]);
-        setCurrentBidPrice(numericalBid);
-        setCarData(prev =>
-          prev
-            ? {
-              ...prev,
-              currentBid: numericalBid,
-              bidCount: prev.bidCount + 1
-            }
-            : prev
-        );
+        // State (bid list, current price, bid count) is updated via SignalR
+        // ReceiveBid broadcast — no manual state update needed here.
         setBidSuccess(`Success! You are currently the highest bidder at $${numericalBid.toLocaleString()}.`);
         setBidAmount('');
       } catch (ex) {

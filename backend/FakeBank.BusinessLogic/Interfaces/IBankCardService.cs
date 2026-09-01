@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -11,8 +11,8 @@ namespace FakeBank.BusinessLogic.Interfaces
 {
     public interface IBankCardService
     {
-        Task<BankCard> GetBankCardByIdAsync(Guid cardId);
-        Task<BankCard> GetBankCardByTokenAsync(Guid token);
+        Task<BankCard?> GetBankCardByIdAsync(Guid cardId);
+        Task<BankCard?> GetBankCardByTokenAsync(Guid token);
         Task<IEnumerable<BankCard>> GetAllBankCardsAsync(int? page, int? size,
                                     Expression<Func<BankCard, bool>>? filtering);
         Task<BankCard> CreateBankCardAsync(BankCard bankCard);

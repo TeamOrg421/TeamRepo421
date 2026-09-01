@@ -102,7 +102,21 @@ namespace Api.Controllers
 
             var resolvedUserId = userId ?? currentUserId;
             var bankCards = await bankCardService.GetBankCardsAsync(resolvedUserId, page, size);
-            return Ok(bankCards.Select(card => mapper.Map<BankCardDto>(card)).ToList());
+            var dtos = new List<BankCardDto>();
+            foreach (var card in bankCards)
+            {
+                var dto = mapper.Map<BankCardDto>(card);
+                try
+                {
+                    dto.Balance = await fakeBankApi.GetBalanceAsync(card.BankCardToken);
+                }
+                catch
+                {
+                    dto.Balance = null;
+                }
+                dtos.Add(dto);
+            }
+            return Ok(dtos);
         }
 
         [HttpPut("{bankCardId:guid}")]
