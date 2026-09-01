@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { apiCall } from '../services/config';
+import { addBankCard, getBankCards, topUpBankCard, withdrawFromBankCard } from '../services/bankCards';
+import type { BankCardDto, CreateBankCardDto } from '../services/bankCards';
 import './UserProfile.css';
 
 interface UserProfileProps {
@@ -172,6 +174,23 @@ const UserProfile: React.FC<UserProfileProps> = ({ onNavigate }) => {
   const [editBio, setEditBio] = useState('');
   const [savingBio, setSavingBio] = useState(false);
 
+  const [showWalletModal, setShowWalletModal] = useState(false);
+  const [walletCards, setWalletCards] = useState<BankCardDto[]>([]);
+  const [walletSelectedId, setWalletSelectedId] = useState('');
+  const [walletAmount, setWalletAmount] = useState('100');
+  const [walletAction, setWalletAction] = useState<'deposit' | 'withdraw'>('deposit');
+  const [walletBusy, setWalletBusy] = useState(false);
+  const [walletMessage, setWalletMessage] = useState('');
+  const [walletError, setWalletError] = useState('');
+  const [walletForm, setWalletForm] = useState<CreateBankCardDto>({
+    cardNumber: '',
+    cvv: '',
+    cardHolderName: '',
+    expiryDate: '',
+    billingAddress: '',
+    isDefault: false,
+  });
+
   // Crop Photo Modal State
   const [cropModalOpen, setCropModalOpen] = useState(false);
   const [imageSrc, setImageSrc] = useState<string | null>(null);
@@ -244,6 +263,86 @@ const UserProfile: React.FC<UserProfileProps> = ({ onNavigate }) => {
     navigator.clipboard.writeText(window.location.href).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const loadWalletCards = useCallback(async () => {
+    if (!isAuthenticated) {
+      setWalletError('Please log in first to view your wallet.');
+      setWalletCards([]);
+      setWalletSelectedId('');
+      return;
+    }
+    try {
+      const cards = await getBankCards();
+      setWalletCards(cards);
+      setWalletSelectedId(current => (cards.some(card => card.id === current) ? current : cards[0]?.id ?? ''));
+      setWalletError('');
+    } catch (err) {
+      console.error('Failed to load wallet cards', err);
+      setWalletCards([]);
+      setWalletSelectedId('');
+      setWalletError('Failed to load wallet. Please try again.');
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (showWalletModal) {
+      void loadWalletCards();
+    }
+  }, [showWalletModal, loadWalletCards]);
+
+  const submitWalletCard = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setWalletBusy(true);
+    setWalletError('');
+    setWalletMessage('');
+
+    try {
+      const created = await addBankCard(walletForm);
+      setWalletForm({
+        cardNumber: '',
+        cvv: '',
+        cardHolderName: '',
+        expiryDate: '',
+        billingAddress: '',
+        isDefault: false,
+      });
+      await loadWalletCards();
+      setWalletSelectedId(created.id);
+      setWalletMessage('Card added successfully.');
+    } catch (err) {
+      setWalletError(err instanceof Error ? err.message : 'Failed to add card.');
+    } finally {
+      setWalletBusy(false);
+    }
+  };
+
+  const submitWalletTransaction = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const amountNum = Number(walletAmount);
+    if (!walletSelectedId || !amountNum || amountNum <= 0) {
+      setWalletError('Please choose a card and enter a valid positive amount.');
+      return;
+    }
+
+    setWalletBusy(true);
+    setWalletError('');
+    setWalletMessage('');
+
+    try {
+      if (walletAction === 'deposit') {
+        const result = await topUpBankCard({ cardId: walletSelectedId, amount: amountNum });
+        setWalletMessage(result.message || 'Deposit successful.');
+      } else {
+        const result = await withdrawFromBankCard({ cardId: walletSelectedId, amount: amountNum });
+        setWalletMessage(result.message || 'Withdrawal successful.');
+      }
+      await loadWalletCards();
+    } catch (err) {
+      setWalletError(err instanceof Error ? err.message : 'Transaction failed.');
+    } finally {
+      setWalletBusy(false);
+    }
   };
 
   // Open file selector
@@ -567,17 +666,32 @@ const UserProfile: React.FC<UserProfileProps> = ({ onNavigate }) => {
                 <span className="profile-join-date-v2">Joined {joinDate}</span>
               </div>
 
-              <button
-                type="button"
-                className="profile-edit-bio-btn"
-                onClick={() => setShowEditBioModal(true)}
-              >
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 20h9" />
-                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-                </svg>
-                Edit bio
-              </button>
+              <div className="profile-header-actions">
+                <button
+                  type="button"
+                  className="profile-edit-bio-btn"
+                  onClick={() => setShowEditBioModal(true)}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 20h9" />
+                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                  </svg>
+                  Edit bio
+                </button>
+                <button
+                  type="button"
+                  className="profile-card-fab"
+                  onClick={() => setShowWalletModal(true)}
+                  aria-label="Manage payment cards"
+                  title="Manage payment cards"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                    <rect x="2" y="5" width="20" height="14" rx="3" />
+                    <path d="M2 10h20" />
+                    <path d="M7 15h3" />
+                  </svg>
+                </button>
+              </div>
             </div>
 
             {/* Bio Text */}
@@ -697,6 +811,139 @@ const UserProfile: React.FC<UserProfileProps> = ({ onNavigate }) => {
           </div>
         </section>
       </main>
+
+      {showWalletModal && (
+        <div className="crop-modal-overlay">
+          <div className="wallet-modal-dialog">
+            <div className="crop-modal-header">
+              <h2 className="crop-modal-title">Payment cards</h2>
+              <button type="button" className="crop-modal-close-btn" onClick={() => setShowWalletModal(false)}>✕</button>
+            </div>
+
+            <div className="wallet-modal-layout">
+              <div className="wallet-card-panel">
+                <div className="wallet-panel-header">
+                  <h3>Your cards</h3>
+                  <span>{walletCards.length} linked</span>
+                </div>
+
+                <div className="wallet-card-list">
+                  {walletCards.length > 0 ? walletCards.map(card => (
+                    <button
+                      key={card.id}
+                      type="button"
+                      className={`wallet-card-item ${walletSelectedId === card.id ? 'selected' : ''}`}
+                      onClick={() => setWalletSelectedId(card.id)}
+                    >
+                      <div className="wallet-card-mainline">
+                        <span className="wallet-card-number">{card.maskedCardNumber}</span>
+                        {card.isDefault && <span className="wallet-default-pill">Default</span>}
+                      </div>
+                      <div className="wallet-card-meta">
+                        <span>{card.cardHolderName}</span>
+                        <strong>${Number(card.balance ?? 0).toLocaleString('en-US', { maximumFractionDigits: 2 })}</strong>
+                      </div>
+                    </button>
+                  )) : (
+                    <div className="wallet-empty-state">No cards yet.</div>
+                  )}
+                </div>
+
+                <form className="wallet-form" onSubmit={submitWalletCard}>
+                  <h4>Add a new card</h4>
+                  <div className="wallet-field-grid">
+                    <input
+                      placeholder="Cardholder name"
+                      value={walletForm.cardHolderName}
+                      onChange={e => setWalletForm(current => ({ ...current, cardHolderName: e.target.value }))}
+                    />
+                    <input
+                      placeholder="Card number"
+                      value={walletForm.cardNumber}
+                      onChange={e => setWalletForm(current => ({ ...current, cardNumber: e.target.value }))}
+                    />
+                    <input
+                      placeholder="MM/YY"
+                      value={walletForm.expiryDate}
+                      onChange={e => setWalletForm(current => ({ ...current, expiryDate: e.target.value }))}
+                    />
+                    <input
+                      placeholder="CVV"
+                      value={walletForm.cvv}
+                      onChange={e => setWalletForm(current => ({ ...current, cvv: e.target.value }))}
+                    />
+                    <input
+                      className="wallet-span-2"
+                      placeholder="Billing address"
+                      value={walletForm.billingAddress}
+                      onChange={e => setWalletForm(current => ({ ...current, billingAddress: e.target.value }))}
+                    />
+                  </div>
+                  <label className="wallet-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={walletForm.isDefault}
+                      onChange={e => setWalletForm(current => ({ ...current, isDefault: e.target.checked }))}
+                    />
+                    Set as default
+                  </label>
+                  <button type="submit" className="wallet-primary-btn" disabled={walletBusy}>
+                    {walletBusy ? 'Saving...' : 'Add card'}
+                  </button>
+                </form>
+              </div>
+
+              <div className="wallet-ops-panel">
+                <div className="wallet-panel-header">
+                  <h3>Test funds</h3>
+                  <span>Demo wallet</span>
+                </div>
+
+                <form className="wallet-ops-form" onSubmit={submitWalletTransaction}>
+                  <div className="wallet-toggle-row">
+                    <button
+                      type="button"
+                      className={walletAction === 'deposit' ? 'wallet-toggle active' : 'wallet-toggle'}
+                      onClick={() => setWalletAction('deposit')}
+                    >
+                      Deposit
+                    </button>
+                    <button
+                      type="button"
+                      className={walletAction === 'withdraw' ? 'wallet-toggle active' : 'wallet-toggle'}
+                      onClick={() => setWalletAction('withdraw')}
+                    >
+                      Withdraw
+                    </button>
+                  </div>
+
+                  <select value={walletSelectedId} onChange={e => setWalletSelectedId(e.target.value)}>
+                    {walletCards.map(card => (
+                      <option key={card.id} value={card.id}>{card.maskedCardNumber}</option>
+                    ))}
+                  </select>
+
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={walletAmount}
+                    onChange={e => setWalletAmount(e.target.value)}
+                    placeholder="Amount"
+                  />
+
+                  <button type="submit" className="wallet-primary-btn" disabled={walletBusy || !walletSelectedId}>
+                    {walletBusy ? 'Processing...' : walletAction === 'deposit' ? 'Add funds' : 'Withdraw funds'}
+                  </button>
+                </form>
+
+                {walletMessage && <div className="wallet-result success">{walletMessage}</div>}
+                {walletError && <div className="wallet-result error">{walletError}</div>}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ─── Crop Photo Modal (Matching Screenshot 2) ────────────────────── */}
       {cropModalOpen && imageSrc && (

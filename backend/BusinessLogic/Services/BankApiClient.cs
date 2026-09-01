@@ -114,6 +114,22 @@ namespace BusinessLogic.Services
             return await GetBalanceAsync(token);
         }
 
+        public async Task<decimal> WithdrawAsync(Guid token, decimal amount)
+        {
+            var request = new Shared.Contracts.WithdrawDto
+            {
+                CardId = token,
+                Amount = amount
+            };
+
+            var response = await _httpClient.PostAsJsonAsync("api/payment/withdraw", request);
+
+            if (!response.IsSuccessStatusCode)
+                throw new InvalidOperationException(await ReadErrorAsync(response));
+
+            return await GetBalanceAsync(token);
+        }
+
         public class CardBalanceDto
         {
             public Guid CardId { get; set; }

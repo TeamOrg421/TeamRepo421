@@ -85,5 +85,41 @@ namespace Api.Controllers
                 return BadRequest(new { error = ex.Message });
             }
         }
+
+        [HttpPost("withdraw")]
+        public async Task<ActionResult<DepositResponseDto>> Withdraw([FromBody] DepositRequestDto dto)
+        {
+            if (!Guid.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId))
+                return Unauthorized(new { message = "Unable to determine user identity." });
+
+            if (dto.Amount <= 0)
+                return BadRequest(new { error = "Amount must be greater than zero." });
+
+            var card = await bankCardService.GetBankCardAsync(dto.CardId);
+            if (card == null)
+                return NotFound(new { error = "Bank card not found." });
+
+            if (card.UserId != userId)
+                return Forbid();
+
+            try
+            {
+                var newBalance = await fakeBankApi.WithdrawAsync(card.BankCardToken, dto.Amount);
+                return Ok(new DepositResponseDto
+                {
+                    Success = true,
+                    Message = $"Successfully withdrawn ${dto.Amount:N2}.",
+                    Balance = newBalance
+                });
+            }
+            catch (HttpRequestException)
+            {
+                return StatusCode(StatusCodes.Status502BadGateway, new { error = "FakeBank is unavailable." });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
     }
 }
