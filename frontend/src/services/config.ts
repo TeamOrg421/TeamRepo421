@@ -26,8 +26,16 @@ export async function apiCall(endpoint: string, options?: RequestInit) {
     headers.Authorization = `Bearer ${token}`;
   }
 
-  return fetch(url, {
+  const response = await fetch(url, {
     ...options,
     headers,
   });
+
+  if (response.status === 401) {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.dispatchEvent(new Event('auth:unauthorized'));
+  }
+
+  return response;
 }
