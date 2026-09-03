@@ -459,6 +459,9 @@ namespace Api.Controllers
                     .ThenInclude(l => l.Car)
                         .ThenInclude(c => c.Images)
                 .Include(f => f.Listing)
+                    .ThenInclude(l => l.Car)
+                        .ThenInclude(c => c.Specification)
+                .Include(f => f.Listing)
                     .ThenInclude(l => l.Bids)
                 .ToListAsync();
 
@@ -468,13 +471,22 @@ namespace Api.Controllers
                 listingId = f.ListingId,
                 carId = f.Listing?.CarId,
                 carTitle = f.Listing?.Car != null
-                    ? $"{f.Listing.Car.Year} {f.Listing.Car.Model?.Brand?.Name ?? ""} {f.Listing.Car.Model?.Name ?? ""}"
+                    ? $"{f.Listing.Car.Year} {f.Listing.Car.Model?.Brand?.Name ?? ""} {f.Listing.Car.Model?.Name ?? ""}".Trim()
                     : f.Listing?.Title ?? "Unknown",
+                description = !string.IsNullOrWhiteSpace(f.Listing?.Description)
+                    ? f.Listing.Description
+                    : f.Listing?.Car?.Specification != null
+                        ? $"{f.Listing.Car.Specification.HorsePower}hp, {f.Listing.Car.Specification.Transmission}, {f.Listing.Car.Specification.DriveType}"
+                        : "",
+                location = f.Listing?.Location ?? "Location not specified",
                 imageUrl = f.Listing?.Car?.Images?.FirstOrDefault(i => i.IsMain)?.ImageUrl
                           ?? f.Listing?.Car?.Images?.FirstOrDefault()?.ImageUrl
                           ?? string.Empty,
                 currentPrice = f.Listing?.CurrentPrice ?? 0,
+                startingPrice = f.Listing?.StartingPrice ?? 0,
+                auctionStart = f.Listing?.AuctionStart,
                 auctionEnd = f.Listing?.AuctionEnd,
+                status = f.Listing?.Status.ToString() ?? "Active",
                 bidCount = f.Listing?.Bids?.Count ?? 0
             });
 
