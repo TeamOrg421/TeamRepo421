@@ -11,5 +11,6 @@ namespace BusinessLogic.Interfaces
         Task<BusinessLogic.DTOs.BankCardDto> AddBankCardAsync(BusinessLogic.DTOs.CreateBankCardDto card);
         Task<decimal> GetBalanceAsync(Guid token);
         Task<decimal> DepositAsync(Guid token, decimal amount);
+        Task<decimal> WithdrawAsync(Guid token, decimal amount);
     }
 }

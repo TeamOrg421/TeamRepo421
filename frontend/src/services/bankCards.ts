@@ -72,6 +72,13 @@ export async function topUpBankCard(dto: DepositRequestDto): Promise<DepositResp
   }));
 }
 
+export async function withdrawFromBankCard(dto: PaymentRequestDto): Promise<PaymentResponseDto> {
+  return readJson<PaymentResponseDto>(await apiCall('/payments/withdraw', {
+    method: 'POST',
+    body: JSON.stringify(dto),
+  }));
+}
+
 export async function pay(dto: PaymentRequestDto): Promise<PaymentResponseDto> {
   return readJson<PaymentResponseDto>(await apiCall('/payments', {
     method: 'POST',
