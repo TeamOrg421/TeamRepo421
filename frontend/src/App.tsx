@@ -21,7 +21,7 @@ import AccountSidebar from './components/AccountSidebar'
 
 import { AuthProvider } from './contexts/AuthContext'
 
-type Page = 'home' | 'leaderboard' | 'login' | 'register' | 'mainpage' | 'car' | 'profile' | 'user-profile' | 'adminCars' | 'watchlist' | 'settings' | 'sellCar' | 'seller' | 'manager' | 'auction-review'
+type Page = 'home' | 'about' | 'leaderboard' | 'login' | 'register' | 'mainpage' | 'car' | 'profile' | 'user-profile' | 'adminCars' | 'watchlist' | 'settings' | 'sellCar' | 'seller' | 'manager' | 'auction-review'
 type AuthView = 'login' | 'register-step1' | 'register-step2' | 'forgot' | 'check-email' | 'reset-password' | 'reset-success';
 
 function App() {
@@ -67,14 +67,14 @@ function App() {
   return (
     <AuthProvider>
       <div className="app-container">
-        <Navbar onNavigate={navigate} searchValue={catalogSearch} onSearchChange={setCatalogSearch} />
+        <Navbar onNavigate={navigate} searchValue={catalogSearch} onSearchChange={setCatalogSearch} currentPage={currentPage} />
         <main className="main-content">
           {currentPage === 'home' && (
             <Home onNavigate={navigate} searchQuery={catalogSearch} />
           )}
           {currentPage === 'login' && <Login onNavigate={navigate} initialAuthView={authView} />}
           {currentPage === 'register' && <Register onNavigate={navigate} />}
-          {currentPage === 'mainpage' && <MainPage />}
+          {(currentPage === 'mainpage' || currentPage === 'about') && <MainPage onNavigate={navigate} />}
           {currentPage === 'leaderboard' && <section className="account-shell"><AccountSidebar currentPage="leaderboard" onNavigate={navigate} /><div className="account-page-content"><Leaderboard onNavigate={navigate} /></div></section>}
           {currentPage === 'car' && <Car onNavigate={navigate} carId={selectedCarId} />}
           {currentPage === 'profile' && <UserProfile onNavigate={navigate} />}

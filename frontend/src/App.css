@@ -3932,14 +3932,20 @@ select.form-input option {
 /* ===== FIGMA CATALOG, HEADER & FOOTER ===== */
 .main-content { max-width: none; padding-top: 92px; }
 .navbar { background: #111; border-bottom: 1px solid #252525; height: 68px; }
-.navbar-inner { max-width: 1280px; justify-content: space-between; gap: 20px; }
+.navbar-inner { max-width: 1280px; width: 100%; justify-content: space-between; display: flex; align-items: center; gap: 20px; }
 .navbar-brand, .footer-brand { font-size: 22px; font-style: italic; letter-spacing: -1.4px; }
-.navbar-menu { gap: 28px; order: 1; }
-.navbar-brand { order: 0; }
-.navbar-search { background: #2b2b2b; border: 0; border-radius: 6px; order: 2; width: min(300px, 26vw); }
-.navbar-actions { order: 3; }
-.navbar-menu-item { color: #ddd; font-size: 14px; padding: 23px 0 18px; }
-.navbar-menu-item:first-child { border-bottom: 2px solid #3878de; color: #fff; }
+.navbar-left { display: flex; align-items: center; gap: 36px; }
+.navbar-right { display: flex; align-items: center; gap: 16px; }
+.navbar-menu { display: flex; align-items: center; gap: 28px; }
+.navbar-search { background: #2b2b2b; border: 0; border-radius: 6px; width: min(300px, 26vw); }
+.navbar-menu-item { color: #ddd; font-size: 14px; padding: 23px 0 18px; border-bottom: 2px solid transparent; transition: color 0.2s ease, border-color 0.2s ease; }
+.navbar-menu-item:hover { color: #fff; }
+.navbar-menu-item.active { border-bottom: 2px solid #3878de; color: #fff; }
+.navbar-notification-btn { position: relative; }
+.navbar-notification-dot { position: absolute; top: 7px; right: 7px; width: 6px; height: 6px; background-color: #ef4444; border-radius: 50%; }
+.navbar-lang-selector { display: flex; align-items: center; gap: 4px; color: #ddd; font-size: 13px; font-weight: 500; cursor: pointer; padding: 6px 4px; user-select: none; transition: color 0.2s ease; }
+.navbar-lang-selector:hover { color: #fff; }
+.navbar-lang-selector svg { width: 14px; height: 14px; }
 .btn-sell-car { background: transparent; color: #ddd; font-size: 14px; font-weight: 400; padding: 23px 0 18px; }
 .btn-sell-car:hover { background: transparent; color: #fff; }
 .catalog-home { max-width: none; margin: 0; }
@@ -4028,15 +4034,58 @@ select.form-input option {
 @media (max-width: 720px) { .seller-dashboard-page { padding-left: 4px; padding-right: 4px; } .seller-dashboard-tabs { gap: 9px; } .seller-dashboard-row { gap: 11px; grid-template-columns: 100px minmax(120px, 1fr) minmax(118px, .9fr) auto; padding: 12px; } .seller-dashboard-image { height: 76px; width: 100px; } .seller-dashboard-actions { min-width: 78px; } }
 @media (max-width: 560px) { .seller-dashboard-page { padding-left: 0; padding-right: 0; } .seller-dashboard-tabs button { font-size: 10px; height: 66px; } .seller-dashboard-tabs i { height: 22px; width: 22px; } .seller-dashboard-row { align-items: start; grid-template-columns: 86px minmax(0, 1fr); } .seller-dashboard-image { height: 62px; width: 86px; } .seller-dashboard-summary { grid-column: 2; min-height: 0; } .seller-dashboard-actions { flex-direction: row; gap: 14px; grid-column: 2; min-width: 0; } .seller-dashboard-comments .seller-dashboard-row { grid-template-columns: 86px minmax(0, 1fr); } .seller-dashboard-comments .seller-dashboard-image { height: 62px; width: 86px; } .seller-dashboard-comments .seller-dashboard-actions { grid-column: 2; } }
 
+/* ===== FOOTER BRAND & BADGES ===== */
+.footer-brand-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.footer-app-badges {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.app-badge-box {
+  background: #151515;
+  border: 1px solid #383838;
+  border-radius: 6px;
+  padding: 6px 12px;
+  display: flex;
+  flex-direction: column;
+  width: fit-content;
+  cursor: pointer;
+  transition: background .2s ease, border-color .2s ease;
+}
+
+.app-badge-box:hover {
+  background: #222;
+  border-color: #555;
+}
+
+.app-badge-sub {
+  font-size: 8px;
+  text-transform: uppercase;
+  color: #9e9e9e;
+  letter-spacing: 0.5px;
+  line-height: 1;
+}
+
+.app-badge-main {
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.2;
+}
+
 /* ===== SHARED ACCOUNT NAVIGATION ===== */
 .account-shell { display: grid; gap: 28px; grid-template-columns: 204px minmax(0, 1fr); padding: 24px 0 72px; width: 100%; }
 .account-sidebar { align-self: start; display: flex; flex-direction: column; gap: 4px; position: sticky; top: 92px; }
 .account-sidebar-link { align-items: center; background: transparent; border: 0; border-left: 3px solid transparent; border-radius: 8px; color: #9ca3af; cursor: pointer; display: flex; font-family: inherit; font-size: 15px; font-weight: 500; min-height: 40px; padding: 10px 14px; text-align: left; transition: background .2s ease, color .2s ease; }
 .account-sidebar-link:hover { background: rgba(255, 255, 255, .05); color: #fff; }
-.account-sidebar-link.active { background: rgba(255, 255, 255, .09); border-left-color: #3b82f6; color: #fff; }
 .account-page-content { min-width: 0; width: 100%; }
 @media (max-width: 768px) { .account-shell { display: flex; flex-direction: column; gap: 20px; padding-top: 16px; } .account-sidebar { flex-direction: row; max-width: 100%; overflow-x: auto; padding-bottom: 8px; position: static; } .account-sidebar-link { border-bottom: 2px solid transparent; border-left: 0; flex: 0 0 auto; white-space: nowrap; } .account-sidebar-link.active { border-bottom-color: #3b82f6; border-left-color: transparent; } }
-
 
 
 

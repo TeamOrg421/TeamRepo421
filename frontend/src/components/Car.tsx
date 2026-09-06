@@ -245,6 +245,10 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
               : prev
           );
         });
+
+        conn.on('AuctionEnded', () => {
+          setCarData(prev => (prev ? { ...prev, timeRemaining: 'Ended' } : prev));
+        });
       } catch (err) {
         console.warn('[SignalR] Could not connect to auction hub:', err);
       }
