@@ -1,0 +1,110 @@
+.manager-dashboard-page {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding: 22px 0 56px;
+}
+
+.manager-dashboard-header {
+  align-items: flex-end;
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 22px;
+}
+
+.manager-eyebrow { color: #78aefc; font-size: 11px; font-weight: 700; letter-spacing: .14em; margin-bottom: 8px; text-transform: uppercase; }
+.manager-dashboard-header h1 { font-size: clamp(28px, 5vw, 44px); letter-spacing: -.04em; margin-bottom: 8px; }
+.manager-dashboard-header p:not(.manager-eyebrow) { color: var(--text-secondary); font-size: 14px; }
+.manager-refresh-button, .manager-actions button { border: 1px solid var(--glass-border); border-radius: 6px; cursor: pointer; font-size: 12px; padding: 9px 13px; }
+.manager-refresh-button { background: var(--surface-card); color: var(--text-primary); }
+.manager-summary { align-items: baseline; background: #202020; border: 1px solid #363636; border-radius: 8px; display: flex; gap: 9px; margin-bottom: 14px; padding: 14px 16px; }
+.manager-summary strong { color: #78aefc; font-size: 24px; }
+.manager-summary span { color: var(--text-secondary); font-size: 13px; }
+.manager-message { background: rgba(248, 113, 113, .12); border: 1px solid rgba(248, 113, 113, .3); border-radius: 6px; color: #fecaca; margin-bottom: 14px; padding: 11px 14px; }
+.manager-auction-list { display: flex; flex-direction: column; gap: 12px; }
+.manager-auction-card { background: #202020; border: 1px solid #363636; border-radius: 8px; display: grid; gap: 18px; grid-template-columns: 190px minmax(0, 1fr); overflow: hidden; padding: 12px; }
+.manager-auction-card > img, .manager-image-placeholder { background: #303030; height: 150px; object-fit: cover; width: 190px; }
+.manager-image-placeholder { align-items: center; color: #929292; display: flex; font-size: 12px; justify-content: center; }
+.manager-auction-content { min-width: 0; }
+.manager-auction-heading { align-items: center; color: #a8a8a8; display: flex; font-size: 11px; gap: 9px; margin-bottom: 8px; }
+.manager-pending-badge { background: rgba(250, 204, 21, .14); border: 1px solid rgba(250, 204, 21, .45); border-radius: 999px; color: #fde68a; padding: 3px 8px; }
+.manager-auction-content h2 { font-size: 19px; margin-bottom: 6px; }
+.manager-auction-content p { color: var(--text-secondary); font-size: 13px; line-height: 1.45; margin-bottom: 6px; }
+.manager-auction-content .manager-vehicle-line { color: #b5cced; font-size: 12px; }
+.manager-auction-meta { display: flex; flex-wrap: wrap; gap: 7px 14px; margin: 12px 0; }
+.manager-auction-meta span { color: #a9a9a9; font-size: 11px; }
+.manager-auction-content textarea { background: #151515; border: 1px solid #555; border-radius: 5px; color: white; font: inherit; font-size: 12px; margin-bottom: 9px; padding: 9px; resize: vertical; width: 100%; }
+.manager-actions { align-items: center; display: flex; flex-wrap: wrap; gap: 8px; }
+.manager-actions button { background: transparent; color: var(--text-primary); }
+.manager-actions .manager-approve { background: #1261d6; border-color: #1261d6; }
+.manager-actions .manager-reject { background: rgba(248, 113, 113, .1); border-color: rgba(248, 113, 113, .45); color: #fecaca; }
+.manager-actions .manager-details { margin-left: auto; }
+.manager-state { background: #202020; border: 1px solid #363636; border-radius: 8px; color: var(--text-secondary); padding: 42px 20px; text-align: center; }
+.manager-state h1, .manager-state h2 { color: var(--text-primary); margin-bottom: 8px; }
+
+.manager-reference-page { max-width: 560px; }
+.manager-reference-page > h1 { font-size: 12px; letter-spacing: 0; margin-bottom: 16px; }
+.manager-reference-page .manager-message { border-radius: 2px; font-size: 10px; margin-bottom: 8px; padding: 8px 10px; }
+.manager-commission-row { grid-template-columns: 78px minmax(0, 1fr) 112px; min-height: 88px; }
+.manager-commission-row > img, .manager-reference-image-placeholder { height: 58px; width: 78px; }
+.manager-reference-image-placeholder { align-items: center; background: #303030; color: #999; display: flex; font-size: 8px; justify-content: center; }
+.manager-commission-row .dashboard-car-copy h2 { font-size: 9px; }
+.manager-commission-row .dashboard-car-copy p { max-height: 27px; overflow: hidden; }
+.manager-commission-row .dashboard-car-copy textarea { background: #151515; border: 1px solid #555; border-radius: 3px; color: white; font-size: 9px; margin-top: 5px; padding: 5px; resize: vertical; width: 100%; }
+.manager-reference-actions { align-self: stretch; display: flex; flex-direction: column; gap: 4px; justify-content: center; }
+.manager-reference-actions button { background: transparent; border: 0; color: #f5f5f5; cursor: pointer; font-size: 8px; padding: 2px 0; text-align: left; }
+.manager-reference-actions button b { float: right; font-size: 13px; font-weight: 400; }
+.manager-reference-actions .manager-reference-approve { color: #78aefc; }
+.manager-reference-actions .manager-reference-reject { color: #fca5a5; }
+.manager-reference-empty { background: #222; color: #aaa; font-size: 10px; padding: 30px 14px; text-align: center; }
+.manager-reference-refresh { background: transparent; border: 1px solid #555; border-radius: 3px; color: #ddd; cursor: pointer; display: block; font-size: 9px; margin: 9px auto 0; padding: 6px 10px; }
+
+/* Manager uses the same visual language as the reference dashboard, but at a
+  readable moderation-workspace scale. */
+.manager-reference-page { max-width: 900px; padding-top: 28px; }
+.manager-reference-page > h1 { font-size: 18px; margin-bottom: 18px; }
+.manager-reference-page .dashboard-tabs { gap: 12px; margin-bottom: 10px; }
+.manager-reference-page .dashboard-tab { font-size: 12px; height: 68px; gap: 8px; }
+.manager-reference-page .dashboard-tab-icon { font-size: 28px; line-height: 22px; }
+.manager-reference-page .manager-message { font-size: 13px; margin-bottom: 10px; padding: 11px 14px; }
+.manager-commission-row { gap: 18px; grid-template-columns: 140px minmax(0, 1fr) 180px; min-height: 130px; padding: 16px; }
+.manager-commission-row > img, .manager-reference-image-placeholder { height: 96px; width: 140px; }
+.manager-reference-image-placeholder { font-size: 12px; }
+.manager-commission-row .dashboard-car-copy h2 { font-size: 16px; margin-bottom: 7px; }
+.manager-commission-row .dashboard-car-copy p { font-size: 12px; line-height: 1.35; max-height: none; }
+.manager-commission-row .dashboard-car-meta { gap: 6px; }
+.manager-commission-row .dashboard-car-meta span { font-size: 10px; padding: 4px 7px; }
+.manager-commission-row .dashboard-car-copy textarea { font-size: 12px; margin-top: 8px; padding: 8px; }
+.manager-reference-actions { gap: 8px; }
+.manager-reference-actions button { font-size: 12px; padding: 5px 0; }
+.manager-reference-actions button b { font-size: 18px; }
+.manager-reference-empty { font-size: 13px; padding: 44px 18px; }
+.manager-reference-refresh { font-size: 12px; margin-top: 12px; padding: 8px 14px; }
+
+@media (max-width: 650px) {
+  .manager-dashboard-page { padding: 16px 12px 42px; }
+  .manager-dashboard-header { align-items: flex-start; flex-direction: column; }
+  .manager-auction-card { grid-template-columns: 1fr; }
+  .manager-auction-card > img, .manager-image-placeholder { height: 170px; width: 100%; }
+  .manager-actions .manager-details { margin-left: 0; }
+  .manager-commission-row { grid-template-columns: 66px minmax(0, 1fr); }
+  .manager-commission-row > img, .manager-reference-image-placeholder { width: 66px; }
+  .manager-reference-actions { grid-column: 2; }
+  .manager-reference-page { padding-top: 16px; }
+  .manager-reference-page > h1 { font-size: 16px; }
+  .manager-reference-page .dashboard-tab { height: 56px; font-size: 10px; }
+  .manager-commission-row { gap: 10px; grid-template-columns: 82px minmax(0, 1fr); min-height: 110px; padding: 10px; }
+  .manager-commission-row > img, .manager-reference-image-placeholder { height: 62px; width: 82px; }
+  .manager-commission-row .dashboard-car-copy h2 { font-size: 12px; }
+  .manager-commission-row .dashboard-car-copy p { font-size: 10px; }
+  .manager-reference-actions { grid-column: 2; }
+}
+.dashboard-progress-image-empty {
+  height: 64px;
+  width: 100%;
+  font-size: 8px;
+}
+.dashboard-progress-copy p {
+  max-height: 27px;
+  overflow: hidden;
+}

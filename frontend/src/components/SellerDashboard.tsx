@@ -128,7 +128,7 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate }) => {
         </div>
 
         {loading ? (
-          <p className="seller-muted">Loading your auctions…</p>
+          <p className="seller-muted">Loading your auctions...</p>
         ) : error ? (
           <p className="seller-error">{error}</p>
         ) : listings.length === 0 ? (

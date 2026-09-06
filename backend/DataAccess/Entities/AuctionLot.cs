@@ -15,6 +15,11 @@ namespace DataAccess.Entities
         public DateTime AuctionEnd { get; set; }
         public ListingStatus Status { get; set; }
 
+        public Guid? ReviewedById { get; set; }
+        public ApplicationUser? ReviewedBy { get; set; }
+        public DateTime? ReviewedAt { get; set; }
+        public string? RejectionReason { get; set; } // причина відхілення
+
         public Guid SellerId { get; set; }
         public virtual ApplicationUser Seller { get; set; } = null!;
 

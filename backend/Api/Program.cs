@@ -28,6 +28,7 @@ builder.Services.AddScoped<ICatalogService, CatalogService>();
 builder.Services.AddScoped<IBankCardService, BankCardService>();
 builder.Services.AddScoped<IFileService, AzureFileService>();
 builder.Services.AddScoped<ILeaderBord, LeaderBord>();
+builder.Services.AddScoped<IAuctionModerationService, AuctionModerationService>();
 
 builder.Services.AddHttpClient<IBankApiClient, BankApiClient>(client =>
 {

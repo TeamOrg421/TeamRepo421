@@ -72,6 +72,26 @@ namespace Api.Controllers
             });
         }
 
+        [HttpGet("{userId:guid}")]
+        public async Task<IActionResult> GetPublicProfile(Guid userId)
+        {
+            var user = await _userManager.FindByIdAsync(userId.ToString());
+            if (user == null) return NotFound(new { message = "User not found." });
+
+            return Ok(new
+            {
+                id = user.Id,
+                name = user.Name,
+                bio = user.Bio ?? string.Empty,
+                garageItems = user.GarageItems ?? string.Empty,
+                profileImageUrl = user.ProfileImageUrl ?? string.Empty,
+                createdAt = user.CreatedAt,
+                listingsCount = await _db.CarListings.CountAsync(listing => listing.SellerId == userId),
+                bidsCount = await _db.Bids.CountAsync(bid => bid.UserId == userId),
+                commentsCount = await _db.Comments.CountAsync(comment => comment.UserId == userId)
+            });
+        }
+
         // ─── PUT /api/users/me ──────────────────────────────────────────────
         [HttpPut("me")]
         public async Task<IActionResult> UpdateMe([FromBody] UpdateProfileDto dto)

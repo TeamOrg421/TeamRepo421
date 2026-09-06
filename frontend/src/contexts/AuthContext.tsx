@@ -15,12 +15,14 @@ type User = {
   email?: string
   name?: string
   profileImageUrl?: string
+  roles?: string[]
 }
 
 type AuthContextType = {
   token: string | null
   user: User | null
   isAuthenticated: boolean
+  roles: string[]
   login: (token: string) => void
   logout: () => void
   updateUser: (updatedUser: Partial<User>) => void
@@ -83,10 +85,18 @@ const getUserFromToken = (token: string): User | null => {
     'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name',
   ])
 
+  const roleClaim = getClaim(payload, [
+    'role',
+    'roles',
+    'http://schemas.microsoft.com/ws/2008/06/identity/claims/role',
+  ])
+  const roles = Array.isArray(roleClaim) ? roleClaim : roleClaim ? [roleClaim] : []
+
   return {
     email: email || undefined,
     name: name || undefined,
     id: payload['sub'] || null,
+    roles,
   }
 }
 
@@ -98,6 +108,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const savedToken = localStorage.getItem('token')
     if (savedToken) {
       setToken(savedToken)
+      const tokenUser = getUserFromToken(savedToken)
       const savedUser = localStorage.getItem('user')
       if (savedUser) {
         try {
@@ -105,12 +116,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (parsed?.profileImageUrl && (parsed.profileImageUrl.includes('10000') || parsed.profileImageUrl.includes('devstoreaccount1'))) {
             parsed.profileImageUrl = undefined;
           }
-          setUser(parsed)
+          setUser({ ...parsed, roles: tokenUser?.roles ?? parsed.roles ?? [] })
         } catch {
-          setUser(getUserFromToken(savedToken))
+          setUser(tokenUser)
         }
       } else {
-        setUser(getUserFromToken(savedToken))
+        setUser(tokenUser)
       }
     }
   }, [])
@@ -148,6 +159,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     token,
     user,
     isAuthenticated: Boolean(token),
+    roles: user?.roles ?? [],
     login,
     logout,
     updateUser,

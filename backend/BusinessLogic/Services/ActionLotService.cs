@@ -1,5 +1,6 @@
 ﻿using BusinessLogic.Interfaces;
 using DataAccess.Entities;
+using DataAccess.Entities.Enums;
 using DataAccess.IRepositories;
 
 namespace BusinessLogic.Services
@@ -37,7 +38,16 @@ namespace BusinessLogic.Services
 
         public async Task<IList<AuctionLot>> GetListLotAsync(Guid lotId, int? page, int? size = null)
         {
-            var lots = await repo.GetAllAsync(page, size, l => l.Id == lotId, "Car", "Seller", "Winner", "Bids", "Comments", "Favorites", "ModerationLogs");
+            var lots = await repo.GetAllAsync(
+                pageNumber: page,
+                pageSize: size,
+                filtering: x => x.Id == lotId
+                             && x.Status != ListingStatus.Rejected
+                             && x.Status != ListingStatus.Pending
+                             && x.Status != ListingStatus.Canceled,
+                includes: new[] { "Car", "Seller", "Winner", "Bids", "Comments", "Favorites", "ModerationLogs" }
+            );
+
             return lots.ToList();
         }
 

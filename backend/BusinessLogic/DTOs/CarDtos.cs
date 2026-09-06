@@ -26,6 +26,7 @@ namespace BusinessLogic.DTOs
         public Guid ModelId { get; set; }
         public string ModelName { get; set; } = null!;
         public string BrandName { get; set; } = null!;
+        public Guid? SellerId { get; set; }
         public CarSpecificationDto? Specification { get; set; }
         public List<CarImageDto> Images { get; set; } = new();
         public Guid? ListingId { get; set; }
