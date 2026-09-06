@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
+import VeyoLogo from './VeyoLogo';
+
 interface NavbarProps {
   onNavigate: (page: string) => void;
   searchValue: string;
@@ -15,7 +17,8 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, searchValue, onSearchChange
 
   const navLinks = [
     { label: 'Auctions', page: 'home' },
-    { label: "What's Cars & Bids?", page: 'mainpage' },
+    { label: 'Sell your car', page: isAuthenticated ? 'sellCar' : 'login' },
+    { label: "What's VEYO?", page: 'mainpage' },
     { label: 'Leaderboard', page: 'leaderboard' },
   ];
 
@@ -43,10 +46,8 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, searchValue, onSearchChange
   return (
     <nav className="navbar">
       <div className="navbar-inner">
-        <div className="navbar-brand" onClick={() => onNavigate('home')}>
-          <span className="brand-cars">Cars</span>
-          <span className="brand-amp">&</span>
-          <span className="brand-bids">Bids</span>
+        <div className="navbar-brand" onClick={() => onNavigate('home')} title="VEYO">
+          <VeyoLogo height={40} />
         </div>
 
         <div className="navbar-menu">
@@ -55,13 +56,6 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, searchValue, onSearchChange
               {item.label}
             </button>
           ))}
-          <button
-            className="btn-sell-car"
-            type="button"
-            onClick={() => onNavigate(isAuthenticated ? 'sellCar' : 'login')}
-          >
-            Sell a Car
-          </button>
         </div>
 
         <form className="navbar-search" onSubmit={submitSearch} role="search">
