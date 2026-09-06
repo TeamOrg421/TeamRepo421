@@ -1,4 +1,4 @@
-.auction-review-page { width: 100%; max-width: 1280px; margin: 0 auto; padding: 22px 0 56px; }
+.auction-review-page { width: 100%; max-width: none; margin: 0; padding: 22px 0 56px; }
 .auction-review-page > h1 { font-size: 22px; margin: 12px 0 20px; }
 
 .auction-review-grid {

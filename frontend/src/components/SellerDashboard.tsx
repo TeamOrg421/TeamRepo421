@@ -22,151 +22,121 @@ interface SellerListing {
   watcherCount: number;
 }
 
-interface DashboardStats {
-  totalListings: number;
-  liveListings: number;
-  scheduledListings: number;
-  completedListings: number;
-  totalBids: number;
-  totalWatchers: number;
+interface SellerComment {
+  id: string | number;
+  text: string;
+  carId: string;
+  carTitle: string;
+  imageUrl: string;
 }
 
-const emptyStats: DashboardStats = {
-  totalListings: 0,
-  liveListings: 0,
-  scheduledListings: 0,
-  completedListings: 0,
-  totalBids: 0,
-  totalWatchers: 0,
-};
+type DashboardTab = 'progress' | 'live' | 'comments' | 'past';
+
+const tabItems: Array<{ id: DashboardTab; label: string; icon: React.ReactNode }> = [
+  { id: 'progress', label: 'In Progress', icon: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 1-8.5 12M3 8V3h5M12 7v5l3.5 2" /></svg> },
+  { id: 'live', label: 'Live Auctions', icon: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 14V9h11l3 3h3a1 1 0 0 1 1 1v3h-2M5 18a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM18 18a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM7 14h9" /></svg> },
+  { id: 'comments', label: 'Comments', icon: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H11l-4 4v-4h-.5A2.5 2.5 0 0 1 4 13.5z" /></svg> },
+  { id: 'past', label: 'Past Listings', icon: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10M7 21h10M8 3v5a4 4 0 0 0 8 0V3M16 21v-5a4 4 0 0 0-8 0v5M8 8l8 8" /></svg> },
+];
 
 const getListingState = (listing: SellerListing) => {
   const now = Date.now();
   const start = new Date(listing.auctionStart).getTime();
   const end = new Date(listing.auctionEnd).getTime();
-
-  if (listing.status === 'Completed' || (Number.isFinite(end) && end <= now)) return 'Ended';
-  if (Number.isFinite(start) && start > now) return 'Scheduled';
-  return listing.status === 'Active' ? 'Live' : listing.status;
+  if (listing.status === 'Completed' || listing.status === 'Canceled' || (Number.isFinite(end) && end <= now)) return 'past';
+  if (listing.status === 'Active' && Number.isFinite(start) && start <= now) return 'live';
+  return 'progress';
 };
 
+const formatPrice = (value: number) => `$${Number(value ?? 0).toLocaleString()}`;
+
+const formatDate = (value: string) => {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 'Date to be announced' : new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: '2-digit' }).format(date);
+};
+
+const getTimeRemaining = (value: string, now: number) => {
+  const ms = new Date(value).getTime() - now;
+  if (!Number.isFinite(ms) || ms <= 0) return 'Ended';
+  const seconds = Math.floor(ms / 1000) % 60;
+  const minutes = Math.floor(ms / 60000) % 60;
+  const hours = Math.floor(ms / 3600000) % 24;
+  const days = Math.floor(ms / 86400000);
+  return `${days ? `${days}d ` : ''}${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+};
+
+const ListingImage: React.FC<{ listing: SellerListing }> = ({ listing }) => listing.imageUrl
+  ? <img className="seller-dashboard-image" src={listing.imageUrl} alt={listing.title} />
+  : <div className="seller-dashboard-image seller-dashboard-image-empty">No photo</div>;
+
+const ListingTags: React.FC<{ listing: SellerListing; includeInspection?: boolean }> = ({ listing, includeInspection = false }) => (
+  <div className="seller-dashboard-tags">
+    <span>{listing.status === 'Active' ? 'Live auction' : listing.status}</span>
+    {listing.location && <span>{listing.location}</span>}
+    {includeInspection && <b>Inspected</b>}
+  </div>
+);
+
 const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate }) => {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [listings, setListings] = useState<SellerListing[]>([]);
-  const [stats, setStats] = useState<DashboardStats>(emptyStats);
+  const [comments, setComments] = useState<SellerComment[]>([]);
+  const [activeTab, setActiveTab] = useState<DashboardTab>('progress');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      setLoading(false);
-      return;
-    }
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
 
+  useEffect(() => {
+    if (!isAuthenticated) { setLoading(false); return; }
     const loadDashboard = async () => {
       try {
-        setLoading(true);
-        setError('');
-        const response = await apiCall('/users/me/seller-dashboard');
-        if (!response.ok) throw new Error('Unable to load seller dashboard.');
-
-        const data = await response.json();
-        setListings(Array.isArray(data.listings) ? data.listings : []);
-        setStats({ ...emptyStats, ...(data.stats ?? {}) });
-      } catch {
-        setError('Unable to load your auctions right now. Please try again.');
-      } finally {
-        setLoading(false);
-      }
+        setLoading(true); setError('');
+        const [dashboardResponse, commentsResponse] = await Promise.all([apiCall('/users/me/seller-dashboard'), apiCall('/users/me/comments')]);
+        if (!dashboardResponse.ok) throw new Error('Unable to load seller dashboard.');
+        const dashboard = await dashboardResponse.json();
+        setListings(Array.isArray(dashboard.listings) ? dashboard.listings : []);
+        if (commentsResponse.ok) {
+          const commentData = await commentsResponse.json();
+          setComments(Array.isArray(commentData) ? commentData : []);
+        }
+      } catch { setError('Unable to load your auctions right now. Please try again.'); }
+      finally { setLoading(false); }
     };
-
-    loadDashboard();
+    void loadDashboard();
   }, [isAuthenticated]);
 
-  const totalCurrentValue = useMemo(
-    () => listings.reduce((sum, listing) => sum + Number(listing.currentPrice ?? 0), 0),
-    [listings],
-  );
+  const tabListings = useMemo(() => listings.filter((listing) => getListingState(listing) === activeTab), [activeTab, listings, now]);
 
-  if (!isAuthenticated) {
-    return (
-      <section className="seller-dashboard-page">
-        <div className="seller-empty glass-panel">
-          <h1>Seller Dashboard</h1>
-          <p>Sign in to manage the auctions you have created.</p>
-          <button type="button" className="btn btn-primary" onClick={() => onNavigate('login')}>Sign In</button>
-        </div>
-      </section>
-    );
-  }
+  if (!isAuthenticated) return <section className="seller-dashboard-page"><div className="seller-dashboard-empty"><h1>Dashboard</h1><p>Sign in to manage your listings.</p><button type="button" onClick={() => onNavigate('login')}>Sign In</button></div></section>;
 
-  return (
-    <section className="seller-dashboard-page">
-      <header className="seller-dashboard-header">
-        <div>
-          <p className="seller-eyebrow">Seller Dashboard</p>
-          <h1>Your auctions</h1>
-          <p>Manage the listings you have published, and track bids and watchers.</p>
-        </div>
-        <button type="button" className="btn btn-primary" onClick={() => onNavigate('sellCar')}>Sell a car</button>
-      </header>
-
-      <div className="seller-stats-grid">
-        <div className="seller-stat glass-panel"><span>Live auctions</span><strong>{stats.liveListings}</strong></div>
-        <div className="seller-stat glass-panel"><span>All listings</span><strong>{stats.totalListings}</strong></div>
-        <div className="seller-stat glass-panel"><span>Total bids</span><strong>{stats.totalBids}</strong></div>
-        <div className="seller-stat glass-panel"><span>Watchers</span><strong>{stats.totalWatchers}</strong></div>
-        <div className="seller-stat seller-stat-wide glass-panel"><span>Current listed value</span><strong>${totalCurrentValue.toLocaleString()}</strong></div>
+  const renderListing = (listing: SellerListing) => {
+    const state = getListingState(listing);
+    const isLive = state === 'live';
+    const isPast = state === 'past';
+    return <article className="seller-dashboard-row" key={listing.listingId}>
+      <ListingImage listing={listing} />
+      <div className="seller-dashboard-copy"><h2>{listing.title || listing.vehicle}</h2>{listing.vehicle && listing.title !== listing.vehicle && <p>{listing.vehicle}</p>}<ListingTags listing={listing} includeInspection={!isPast} /></div>
+      <div className="seller-dashboard-summary">
+        {isLive ? <><span>Time left</span><strong className="seller-dashboard-time">{getTimeRemaining(listing.auctionEnd, now)}</strong><span>Current bid</span><strong className="seller-dashboard-bid">{formatPrice(listing.currentPrice)}</strong></> : isPast ? <><span>{listing.status === 'Canceled' ? 'Ended' : 'Sold for'}</span><strong>{formatPrice(listing.currentPrice)}</strong></> : <><strong>Will be published on {formatDate(listing.auctionStart)}</strong><small>{listing.status === 'Rejected' ? 'Listing needs changes' : 'No additional information needed.'}</small></>}
       </div>
+      <div className="seller-dashboard-actions">{!isPast && <button type="button" onClick={() => onNavigate('car', { carId: listing.carId })}>{isLive ? 'See details' : 'Open chat'}</button>}<button type="button" onClick={() => onNavigate('car', { carId: listing.carId })}>See details <span aria-hidden="true">›</span></button></div>
+    </article>;
+  };
 
-      <div className="seller-listing-section glass-panel">
-        <div className="seller-listing-heading">
-          <div>
-            <h2>{user?.name || 'Your'} listings</h2>
-            <p>{stats.scheduledListings} scheduled · {stats.completedListings} completed or ended</p>
-          </div>
-        </div>
-
-        {loading ? (
-          <p className="seller-muted">Loading your auctions...</p>
-        ) : error ? (
-          <p className="seller-error">{error}</p>
-        ) : listings.length === 0 ? (
-          <div className="seller-empty">
-            <h3>No auctions yet</h3>
-            <p>Create your first listing and it will appear here.</p>
-            <button type="button" className="btn btn-primary" onClick={() => onNavigate('sellCar')}>Create an auction</button>
-          </div>
-        ) : (
-          <div className="seller-listings">
-            {listings.map((listing) => {
-              const state = getListingState(listing);
-              return (
-                <article className="seller-listing" key={listing.listingId}>
-                  {listing.imageUrl ? <img src={listing.imageUrl} alt={listing.title} /> : <div className="seller-listing-image-placeholder">No photo</div>}
-                  <div className="seller-listing-main">
-                    <div className="seller-listing-topline">
-                      <span className={`seller-status seller-status-${state.toLowerCase()}`}>{state}</span>
-                      <span>{listing.location || 'Location not specified'}</span>
-                    </div>
-                    <h3>{listing.title}</h3>
-                    <p>{listing.vehicle}</p>
-                    <small>Ends {new Date(listing.auctionEnd).toLocaleString()}</small>
-                  </div>
-                  <div className="seller-listing-metrics">
-                    <div><span>Current bid</span><strong>${Number(listing.currentPrice).toLocaleString()}</strong></div>
-                    <div><span>Bids</span><strong>{listing.bidCount}</strong></div>
-                    <div><span>Watchers</span><strong>{listing.watcherCount}</strong></div>
-                  </div>
-                  <button type="button" className="btn btn-secondary" onClick={() => onNavigate('car', { carId: listing.carId })}>View</button>
-                </article>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </section>
-  );
+  return <section className="seller-dashboard-page" aria-label="Seller dashboard">
+    <h1>Dashboard</h1>
+    <div className="seller-dashboard-tabs" role="tablist" aria-label="Seller dashboard sections">
+      {tabItems.map((tab) => <button key={tab.id} type="button" role="tab" aria-selected={activeTab === tab.id} className={activeTab === tab.id ? 'active' : ''} onClick={() => setActiveTab(tab.id)}><i>{tab.icon}</i><span>{tab.label}</span></button>)}
+    </div>
+    {loading ? <div className="seller-dashboard-empty">Loading your listings...</div> : error ? <div className="seller-dashboard-empty seller-dashboard-error">{error}</div> : activeTab === 'comments' ? (
+      comments.length ? <div className="seller-dashboard-list seller-dashboard-comments">{comments.map((comment) => <article className="seller-dashboard-row" key={comment.id}><div className="seller-dashboard-image seller-dashboard-image-empty">{comment.imageUrl ? <img src={comment.imageUrl} alt="" /> : 'No photo'}</div><div className="seller-dashboard-copy"><h2>{comment.carTitle}</h2><p>{comment.text}</p></div><div className="seller-dashboard-actions"><button type="button" onClick={() => onNavigate('car', { carId: comment.carId })}>See comment <span aria-hidden="true">›</span></button></div></article>)}</div> : <div className="seller-dashboard-empty">No comments yet.</div>
+    ) : tabListings.length ? <div className="seller-dashboard-list">{tabListings.map(renderListing)}</div> : <div className="seller-dashboard-empty"><p>{activeTab === 'live' ? 'No live auctions right now.' : activeTab === 'past' ? 'No past listings yet.' : 'No listings in progress.'}</p><button type="button" onClick={() => onNavigate('sellCar')}>Sell a car</button></div>}
+  </section>;
 };
 
 export default SellerDashboard;

@@ -477,16 +477,37 @@ const UserProfile: React.FC<UserProfileProps> = ({ onNavigate }) => {
         <button
           type="button"
           className="profile-nav-link"
-          onClick={() => onNavigate('seller')}
+          onClick={() => onNavigate('adminCars')}
         >
-          Seller dashboard
+          Admin Panel
+        </button>
+        <button
+          type="button"
+          className="profile-nav-link"
+          onClick={() => onNavigate('manager')}
+        >
+          Manager Dashboard
+        </button>
+        <button
+          type="button"
+          className="profile-nav-link"
+          onClick={() => onNavigate('leaderboard')}
+        >
+          Leaderboard
         </button>
         <button
           type="button"
           className="profile-nav-link"
           onClick={() => onNavigate('watchlist')}
         >
-          Watchlist
+          Watch List
+        </button>
+        <button
+          type="button"
+          className="profile-nav-link"
+          onClick={() => onNavigate('seller')}
+        >
+          Seller Dashboard
         </button>
         <button
           type="button"

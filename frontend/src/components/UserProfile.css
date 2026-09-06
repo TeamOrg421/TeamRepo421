@@ -5,8 +5,8 @@
 .profile-container {
   display: flex;
   gap: 32px;
-  max-width: 1360px;
-  margin: 0 auto;
+  max-width: none;
+  margin: 0;
   padding: 24px 16px 80px;
   color: #ffffff;
   font-family: inherit;
@@ -19,6 +19,9 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  position: sticky;
+  top: 92px;
+  align-self: flex-start;
 }
 
 .profile-nav-link {
@@ -737,6 +740,7 @@
     flex-direction: row;
     overflow-x: auto;
     padding-bottom: 8px;
+    position: static;
   }
 
   .profile-nav-link {

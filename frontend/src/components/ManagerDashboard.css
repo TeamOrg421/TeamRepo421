@@ -61,7 +61,7 @@
 
 /* Manager uses the same visual language as the reference dashboard, but at a
   readable moderation-workspace scale. */
-.manager-reference-page { max-width: 900px; padding-top: 28px; }
+.manager-reference-page { max-width: none; padding-top: 28px; }
 .manager-reference-page > h1 { font-size: 18px; margin-bottom: 18px; }
 .manager-reference-page .dashboard-tabs { gap: 12px; margin-bottom: 10px; }
 .manager-reference-page .dashboard-tab { font-size: 12px; height: 68px; gap: 8px; }
