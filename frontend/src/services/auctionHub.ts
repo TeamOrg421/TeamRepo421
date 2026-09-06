@@ -12,6 +12,7 @@ const SIGNALR_URL = 'http://localhost:5254/hubs/auction';
  */
 export interface BidPayload {
   bidder: string;
+  userId?: string;
   amount: number;
   time: string;
   currentPrice: number;

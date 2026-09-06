@@ -131,7 +131,9 @@ namespace Api.Controllers
                 CurrentPrice = lotDto.StartingPrice,
                 AuctionStart = lotDto.AuctionStart,
                 AuctionEnd = lotDto.AuctionEnd,
-                Status = DataAccess.Entities.Enums.ListingStatus.Active,
+                //Status = DataAccess.Entities.Enums.ListingStatus.Active,
+                Status = DataAccess.Entities.Enums.ListingStatus.Pending,
+
                 SellerId = userId,
                 CarId = car.Id
             };
@@ -238,6 +240,7 @@ namespace Api.Controllers
             carDto.Title = listing.Title;
             carDto.Description = listing.Description;
             carDto.Location = listing.Location;
+            carDto.SellerId = listing.SellerId;
             carDto.SellerName = listing.Seller?.Name ?? listing.Seller?.UserName ?? "Seller";
             carDto.StartingPrice = listing.StartingPrice;
             carDto.CurrentBid = listing.CurrentPrice;

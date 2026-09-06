@@ -14,6 +14,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped(typeof(ICarRepositories<>), typeof(CarRepositories<>));
 
         services.AddScoped<IActionLotService, ActionLotService>();
+        services.AddScoped<IAuctionModerationService, AuctionModerationService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<ICarService, CarService>();
         services.AddScoped<ICatalogService, CatalogService>();

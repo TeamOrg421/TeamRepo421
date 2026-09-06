@@ -48,7 +48,7 @@ namespace BusinessLogic.Services
                     result.Errors.Select(x => x.Description)));
             }
 
-            await _userManager.AddToRoleAsync(user, "Admin");
+            await _userManager.AddToRoleAsync(user, "User");
 
             return await GenerateToken(user);
         }

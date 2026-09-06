@@ -1,6 +1,8 @@
 using BusinessLogic.Interfaces;
 using DataAccess.Entities;
+using DataAccess.Entities.Enums;
 using DataAccess.IRepositories;
+using System.Linq.Expressions;
 
 namespace BusinessLogic.Services
 {

@@ -131,6 +131,13 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, searchValue, onSearchChange
                   Admin Panel
                 </button>
                 <button
+                  className="hamburger-dropdown-item hamburger-admin-item"
+                  type="button"
+                  onClick={() => { setMenuOpen(false); onNavigate('manager'); }}
+                >
+                  Manager Dashboard
+                </button>
+                <button
                   className="hamburger-dropdown-item"
                   type="button"
                   onClick={() => { setMenuOpen(false); onNavigate('leaderboard'); }}

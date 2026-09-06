@@ -13,7 +13,7 @@ public static class SeedExtensions
         var roleManager = services.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
         var dbContext = services.GetRequiredService<ApplicationDbContext>();
 
-        string[] roles = { "Admin", "User" };
+        string[] roles = { "Admin", "User", "Moderator" };
         foreach (var role in roles)
         {
             if (!await roleManager.RoleExistsAsync(role))

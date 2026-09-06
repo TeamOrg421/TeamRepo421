@@ -3,14 +3,16 @@ import { useAuth } from '../contexts/AuthContext';
 import { apiCall } from '../services/config';
 import { createAuctionConnection, destroyAuctionConnection } from '../services/auctionHub';
 import type { BidPayload } from '../services/auctionHub';
+import UserProfileLink from './UserProfileLink';
 
 interface CarProps {
-  onNavigate: (page: string, params?: { carId?: number | string }) => void;
+  onNavigate: (page: string, params?: { carId?: number | string; userId?: string }) => void;
   carId: string | null;
 }
 
 interface Bid {
   bidder: string;
+  userId?: string;
   amount: number;
   time: string;
 }
@@ -18,6 +20,7 @@ interface Bid {
 interface Comment {
   id: string;
   user: string;
+  userId?: string;
   text: string;
   time: string;
   isSeller?: boolean;
@@ -41,6 +44,7 @@ interface CarDetail {
   vin: string;
   location: string;
   seller: string;
+  sellerId?: string;
   currentBid: number;
   bidCount: number;
   timeRemaining: string;
@@ -170,6 +174,7 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
           vin: data.vin || 'Not specified',
           location: data.location || 'Location not specified',
           seller: data.sellerName || data.seller || 'Seller',
+          sellerId: data.sellerId,
           currentBid,
           bidCount: Number(data.bidCount ?? data.listing?.bidCount ?? 0),
           timeRemaining: formatTimeRemaining(data.auctionEnd ?? data.endsAt),
@@ -228,6 +233,7 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
         conn.on('ReceiveBid', (payload: BidPayload) => {
           const incoming: Bid = {
             bidder: payload.bidder,
+            userId: payload.userId,
             amount: payload.amount,
             time: new Date(payload.time).toLocaleTimeString(),
           };
@@ -517,7 +523,7 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
             </div>
           </div>
           <p className="seller-attribution">
-            Listed by: <span className="seller-username">@{carData.seller}</span>
+            Listed by: <UserProfileLink userId={carData.sellerId} name={`@${carData.seller}`} onNavigate={onNavigate} className="seller-username" />
           </p>
         </div>
 
@@ -794,7 +800,7 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
                           {bid.bidder.charAt(0).toUpperCase()}
                         </span>
                         <div className="bidder-info">
-                          <span className="bidder-name">@{bid.bidder}</span>
+                          <UserProfileLink userId={bid.userId} name={`@${bid.bidder}`} onNavigate={onNavigate} className="bidder-name" />
                           <span className="bid-timestamp">{bid.time}</span>
                         </div>
                       </div>
@@ -853,7 +859,7 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
                     {comment.user.charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <span className="comment-username">@{comment.user}</span>
+                    <UserProfileLink userId={comment.userId} name={`@${comment.user}`} onNavigate={onNavigate} className="comment-username" />
                     {comment.isSeller && <span className="seller-badge">Seller</span>}
                     <span className="comment-time-ago">{comment.time}</span>
                   </div>

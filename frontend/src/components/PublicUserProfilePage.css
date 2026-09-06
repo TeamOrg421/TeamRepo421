@@ -1,0 +1,81 @@
+.public-profile-page {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 22px 0 56px;
+}
+
+.public-profile-back {
+  margin-bottom: 22px;
+  padding: 8px 14px;
+  color: var(--text-primary);
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.public-profile-card {
+  padding: 32px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+}
+
+.public-profile-heading {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.public-profile-avatar {
+  width: 84px;
+  height: 84px;
+  flex: 0 0 84px;
+  object-fit: cover;
+  border-radius: 50%;
+  background: var(--bg-tertiary);
+}
+
+.public-profile-avatar-fallback {
+  display: grid;
+  place-items: center;
+  color: var(--text-primary);
+  font-size: 32px;
+  font-weight: 700;
+}
+
+.public-profile-eyebrow {
+  margin-bottom: 6px;
+  color: var(--text-muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.public-profile-heading h1 { font-size: 28px; }
+.public-profile-joined { margin-top: 5px; color: var(--text-muted); font-size: 13px; }
+.public-profile-bio { margin: 28px 0; color: var(--text-secondary); line-height: 1.6; }
+
+.public-profile-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.public-profile-stats div { padding: 18px 12px; text-align: center; }
+.public-profile-stats strong, .public-profile-stats span { display: block; }
+.public-profile-stats strong { font-size: 22px; }
+.public-profile-stats span { margin-top: 5px; color: var(--text-muted); font-size: 12px; }
+.public-profile-garage { margin-top: 24px; }
+.public-profile-garage h2 { margin-bottom: 8px; font-size: 16px; }
+.public-profile-garage p { color: var(--text-secondary); line-height: 1.5; white-space: pre-wrap; }
+
+.public-profile-state { width: 100%; padding: 80px 20px; color: var(--text-secondary); text-align: center; }
+
+@media (max-width: 560px) {
+  .public-profile-page { padding: 16px 12px 40px; }
+  .public-profile-card { padding: 22px; }
+  .public-profile-heading h1 { font-size: 23px; }
+}

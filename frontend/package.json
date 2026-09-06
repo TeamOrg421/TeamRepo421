@@ -2,6 +2,7 @@
   "name": "frontend",
   "private": true,
   "version": "0.0.0",
+  "description": "Cars and Bids frontend",
   "type": "module",
   "scripts": {
     "dev": "vite",
