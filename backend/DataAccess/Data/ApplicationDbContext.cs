@@ -2,11 +2,26 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace DataAccess.Data
 {
     public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>
     {
+        // SQL Server's datetime2 has no timezone or DateTimeKind. Auction dates are
+        // stored as UTC instants, so restore that fact when EF materializes them.
+        // This makes the JSON API emit an explicit `Z` instead of an ambiguous local time.
+        private static readonly ValueConverter<DateTime, DateTime> UtcDateTimeConverter = new(
+            value => NormalizeUtc(value),
+            value => DateTime.SpecifyKind(value, DateTimeKind.Utc));
+
+        private static DateTime NormalizeUtc(DateTime value) => value.Kind switch
+        {
+            DateTimeKind.Utc => value,
+            DateTimeKind.Local => value.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(value, DateTimeKind.Utc),
+        };
+
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)
         {
@@ -88,6 +103,16 @@ namespace DataAccess.Data
             modelBuilder.Entity<AuctionLot>()
                 .Property(l => l.CurrentPrice)
                 .HasColumnType("decimal(18,2)");
+
+            // Keep the existing datetime2 schema, but never let its missing timezone
+            // turn a UTC auction deadline into a browser-local timestamp.
+            modelBuilder.Entity<AuctionLot>()
+                .Property(l => l.AuctionStart)
+                .HasConversion(UtcDateTimeConverter);
+
+            modelBuilder.Entity<AuctionLot>()
+                .Property(l => l.AuctionEnd)
+                .HasConversion(UtcDateTimeConverter);
 
             modelBuilder.Entity<Bid>()
                 .Property(b => b.Amount)

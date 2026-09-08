@@ -1,3 +1,5 @@
+using DataAccess.Entities.Enums;
+
 namespace BusinessLogic.DTOs
 {
     public class CreateCarDto
@@ -37,6 +39,7 @@ namespace BusinessLogic.DTOs
         public decimal? StartingPrice { get; set; }
         public decimal? CurrentBid { get; set; }
         public int BidCount { get; set; }
+        public ListingStatus? AuctionStatus { get; set; }
         public DateTime? AuctionStart { get; set; }
         public DateTime? AuctionEnd { get; set; }
     }
