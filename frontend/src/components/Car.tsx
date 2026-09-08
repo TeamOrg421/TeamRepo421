@@ -47,6 +47,7 @@ interface CarDetail {
   sellerId?: string;
   currentBid: number;
   bidCount: number;
+  auctionStatus: AuctionStatus;
   timeRemaining: string;
   endsAt: string;
   images: string[];
@@ -58,6 +59,22 @@ interface CarDetail {
   bids: Bid[];
   comments: Comment[];
 }
+
+type AuctionStatus = 'draft' | 'pending' | 'rejected' | 'active' | 'completed' | 'canceled' | 'unknown';
+
+const auctionStatusFromApi = (value: unknown): AuctionStatus => {
+  const numericStatuses: Record<number, AuctionStatus> = { 0: 'draft', 1: 'pending', 2: 'rejected', 3: 'active', 4: 'completed', 5: 'canceled' };
+  if (typeof value === 'number') return numericStatuses[value] ?? 'unknown';
+  if (typeof value === 'string') {
+    const normalized = value.toLowerCase();
+    return ['draft', 'pending', 'rejected', 'active', 'completed', 'canceled'].includes(normalized) ? normalized as AuctionStatus : 'unknown';
+  }
+  return 'unknown';
+};
+
+const auctionStatusLabels: Record<AuctionStatus, string> = {
+  draft: 'Draft', pending: 'Pending review', rejected: 'Rejected', active: 'Live', completed: 'Completed', canceled: 'Canceled', unknown: 'Status unavailable',
+};
 
 const FALLBACK_CAR_IMAGE = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 1200 700%22%3E%3Crect width=%221200%22 height=%22700%22 fill=%22%231b1b1b%22/%3E%3Cpath d=%22M250 440h700l-75-165H380z%22 fill=%22%23353535%22/%3E%3Ccircle cx=%22400%22 cy=%22455%22 r=%2260%22 fill=%22%23111111%22 stroke=%22%237c3aed%22 stroke-width=%2216%22/%3E%3Ccircle cx=%22800%22 cy=%22455%22 r=%2260%22 fill=%22%23111111%22 stroke=%22%237c3aed%22 stroke-width=%2216%22/%3E%3Ctext x=%22600%22 y=%22600%22 fill=%22%23c4b5fd%22 font-family=%22Arial,sans-serif%22 font-size=%2240%22 text-anchor=%22middle%22%3ENo photo uploaded%3C/text%3E%3C/svg%3E';
 
@@ -98,10 +115,19 @@ const formatEngine = (specification: any) => {
   return details.length ? details.join(' · ') : 'Not specified';
 };
 
+const parseAuctionDate = (value: unknown) => {
+  if (typeof value !== 'string') return null;
+
+  // Old records/API responses may omit the UTC marker because SQL datetime2 does
+  // not keep DateTimeKind. Auction deadlines are stored as UTC, not local time.
+  const hasTimeZone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(value);
+  const parsed = new Date(hasTimeZone ? value : `${value}Z`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
 const formatTimeRemaining = (value: unknown) => {
-  if (typeof value !== 'string') return 'Not specified';
-  const end = new Date(value).getTime();
-  if (Number.isNaN(end)) return 'Not specified';
+  const end = parseAuctionDate(value)?.getTime();
+  if (end == null) return 'Not specified';
 
   const milliseconds = end - Date.now();
   if (milliseconds <= 0) return 'Ended';
@@ -177,8 +203,9 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
           sellerId: data.sellerId,
           currentBid,
           bidCount: Number(data.bidCount ?? data.listing?.bidCount ?? 0),
+          auctionStatus: auctionStatusFromApi(data.auctionStatus ?? data.listing?.status),
           timeRemaining: formatTimeRemaining(data.auctionEnd ?? data.endsAt),
-          endsAt: data.auctionEnd || data.endsAt ? new Date(data.auctionEnd ?? data.endsAt).toLocaleString() : 'Not specified',
+          endsAt: parseAuctionDate(data.auctionEnd ?? data.endsAt)?.toLocaleString() ?? 'Not specified',
           images: mappedImages.length > 0 ? mappedImages : [FALLBACK_CAR_IMAGE],
           highlights: ['Real data from database'],
           equipment: [],
@@ -313,6 +340,10 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
     );
   }
 
+  const canPlaceBid = carData.auctionStatus === 'active' && carData.timeRemaining !== 'Ended';
+  const auctionStatusLabel = carData.timeRemaining === 'Ended' && carData.auctionStatus === 'active' ? 'Ended' : auctionStatusLabels[carData.auctionStatus];
+  const auctionHeading = carData.auctionStatus === 'active' ? 'Live Auction' : 'Auction status';
+
   // Toggle watchlist
   const handleWatchToggle = async () => {
     if (!isAuthenticated) {
@@ -358,6 +389,11 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
     e.preventDefault();
     setBidError('');
     setBidSuccess('');
+
+    if (carData.auctionStatus !== 'active') {
+      setBidError('This auction is awaiting moderator approval and is not open for bidding yet.');
+      return;
+    }
 
     if (!isAuthenticated) {
       setBidError('You must sign in to place a bid.');
@@ -591,10 +627,10 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
         {/* Bid Console */}
         <div className="bid-console-card glass-panel">
           <div className="bid-console-header">
-            <h3>Live Auction</h3>
-            <span className="live-pulse">
+            <h3>{auctionHeading}</h3>
+            <span className={`live-pulse auction-status-${carData.auctionStatus}`}>
               <span className="pulse-dot"></span>
-              Live
+              {auctionStatusLabel}
             </span>
           </div>
 
@@ -621,15 +657,18 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
                 <span className="currency-symbol">$</span>
                 <input
                   type="text"
-                  placeholder={`Min bid: $${(currentBidPrice + 500).toLocaleString()}`}
+                  placeholder={canPlaceBid ? `Min bid: $${(currentBidPrice + 500).toLocaleString()}` : 'Bidding is unavailable until approval'}
                   value={bidAmount}
                   onChange={(e) => setBidAmount(e.target.value)}
                   className="bid-input-field"
+                  disabled={!canPlaceBid}
                 />
-                <button type="submit" className="btn btn-primary submit-bid-btn">
-                  Place Bid
+                <button type="submit" className="btn btn-primary submit-bid-btn" disabled={!canPlaceBid}>
+                  {canPlaceBid ? 'Place Bid' : 'Unavailable'}
                 </button>
               </div>
+
+              {!canPlaceBid && <div className="bid-message auction-status-message">{carData.auctionStatus === 'pending' ? 'This listing is being reviewed by a moderator. Bidding opens after approval.' : `Bidding is unavailable while this auction is ${auctionStatusLabel.toLowerCase()}.`}</div>}
 
               {bidError && <div className="bid-message error-msg">{bidError}</div>}
               {bidSuccess && <div className="bid-message success-msg">{bidSuccess}</div>}

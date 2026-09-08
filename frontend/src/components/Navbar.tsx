@@ -17,7 +17,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, searchValue, onSearchChange
 
   const navLinks = [
     { label: 'Auctions', page: 'home' },
-    { label: 'Sell your car', page: isAuthenticated ? 'sellCar' : 'login' },
+    { label: 'Sell your car', page: 'sellCar' },
     { label: "What's VEYO?", page: 'mainpage' },
     { label: 'Leaderboard', page: 'leaderboard' },
   ];
@@ -26,7 +26,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, searchValue, onSearchChange
     if (targetPage === 'home') {
       return currentPage === 'home' || currentPage === 'car';
     }
-    if (targetPage === 'sellCar' || (targetPage === 'login' && !isAuthenticated)) {
+    if (targetPage === 'sellCar') {
       return currentPage === 'sellCar';
     }
     if (targetPage === 'mainpage') {
