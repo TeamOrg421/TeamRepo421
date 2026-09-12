@@ -49,6 +49,9 @@ interface CarDetail {
   bidCount: number;
   timeRemaining: string;
   endsAt: string;
+  listingStatus: string;
+  winnerName?: string;
+  winnerBid?: number;
   images: string[];
   highlights: string[];
   equipment: string[];
@@ -99,9 +102,9 @@ const formatEngine = (specification: any) => {
 };
 
 const formatTimeRemaining = (value: unknown) => {
-  if (typeof value !== 'string') return 'Not specified';
+  if (typeof value !== 'string') return 'No end date';
   const end = new Date(value).getTime();
-  if (Number.isNaN(end)) return 'Not specified';
+  if (Number.isNaN(end)) return 'No end date';
 
   const milliseconds = end - Date.now();
   if (milliseconds <= 0) return 'Ended';
@@ -178,7 +181,10 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
           currentBid,
           bidCount: Number(data.bidCount ?? data.listing?.bidCount ?? 0),
           timeRemaining: formatTimeRemaining(data.auctionEnd ?? data.endsAt),
-          endsAt: data.auctionEnd || data.endsAt ? new Date(data.auctionEnd ?? data.endsAt).toLocaleString() : 'Not specified',
+          endsAt: data.auctionEnd || data.endsAt ? new Date(data.auctionEnd ?? data.endsAt).toLocaleString() : 'No end date',
+          listingStatus: data.listingStatus ?? data.listing?.status ?? 'Active',
+          winnerName: data.winnerName ?? data.listing?.winner?.winnerName ?? data.winner?.winnerName ?? undefined,
+          winnerBid: Number(data.winningBid ?? data.listing?.winner?.winningBid ?? data.winner?.winningBid ?? 0) || undefined,
           images: mappedImages.length > 0 ? mappedImages : [FALLBACK_CAR_IMAGE],
           highlights: ['Real data from database'],
           equipment: [],
@@ -214,6 +220,7 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
   // auction group. Any bid placed by any user triggers ReceiveBid, which
   // updates the shared state for every viewer simultaneously.
   const connectionRef = useRef<import('@microsoft/signalr').HubConnection | null>(null);
+  const isAuctionCompleted = carData?.listingStatus === 'Completed' || carData?.timeRemaining === 'Ended';
 
   useEffect(() => {
     const listingId = carData?.listingId;
@@ -587,11 +594,15 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
         {/* Bid Console */}
         <div className="bid-console-card glass-panel">
           <div className="bid-console-header">
-            <h3>Live Auction</h3>
-            <span className="live-pulse">
-              <span className="pulse-dot"></span>
-              Live
-            </span>
+            <h3>{carData.listingStatus === 'Active' ? 'Live Auction' : 'Auction'}</h3>
+            {carData.listingStatus === 'Active' ? (
+              <span className="live-pulse">
+                <span className="pulse-dot"></span>
+                Live
+              </span>
+            ) : (
+              <span className="live-pulse">{carData.listingStatus === 'Pending' ? 'Awaiting approval' : carData.listingStatus}</span>
+            )}
           </div>
 
           <div className="pricing-stats-block">
@@ -605,31 +616,51 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
             </div>
             <div className="stat-box">
               <span className="stat-label">Time Left</span>
-              <span className="stat-value text-gradient-purple">{carData.timeRemaining}</span>
+              <span className="stat-value text-gradient-purple">{carData.listingStatus === 'Pending' ? 'Not started' : carData.timeRemaining}</span>
             </div>
           </div>
 
           <div className="bid-console-body">
-            <p className="auction-deadline-notice">Ends on <strong>{carData.endsAt}</strong></p>
-
-            <form className="place-bid-form" onSubmit={handlePlaceBid}>
-              <div className="input-group">
-                <span className="currency-symbol">$</span>
-                <input
-                  type="text"
-                  placeholder={`Min bid: $${(currentBidPrice + 500).toLocaleString()}`}
-                  value={bidAmount}
-                  onChange={(e) => setBidAmount(e.target.value)}
-                  className="bid-input-field"
-                />
-                <button type="submit" className="btn btn-primary submit-bid-btn">
-                  Place Bid
-                </button>
+            {isAuctionCompleted && (
+              <div className="auction-finished-lock">
+                <div className="auction-finished-lock-icon">🔒</div>
+                <div className="auction-finished-lock-text">
+                  <span className="auction-finished-label">Auction finished</span>
+                  <strong>
+                    Winner: {carData.winnerName || 'Unknown User'} — ${Number(carData.winnerBid ?? currentBidPrice ?? 0).toLocaleString()}
+                  </strong>
+                </div>
               </div>
+            )}
 
-              {bidError && <div className="bid-message error-msg">{bidError}</div>}
-              {bidSuccess && <div className="bid-message success-msg">{bidSuccess}</div>}
-            </form>
+            <p className="auction-deadline-notice">
+              {carData.listingStatus === 'Pending'
+                ? 'This auction is awaiting moderator approval and will start once approved.'
+                : isAuctionCompleted
+                  ? 'This auction is closed and the winner has been finalized.'
+                  : carData.endsAt === 'No end date' ? 'This auction has no end date' : <>Ends on <strong>{carData.endsAt}</strong></>}
+            </p>
+
+            {!isAuctionCompleted && (
+              <form className="place-bid-form" onSubmit={handlePlaceBid}>
+                <div className="input-group">
+                  <span className="currency-symbol">$</span>
+                  <input
+                    type="text"
+                    placeholder={`Min bid: $${(currentBidPrice + 500).toLocaleString()}`}
+                    value={bidAmount}
+                    onChange={(e) => setBidAmount(e.target.value)}
+                    className="bid-input-field"
+                  />
+                  <button type="submit" className="btn btn-primary submit-bid-btn">
+                    Place Bid
+                  </button>
+                </div>
+
+                {bidError && <div className="bid-message error-msg">{bidError}</div>}
+                {bidSuccess && <div className="bid-message success-msg">{bidSuccess}</div>}
+              </form>
+            )}
 
             <div className="security-badges">
               <div className="sec-badge">

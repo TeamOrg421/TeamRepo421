@@ -4,6 +4,7 @@ using Shared.Contracts;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -13,11 +14,16 @@ namespace FakeBank.BusinessLogic.Service
     {
         private readonly IBankCardService bankCardService;
         private readonly ITransactionService transactionService;
+        private readonly IHttpClientFactory httpClientFactory;
 
-        public PaymentService(IBankCardService bankCardService, ITransactionService transactionService)
+        public PaymentService(
+            IBankCardService bankCardService,
+            ITransactionService transactionService,
+            IHttpClientFactory httpClientFactory)
         {
             this.bankCardService = bankCardService;
             this.transactionService = transactionService;
+            this.httpClientFactory = httpClientFactory;
         }
 
         // ---- Mapping helpers ----
@@ -33,7 +39,8 @@ namespace FakeBank.BusinessLogic.Service
                 ExpiryDate = card.ExpiryDate,
                 Balance = card.Balance,
                 IsBlocked = card.IsBlocked,
-                BankCardToken = card.BankCardToken
+                BankCardToken = card.BankCardToken,
+                Email = card.Email
             };
         }
 
@@ -61,6 +68,53 @@ namespace FakeBank.BusinessLogic.Service
             return $"**** **** **** {digits[^4..]}";
         }
 
+        public async Task<EmailSyncResultDto> SyncCardEmailsAsync()
+        {
+            var cards = (await bankCardService.GetAllBankCardsAsync(null, null, null)).ToList();
+            var result = new EmailSyncResultDto { TotalCards = cards.Count };
+            var client = httpClientFactory.CreateClient("MainApi");
+
+            foreach (var card in cards)
+            {
+                try
+                {
+                    var endpoint = card.UserId == Guid.Empty
+                        ? $"api/users/email-by-card-token/{card.BankCardToken}"
+                        : $"api/users/{card.UserId}/email";
+                    var user = await client.GetFromJsonAsync<UserEmailDto>(endpoint);
+                    if (user == null || string.IsNullOrWhiteSpace(user.Email))
+                    {
+                        if (card.UserId == Guid.Empty)
+                            result.MissingUserIds++;
+                        else
+                            result.UsersNotFound++;
+                        continue;
+                    }
+
+                    if (string.Equals(card.Email, user.Email, StringComparison.OrdinalIgnoreCase))
+                    {
+                        result.AlreadyFilledCards++;
+                        continue;
+                    }
+
+                    card.Email = user.Email;
+                    await bankCardService.UpdateBankCardAsync(card);
+                    result.UpdatedCards++;
+                }
+                catch (HttpRequestException)
+                {
+                    result.FailedRequests++;
+                }
+            }
+
+            return result;
+        }
+
+        private sealed class UserEmailDto
+        {
+            public string Email { get; set; } = string.Empty;
+        }
+
         private static PaymentResultDto ToResultDto(BankTransaction transaction, decimal resultingBalance)
         {
             return new PaymentResultDto
@@ -86,7 +140,8 @@ namespace FakeBank.BusinessLogic.Service
                 ExpiryDate = card.ExpiryDate,
                 Cvv = card.Cvv,
                 Balance = card.Balance > 0 ? card.Balance : 1000000m,
-                BankCardToken = Guid.NewGuid()
+                BankCardToken = Guid.NewGuid(),
+                Email = card.Email
             };
             var created = await bankCardService.CreateBankCardAsync(newCard);
             return ToDto(created);

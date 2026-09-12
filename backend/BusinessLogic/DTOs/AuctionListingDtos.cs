@@ -45,7 +45,8 @@ namespace BusinessLogic.DTOs
         public string Description { get; set; } = null!;
         public string Location { get; set; } = null!;
         public decimal StartingPrice { get; set; }
-        public DateTime AuctionStart { get; set; }
-        public DateTime AuctionEnd { get; set; }
+        // The auction starts when a moderator approves the listing; this only picks how long it will run for.
+        public AuctionDuration Duration { get; set; }
+        public DateTime? CustomEndDate { get; set; }
     }
 }

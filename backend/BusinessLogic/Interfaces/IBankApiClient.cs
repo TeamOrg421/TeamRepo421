@@ -8,6 +8,7 @@ namespace BusinessLogic.Interfaces
     public interface IBankApiClient
     {
         Task<BusinessLogic.DTOs.PaymentResponseDto> PayAsync(Shared.Contracts.PaymentRequestDto dto);
+        Task<Shared.Contracts.BankTransactionDto> TransferAsync(Shared.Contracts.TransferDto dto);
         Task<BusinessLogic.DTOs.BankCardDto> AddBankCardAsync(BusinessLogic.DTOs.CreateBankCardDto card);
         Task<decimal> GetBalanceAsync(Guid token);
         Task<decimal> DepositAsync(Guid token, decimal amount);

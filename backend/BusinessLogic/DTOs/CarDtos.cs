@@ -39,6 +39,9 @@ namespace BusinessLogic.DTOs
         public int BidCount { get; set; }
         public DateTime? AuctionStart { get; set; }
         public DateTime? AuctionEnd { get; set; }
+        public string? ListingStatus { get; set; }
+        public string? WinnerName { get; set; }
+        public decimal? WinningBid { get; set; }
     }
 
     public class CarListItemDto

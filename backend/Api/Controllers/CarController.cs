@@ -71,8 +71,14 @@ namespace Api.Controllers
             if (lotDto.StartingPrice < 0)
                 return BadRequest("The starting price cannot be negative.");
 
-            if (lotDto.AuctionEnd <= lotDto.AuctionStart)
-                return BadRequest("The auction end must be later than its start.");
+            if (!Enum.IsDefined(typeof(AuctionDuration), lotDto.Duration))
+                return BadRequest("Choose a valid auction duration.");
+
+            if (lotDto.Duration == AuctionDuration.Custom)
+            {
+                if (!lotDto.CustomEndDate.HasValue || lotDto.CustomEndDate.Value <= DateTime.UtcNow.AddMinutes(5))
+                    return BadRequest("For a custom auction, choose a future end date at least 5 minutes ahead.");
+            }
 
             if (specificationDto.Mileage < 0 || specificationDto.HorsePower < 0 || specificationDto.EngineVolume < 0 ||
                 specificationDto.Doors is < 1 or > 8 || specificationDto.Seats is < 1 or > 12 || specificationDto.OwnersCount < 0)
@@ -129,9 +135,10 @@ namespace Api.Controllers
                 Location = lotDto.Location.Trim(),
                 StartingPrice = lotDto.StartingPrice,
                 CurrentPrice = lotDto.StartingPrice,
-                AuctionStart = lotDto.AuctionStart,
-                AuctionEnd = lotDto.AuctionEnd,
-                //Status = DataAccess.Entities.Enums.ListingStatus.Active,
+                // AuctionStart/AuctionEnd stay null until a moderator approves the listing,
+                // unless a custom end date is explicitly provided.
+                Duration = lotDto.Duration,
+                AuctionEnd = lotDto.CustomEndDate,
                 Status = DataAccess.Entities.Enums.ListingStatus.Pending,
 
                 SellerId = userId,
@@ -247,6 +254,9 @@ namespace Api.Controllers
             carDto.BidCount = listing.Bids?.Count ?? 0;
             carDto.AuctionStart = listing.AuctionStart;
             carDto.AuctionEnd = listing.AuctionEnd;
+            carDto.ListingStatus = listing.Status.ToString();
+            carDto.WinnerName = listing.Winner?.Winner?.UserName ?? listing.Winner?.Winner?.Name ?? "Unknown User";
+            carDto.WinningBid = listing.Winner?.WinningBid ?? 0m;
             return carDto;
         }
 

@@ -25,6 +25,7 @@ interface BankCardDto {
   balance: number;
   isBlocked: boolean;
   bankCardToken: string;
+  email: string;
 }
 
 interface BankTransactionDto {
@@ -980,6 +981,7 @@ const AdminBank: React.FC = () => {
                 <th>Номер картки</th>
                 <th>Власник</th>
                 <th>Назва</th>
+                <th>Email</th>
                 <th>Баланс</th>
                 <th>Статус</th>
                 <th>Дія</th>
@@ -988,13 +990,13 @@ const AdminBank: React.FC = () => {
             <tbody>
               {cardsLoading ? (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center' }}>
+                  <td colSpan={7} style={{ textAlign: 'center' }}>
                     Завантаження карток...
                   </td>
                 </tr>
               ) : allCards.length === 0 ? (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                  <td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
                     Картки не знайдено
                   </td>
                 </tr>
@@ -1004,6 +1006,7 @@ const AdminBank: React.FC = () => {
                     <td style={{ fontFamily: 'monospace' }}>{card.maskedCardNumber}</td>
                     <td style={{ fontWeight: 600 }}>{card.cardHolderName}</td>
                     <td>{card.name || '—'}</td>
+                    <td>{card.email || '—'}</td>
                     <td style={{ color: 'var(--accent-green)', fontWeight: 600 }}>
                       {formatMoney(card.balance)}
                     </td>
@@ -1055,6 +1058,10 @@ const AdminBank: React.FC = () => {
               <div className="fb-detail-row">
                 <span className="fb-detail-label">Назва:</span>
                 <span className="fb-detail-value">{detailedCard.name || '—'}</span>
+              </div>
+              <div className="fb-detail-row">
+                <span className="fb-detail-label">Email:</span>
+                <span className="fb-detail-value">{detailedCard.email || '—'}</span>
               </div>
               <div className="fb-detail-row">
                 <span className="fb-detail-label">Номер картки:</span>

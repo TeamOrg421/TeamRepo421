@@ -1420,6 +1420,45 @@
   text-align: center;
 }
 
+.auction-finished-lock {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.18), rgba(59, 130, 246, 0.12));
+  border: 1px solid rgba(167, 139, 250, 0.35);
+  border-radius: 12px;
+  padding: 14px 16px;
+  color: #f5f3ff;
+}
+
+.auction-finished-lock-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.5);
+  font-size: 20px;
+}
+
+.auction-finished-lock-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.auction-finished-label {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #c4b5fd;
+}
+
+.auction-finished-lock-text strong {
+  font-size: 14px;
+  color: #fff;
+}
+
 .place-bid-form {
   display: flex;
   flex-direction: column;

@@ -61,8 +61,11 @@ namespace Api.Controllers
             if (listing.Status != DataAccess.Entities.Enums.ListingStatus.Active)
                 return BadRequest(new { message = "Auction is not active." });
 
-            if (DateTime.UtcNow < listing.AuctionStart || DateTime.UtcNow > listing.AuctionEnd)
-                return BadRequest(new { message = "Auction is not currently open for bidding." });
+            if (listing.AuctionStart == null || DateTime.UtcNow < listing.AuctionStart)
+                return BadRequest(new { message = "Auction has not started yet." });
+
+            if (listing.AuctionEnd != null && DateTime.UtcNow >= listing.AuctionEnd)
+                return BadRequest(new { message = "Auction has already ended." });
 
             if (model.Amount <= listing.CurrentPrice)
                 return BadRequest(new { message = "Bid must be higher than current price." });

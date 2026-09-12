@@ -1,6 +1,8 @@
 ﻿using Api.Extensions;
+using Api.HostedServices;
 using Api.Hubs;
 using Api.Middleware;
+using Api.Services;
 using AutoMapper;
 using BusinessLogic.Interfaces;
 using BusinessLogic.Services;
@@ -29,6 +31,9 @@ builder.Services.AddScoped<IBankCardService, BankCardService>();
 builder.Services.AddScoped<IFileService, AzureFileService>();
 builder.Services.AddScoped<ILeaderBord, LeaderBord>();
 builder.Services.AddScoped<IAuctionModerationService, AuctionModerationService>();
+builder.Services.AddScoped<IAuctionFinalizationService, AuctionFinalizationService>();
+builder.Services.AddScoped<IAuctionPaymentService, AuctionPaymentService>();
+builder.Services.AddHostedService<AuctionFinalizationHostedService>();
 
 builder.Services.AddHttpClient<IBankApiClient, BankApiClient>(client =>
 {
