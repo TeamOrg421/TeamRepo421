@@ -88,7 +88,30 @@ public static class SeedExtensions
             await dbContext.Database.ExecuteSqlRawAsync(
                 "IF COL_LENGTH('dbo.CarListings','Location') IS NULL BEGIN ALTER TABLE dbo.CarListings ADD Location nvarchar(200) NOT NULL CONSTRAINT DF_CarListings_Location DEFAULT('') END");
             await dbContext.Database.ExecuteSqlRawAsync(
+                "IF COL_LENGTH('dbo.CarListings','RejectionReason') IS NULL BEGIN ALTER TABLE dbo.CarListings ADD RejectionReason nvarchar(max) NULL END");
+            await dbContext.Database.ExecuteSqlRawAsync(
+                "IF COL_LENGTH('dbo.CarListings','ReviewedAt') IS NULL BEGIN ALTER TABLE dbo.CarListings ADD ReviewedAt datetime2 NULL END");
+            await dbContext.Database.ExecuteSqlRawAsync(
+                "IF COL_LENGTH('dbo.CarListings','ReviewedById') IS NULL BEGIN ALTER TABLE dbo.CarListings ADD ReviewedById uniqueidentifier NULL END");
+            await dbContext.Database.ExecuteSqlRawAsync(
                 "IF COL_LENGTH('dbo.CarSpecifications','InteriorColor') IS NULL BEGIN ALTER TABLE dbo.CarSpecifications ADD InteriorColor nvarchar(max) NULL END");
+            await dbContext.Database.ExecuteSqlRawAsync(@"
+                IF OBJECT_ID('dbo.ModerationLogs', 'U') IS NULL
+                BEGIN
+                    CREATE TABLE dbo.ModerationLogs (
+                        Id uniqueidentifier NOT NULL,
+                        Action nvarchar(max) NOT NULL,
+                        Reason nvarchar(max) NULL,
+                        CreatedAt datetime2 NOT NULL,
+                        ModeratorId uniqueidentifier NOT NULL,
+                        ListingId uniqueidentifier NOT NULL,
+                        CONSTRAINT PK_ModerationLogs PRIMARY KEY (Id),
+                        CONSTRAINT FK_ModerationLogs_AspNetUsers_ModeratorId FOREIGN KEY (ModeratorId) REFERENCES dbo.AspNetUsers (Id) ON DELETE CASCADE,
+                        CONSTRAINT FK_ModerationLogs_CarListings_ListingId FOREIGN KEY (ListingId) REFERENCES dbo.CarListings (Id) ON DELETE CASCADE
+                    );
+                    CREATE NONCLUSTERED INDEX IX_ModerationLogs_ListingId ON dbo.ModerationLogs (ListingId);
+                    CREATE NONCLUSTERED INDEX IX_ModerationLogs_ModeratorId ON dbo.ModerationLogs (ModeratorId);
+                END");
         }
         catch { /* The application can still start where schema changes are managed externally. */ }
 

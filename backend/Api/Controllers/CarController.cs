@@ -252,6 +252,7 @@ namespace Api.Controllers
             carDto.StartingPrice = listing.StartingPrice;
             carDto.CurrentBid = listing.CurrentPrice;
             carDto.BidCount = listing.Bids?.Count ?? 0;
+            carDto.AuctionStatus = listing.Status;
             carDto.AuctionStart = listing.AuctionStart;
             carDto.AuctionEnd = listing.AuctionEnd;
             carDto.ListingStatus = listing.Status.ToString();

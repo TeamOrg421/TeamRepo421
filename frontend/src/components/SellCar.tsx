@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import { apiCall } from '../services/config';
 
 interface SellCarProps {
@@ -314,5 +315,4 @@ const SellCar: React.FC<SellCarProps> = ({ onNavigate }) => {
     </section>
   );
 };
-
 export default SellCar;
