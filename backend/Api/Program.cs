@@ -1,7 +1,6 @@
 ﻿using Api.Extensions;
 using Api.HostedServices;
 using Api.BackgroundServices;
-using Api.Extensions;
 using Api.Hubs;
 using Api.Middleware;
 using Api.Services;

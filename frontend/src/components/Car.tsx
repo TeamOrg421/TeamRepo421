@@ -209,6 +209,9 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
           auctionStatus: auctionStatusFromApi(data.auctionStatus ?? data.listing?.status),
           timeRemaining: formatTimeRemaining(data.auctionEnd ?? data.endsAt),
           endsAt: parseAuctionDate(data.auctionEnd ?? data.endsAt)?.toLocaleString() ?? 'Not specified',
+          listingStatus: data.listingStatus ?? data.listing?.status ?? 'Active',
+          winnerName: data.winnerName ?? data.listing?.winner?.winnerName ?? data.winner?.winnerName ?? undefined,
+          winnerBid: Number(data.winningBid ?? data.listing?.winner?.winningBid ?? data.winner?.winningBid ?? 0) || undefined,
           images: mappedImages.length > 0 ? mappedImages : [FALLBACK_CAR_IMAGE],
           highlights: ['Real data from database'],
           equipment: [],
@@ -244,7 +247,9 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
   // auction group. Any bid placed by any user triggers ReceiveBid, which
   // updates the shared state for every viewer simultaneously.
   const connectionRef = useRef<import('@microsoft/signalr').HubConnection | null>(null);
-  const isAuctionCompleted = carData?.listingStatus === 'Completed' || carData?.timeRemaining === 'Ended';
+  const isAuctionCompleted = carData?.listingStatus === 'Completed'
+    || carData?.listingStatus === 'Canceled'
+    || carData?.timeRemaining === 'Ended';
 
   useEffect(() => {
     const listingId = carData?.listingId;
@@ -688,12 +693,20 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
                     value={bidAmount}
                     onChange={(e) => setBidAmount(e.target.value)}
                     className="bid-input-field"
+                    disabled={!canPlaceBid}
                   />
-                  <button type="submit" className="btn btn-primary submit-bid-btn">
-                    Place Bid
+                  <button type="submit" className="btn btn-primary submit-bid-btn" disabled={!canPlaceBid}>
+                    {canPlaceBid ? 'Place Bid' : 'Unavailable'}
                   </button>
                 </div>
 
+                {!canPlaceBid && (
+                  <div className="bid-message auction-status-message">
+                    {carData.auctionStatus === 'pending'
+                      ? 'This listing is being reviewed by a moderator. Bidding opens after approval.'
+                      : `Bidding is unavailable while this auction is ${auctionStatusLabel.toLowerCase()}.`}
+                  </div>
+                )}
                 {bidError && <div className="bid-message error-msg">{bidError}</div>}
                 {bidSuccess && <div className="bid-message success-msg">{bidSuccess}</div>}
               </form>
