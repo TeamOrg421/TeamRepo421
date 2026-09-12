@@ -36,6 +36,14 @@ namespace FakeBank.Api.Controllers
                 return BadRequest(new { error = ex.Message });
             }
         }
+
+        [HttpPost("sync-emails")]
+        [ProducesResponseType(typeof(EmailSyncResultDto), StatusCodes.Status200OK)]
+        public async Task<IActionResult> SyncEmails()
+        {
+            return Ok(await paymentService.SyncCardEmailsAsync());
+        }
+
         [HttpPost("add-card")]
         [ProducesResponseType(typeof(BankCardDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]

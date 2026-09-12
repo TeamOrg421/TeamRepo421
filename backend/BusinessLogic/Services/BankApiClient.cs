@@ -64,6 +64,17 @@ namespace BusinessLogic.Services
             };
         }
 
+        public async Task<Shared.Contracts.BankTransactionDto> TransferAsync(Shared.Contracts.TransferDto dto)
+        {
+            var response = await _httpClient.PostAsJsonAsync("api/payment/transfer", dto);
+
+            if (!response.IsSuccessStatusCode)
+                throw new InvalidOperationException(await ReadErrorAsync(response));
+
+            return await response.Content.ReadFromJsonAsync<Shared.Contracts.BankTransactionDto>()
+                ?? throw new Exception("Empty response.");
+        }
+
         private static async Task<string> ReadErrorAsync(HttpResponseMessage response)
         {
             var content = await response.Content.ReadAsStringAsync();

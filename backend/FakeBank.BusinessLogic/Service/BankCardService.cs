@@ -68,6 +68,7 @@ namespace FakeBank.BusinessLogic.Service
                 tracked.Cvv = bankCard.Cvv;
                 tracked.Balance = bankCard.Balance;
                 tracked.IsBlocked = bankCard.IsBlocked;
+                tracked.Email = bankCard.Email;
                 await ctx.SaveChangesAsync();
                 return tracked;
             }
@@ -82,6 +83,7 @@ namespace FakeBank.BusinessLogic.Service
             existingBankCard.Cvv = bankCard.Cvv;
             existingBankCard.Balance = bankCard.Balance;
             existingBankCard.IsBlocked = bankCard.IsBlocked;
+            existingBankCard.Email = bankCard.Email;
 
             await ctx.SaveChangesAsync();
             return existingBankCard;

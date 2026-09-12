@@ -48,7 +48,22 @@ namespace BusinessLogic.Services
                 ListingId = auctionLot.Id
             };
             await moderationLogRepo.AddAsync(moderationLog);
+            var auctionStart = DateTime.UtcNow;
             auctionLot.Status = ListingStatus.Active;
+            auctionLot.AuctionStart = auctionStart;
+            auctionLot.AuctionEnd = auctionLot.Duration switch
+            {
+                AuctionDuration.OneHour => auctionStart.AddHours(1),
+                AuctionDuration.TwelveHours => auctionStart.AddHours(12),
+                AuctionDuration.OneDay => auctionStart.AddDays(1),
+                AuctionDuration.OneWeek => auctionStart.AddDays(7),
+                AuctionDuration.OneMonth => auctionStart.AddMonths(1),
+                AuctionDuration.Custom => auctionLot.AuctionEnd ?? auctionStart.AddDays(1),
+                AuctionDuration.Forever => null,
+                _ => auctionStart.AddDays(7)
+            };
+            if (auctionLot.Duration == AuctionDuration.Custom && auctionLot.AuctionEnd.HasValue && auctionLot.AuctionEnd.Value <= auctionStart)
+                throw new Exception("Custom auction end date must be in the future.");
             auctionLot.ReviewedById = user.Id;
             auctionLot.ReviewedAt = DateTime.UtcNow;
             auctionLot.RejectionReason = null;
@@ -74,6 +89,7 @@ namespace BusinessLogic.Services
 
                 AuctionStart = x.AuctionStart,
                 AuctionEnd = x.AuctionEnd,
+                Duration = x.Duration,
 
                 Status = x.Status,
 
@@ -109,6 +125,7 @@ namespace BusinessLogic.Services
 
                 AuctionStart = x.AuctionStart,
                 AuctionEnd = x.AuctionEnd,
+                Duration = x.Duration,
 
                 Status = x.Status,
 
@@ -147,6 +164,7 @@ namespace BusinessLogic.Services
 
                 AuctionStart = auctionLot.AuctionStart,
                 AuctionEnd = auctionLot.AuctionEnd,
+                Duration = auctionLot.Duration,
 
                 Status = auctionLot.Status,
                 RejectionReason = auctionLot.RejectionReason,
@@ -224,8 +242,9 @@ namespace BusinessLogic.Services
         public decimal StartingPrice { get; set; }
         public decimal CurrentPrice { get; set; }
 
-        public DateTime AuctionStart { get; set; }
-        public DateTime AuctionEnd { get; set; }
+        public DateTime? AuctionStart { get; set; }
+        public DateTime? AuctionEnd { get; set; }
+        public AuctionDuration Duration { get; set; }
 
         public ListingStatus Status { get; set; }
 
@@ -245,8 +264,9 @@ namespace BusinessLogic.Services
         public decimal StartingPrice { get; set; }
         public decimal CurrentPrice { get; set; }
 
-        public DateTime AuctionStart { get; set; }
-        public DateTime AuctionEnd { get; set; }
+        public DateTime? AuctionStart { get; set; }
+        public DateTime? AuctionEnd { get; set; }
+        public AuctionDuration Duration { get; set; }
 
         public ListingStatus Status { get; set; }
         public string? RejectionReason { get; set; }

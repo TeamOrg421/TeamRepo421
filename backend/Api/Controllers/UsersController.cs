@@ -14,7 +14,7 @@ namespace Api.Controllers
 {
     [ApiController]
     [Route("api/users")]
-    [Authorize]
+    //[Authorize]
     public class UsersController : ControllerBase
     {
         private readonly UserManager<ApplicationUser> _userManager;
@@ -90,6 +90,27 @@ namespace Api.Controllers
                 bidsCount = await _db.Bids.CountAsync(bid => bid.UserId == userId),
                 commentsCount = await _db.Comments.CountAsync(comment => comment.UserId == userId)
             });
+        }
+
+        [HttpGet("{userId:guid}/email")]
+        public async Task<IActionResult> GetEmail(Guid userId)
+        {
+            var user = await _userManager.FindByIdAsync(userId.ToString());
+            if (user == null) return NotFound();
+
+            return Ok(new { email = user.Email ?? string.Empty });
+        }
+
+        [HttpGet("email-by-card-token/{token:guid}")]
+        public async Task<IActionResult> GetEmailByCardToken(Guid token)
+        {
+            var card = await _db.BankCards
+                .Include(item => item.User)
+                .FirstOrDefaultAsync(item => item.BankCardToken == token);
+
+            if (card?.User == null) return NotFound();
+
+            return Ok(new { email = card.User.Email ?? string.Empty });
         }
 
         // ─── PUT /api/users/me ──────────────────────────────────────────────
@@ -379,9 +400,9 @@ namespace Api.Controllers
                 stats = new
                 {
                     totalListings = listings.Count,
-                    liveListings = listings.Count(listing => listing.Status == DataAccess.Entities.Enums.ListingStatus.Active && listing.AuctionEnd > now),
-                    scheduledListings = listings.Count(listing => listing.AuctionStart > now),
-                    completedListings = listings.Count(listing => listing.Status == DataAccess.Entities.Enums.ListingStatus.Completed || listing.AuctionEnd <= now),
+                    liveListings = listings.Count(listing => listing.Status == DataAccess.Entities.Enums.ListingStatus.Active && (listing.AuctionEnd == null || listing.AuctionEnd > now)),
+                    scheduledListings = listings.Count(listing => listing.Status == DataAccess.Entities.Enums.ListingStatus.Pending),
+                    completedListings = listings.Count(listing => listing.Status == DataAccess.Entities.Enums.ListingStatus.Completed || (listing.AuctionEnd != null && listing.AuctionEnd <= now)),
                     totalBids,
                     totalWatchers
                 },
@@ -456,7 +477,7 @@ namespace Api.Controllers
                 status = b.Listing?.Status.ToString() ?? "Active",
                 isHighestBid = b.Listing?.CurrentPrice == b.Amount,
                 bidCount = b.Listing?.Bids?.Count ?? 1,
-                isWin = (b.Listing != null && (b.Listing.Status == DataAccess.Entities.Enums.ListingStatus.Completed || b.Listing.AuctionEnd <= DateTime.UtcNow) && b.Listing.CurrentPrice == b.Amount)
+                isWin = (b.Listing != null && (b.Listing.Status == DataAccess.Entities.Enums.ListingStatus.Completed || (b.Listing.AuctionEnd != null && b.Listing.AuctionEnd <= DateTime.UtcNow)) && b.Listing.CurrentPrice == b.Amount)
             });
 
             return Ok(result);
@@ -595,6 +616,28 @@ namespace Api.Controllers
             return Ok(result);
         }
 
+        // ─── POST /api/users/set-role ───────────────────────────────────────
+        // Admin-only utility to grant a user the Moderator or Admin role by username.
+        [HttpPost("set-role")]
+        //[Authorize(Roles = "Admin")]
+        public async Task<IActionResult> SetRole([FromBody] SetRoleDto dto)
+        {
+            if (string.IsNullOrWhiteSpace(dto.UserName) || string.IsNullOrWhiteSpace(dto.Role))
+                return BadRequest("Username and role are required.");
+
+            if (dto.Role != "Admin" && dto.Role != "Moderator")
+                return BadRequest("Role must be either 'Admin' or 'Moderator'.");
+
+            var user = await _userManager.FindByNameAsync(dto.UserName.Trim());
+            if (user == null)
+                return NotFound("User not found.");
+
+            if (!await _userManager.IsInRoleAsync(user, dto.Role))
+                await _userManager.AddToRoleAsync(user, dto.Role);
+
+            return Ok(new { message = $"{user.UserName} is now in the {dto.Role} role.", roles = await _userManager.GetRolesAsync(user) });
+        }
+
         // ─── Helper ─────────────────────────────────────────────────────────
         private Guid? GetUserId()
         {
@@ -618,6 +661,12 @@ namespace Api.Controllers
     public class WatchlistDto
     {
         public Guid ListingId { get; set; }
+    }
+
+    public class SetRoleDto
+    {
+        public string UserName { get; set; } = null!;
+        public string Role { get; set; } = null!;
     }
 
     public class ChangePasswordDto

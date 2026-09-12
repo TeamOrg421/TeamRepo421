@@ -39,7 +39,8 @@ const getAuctionImage = (auction: AuctionListItem) => {
 const getAuctionId = (auction: AuctionListItem) => auction.id || auction.auctionId || '';
 
 const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ onNavigate }) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, roles } = useAuth();
+  const isAuthorized = roles.includes('Admin') || roles.includes('Moderator');
 
   const [auctions, setAuctions] = useState<AuctionListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,6 +59,7 @@ const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ onNavigate }) => {
     setMessage('');
     try {
       const response = await apiCall('/AuctionModeration/pending');
+      if (response.status === 401 || response.status === 403) throw new Error('You do not have permission to view this page.');
       if (!response.ok) throw new Error('Unable to load pending auctions.');
       const data = await response.json();
       setAuctions(Array.isArray(data) ? data : []);
@@ -73,6 +75,7 @@ const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ onNavigate }) => {
     setActiveMessage('');
     try {
       const response = await apiCall('/AuctionModeration/active');
+      if (response.status === 401 || response.status === 403) throw new Error('You do not have permission to view this page.');
       if (!response.ok) throw new Error('Unable to load active auctions.');
       const data = await response.json();
       setActiveAuctions(Array.isArray(data) ? data : []);
@@ -85,16 +88,16 @@ const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ onNavigate }) => {
   }, []);
 
   useEffect(() => {
-    if (isAuthenticated) void loadAuctions();
+    if (isAuthenticated && isAuthorized) void loadAuctions();
     else setLoading(false);
-  }, [isAuthenticated, loadAuctions]);
+  }, [isAuthenticated, isAuthorized, loadAuctions]);
 
   // Lazy-load active auctions the first time the "In Progress" tab is opened.
   useEffect(() => {
-    if (isAuthenticated && activeTab === 'progress' && !activeLoaded) {
+    if (isAuthenticated && isAuthorized && activeTab === 'progress' && !activeLoaded) {
       void loadActiveAuctions();
     }
-  }, [isAuthenticated, activeTab, activeLoaded, loadActiveAuctions]);
+  }, [isAuthenticated, isAuthorized, activeTab, activeLoaded, loadActiveAuctions]);
 
   const approve = async (id: string) => {
     const response = await apiCall(`/AuctionModeration/${id}/approve`, { method: 'POST' });
@@ -127,6 +130,17 @@ const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ onNavigate }) => {
     if (activeTab === 'progress') void loadActiveAuctions();
     else void loadAuctions();
   };
+
+  if (!isAuthenticated || !isAuthorized) {
+    return (
+      <section className="dashboard-reference-page manager-reference-page">
+        <h1>Manager Dashboard</h1>
+        <div className="manager-reference-empty">
+          {isAuthenticated ? 'You do not have permission to view this page.' : 'Sign in with a manager or admin account to view this page.'}
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="dashboard-reference-page manager-reference-page">

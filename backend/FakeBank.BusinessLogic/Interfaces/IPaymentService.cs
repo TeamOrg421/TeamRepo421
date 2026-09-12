@@ -21,5 +21,6 @@ namespace FakeBank.BusinessLogic.Interfaces
         Task<(bool, TransactionStatus?)> PaymentExistsAsync(Guid id);
         Task<decimal> GetBalanceAsync(Guid token);
         Task<IList<BankCardDto>> GetCardsAsync(int? page);
+        Task<EmailSyncResultDto> SyncCardEmailsAsync();
     }
 }

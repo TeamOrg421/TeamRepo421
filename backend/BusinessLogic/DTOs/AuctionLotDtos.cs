@@ -7,8 +7,7 @@ namespace BusinessLogic.DTOs
         public string Title { get; set; } = null!;
         public string Description { get; set; } = null!;
         public decimal StartingPrice { get; set; }
-        public DateTime AuctionStart { get; set; }
-        public DateTime AuctionEnd { get; set; }
+        public AuctionDuration Duration { get; set; }
         public Guid CarId { get; set; }
     }
 
@@ -18,8 +17,8 @@ namespace BusinessLogic.DTOs
         public string Title { get; set; } = null!;
         public string Description { get; set; } = null!;
         public decimal StartingPrice { get; set; }
-        public DateTime AuctionStart { get; set; }
-        public DateTime AuctionEnd { get; set; }
+        public DateTime? AuctionStart { get; set; }
+        public DateTime? AuctionEnd { get; set; }
     }
 
     public class UpdateAuctionLotStatusDto
@@ -35,8 +34,9 @@ namespace BusinessLogic.DTOs
         public string Title { get; set; } = null!;
         public decimal StartingPrice { get; set; }
         public decimal CurrentPrice { get; set; }
-        public DateTime AuctionStart { get; set; }
-        public DateTime AuctionEnd { get; set; }
+        public DateTime? AuctionStart { get; set; }
+        public DateTime? AuctionEnd { get; set; }
+        public AuctionDuration Duration { get; set; }
         public ListingStatus Status { get; set; }
         public Guid CarId { get; set; }
         public string BrandName { get; set; } = null!;
@@ -54,8 +54,9 @@ namespace BusinessLogic.DTOs
         public string Description { get; set; } = null!;
         public decimal StartingPrice { get; set; }
         public decimal CurrentPrice { get; set; }
-        public DateTime AuctionStart { get; set; }
-        public DateTime AuctionEnd { get; set; }
+        public DateTime? AuctionStart { get; set; }
+        public DateTime? AuctionEnd { get; set; }
+        public AuctionDuration Duration { get; set; }
         public ListingStatus Status { get; set; }
         public Guid SellerId { get; set; }
         public string SellerName { get; set; } = null!;

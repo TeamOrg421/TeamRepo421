@@ -1431,6 +1431,45 @@
   text-align: center;
 }
 
+.auction-finished-lock {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.18), rgba(59, 130, 246, 0.12));
+  border: 1px solid rgba(167, 139, 250, 0.35);
+  border-radius: 12px;
+  padding: 14px 16px;
+  color: #f5f3ff;
+}
+
+.auction-finished-lock-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.5);
+  font-size: 20px;
+}
+
+.auction-finished-lock-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.auction-finished-label {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #c4b5fd;
+}
+
+.auction-finished-lock-text strong {
+  font-size: 14px;
+  color: #fff;
+}
+
 .place-bid-form {
   display: flex;
   flex-direction: column;
@@ -4042,56 +4081,15 @@ select.form-input option {
 @media (max-width: 720px) { .seller-dashboard-page { padding-left: 4px; padding-right: 4px; } .seller-dashboard-tabs { gap: 9px; } .seller-dashboard-row { gap: 11px; grid-template-columns: 100px minmax(120px, 1fr) minmax(118px, .9fr) auto; padding: 12px; } .seller-dashboard-image { height: 76px; width: 100px; } .seller-dashboard-actions { min-width: 78px; } }
 @media (max-width: 560px) { .seller-dashboard-page { padding-left: 0; padding-right: 0; } .seller-dashboard-tabs button { font-size: 10px; height: 66px; } .seller-dashboard-tabs i { height: 22px; width: 22px; } .seller-dashboard-row { align-items: start; grid-template-columns: 86px minmax(0, 1fr); } .seller-dashboard-image { height: 62px; width: 86px; } .seller-dashboard-summary { grid-column: 2; min-height: 0; } .seller-dashboard-actions { flex-direction: row; gap: 14px; grid-column: 2; min-width: 0; } .seller-dashboard-comments .seller-dashboard-row { grid-template-columns: 86px minmax(0, 1fr); } .seller-dashboard-comments .seller-dashboard-image { height: 62px; width: 86px; } .seller-dashboard-comments .seller-dashboard-actions { grid-column: 2; } }
 
-/* ===== FOOTER BRAND & BADGES ===== */
-.footer-brand-col {
-  display: flex;
-  flex-direction: column;
-}
-
-.footer-app-badges {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.app-badge-box {
-  background: #151515;
-  border: 1px solid #383838;
-  border-radius: 6px;
-  padding: 6px 12px;
-  display: flex;
-  flex-direction: column;
-  width: fit-content;
-  cursor: pointer;
-  transition: background .2s ease, border-color .2s ease;
-}
-
-.app-badge-box:hover {
-  background: #222;
-  border-color: #555;
-}
-
-.app-badge-sub {
-  font-size: 8px;
-  text-transform: uppercase;
-  color: #9e9e9e;
-  letter-spacing: 0.5px;
-  line-height: 1;
-}
-
-.app-badge-main {
-  font-size: 12px;
-  font-weight: 700;
-  color: #fff;
-  line-height: 1.2;
-}
-
 /* ===== SHARED ACCOUNT NAVIGATION ===== */
 .account-shell { display: grid; gap: 28px; grid-template-columns: 204px minmax(0, 1fr); padding: 24px 0 72px; width: 100%; }
 .account-sidebar { align-self: start; display: flex; flex-direction: column; gap: 4px; position: sticky; top: 92px; }
 .account-sidebar-link { align-items: center; background: transparent; border: 0; border-left: 3px solid transparent; border-radius: 8px; color: #9ca3af; cursor: pointer; display: flex; font-family: inherit; font-size: 15px; font-weight: 500; min-height: 40px; padding: 10px 14px; text-align: left; transition: background .2s ease, color .2s ease; }
 .account-sidebar-link:hover { background: rgba(255, 255, 255, .05); color: #fff; }
+.account-sidebar-link.active { background: rgba(255, 255, 255, .09); border-left-color: #3b82f6; color: #fff; }
+.account-page-content { min-width: 0; width: 100%; }
+@media (max-width: 768px) { .account-shell { display: flex; flex-direction: column; gap: 20px; padding-top: 16px; } .account-sidebar { flex-direction: row; max-width: 100%; overflow-x: auto; padding-bottom: 8px; position: static; } .account-sidebar-link { border-bottom: 2px solid transparent; border-left: 0; flex: 0 0 auto; white-space: nowrap; } .account-sidebar-link.active { border-bottom-color: #3b82f6; border-left-color: transparent; } }
+
 .account-page-content { min-width: 0; width: 100%; }
 @media (max-width: 768px) { .account-shell { display: flex; flex-direction: column; gap: 20px; padding-top: 16px; } .account-sidebar { flex-direction: row; max-width: 100%; overflow-x: auto; padding-bottom: 8px; position: static; } .account-sidebar-link { border-bottom: 2px solid transparent; border-left: 0; flex: 0 0 auto; white-space: nowrap; } .account-sidebar-link.active { border-bottom-color: #3b82f6; border-left-color: transparent; } }
 

@@ -16,6 +16,7 @@ export interface BankCardDto {
   expiryDate: string;
   billingAddress: string;
   isDefault: boolean;
+  email?: string;
 }
 
 export interface PaymentRequestDto {

@@ -53,6 +53,7 @@ public static class SeedExtensions
             // ListingStatus.Active == 2 in the enum (Draft=0, Pending=1, Active=2)
             existingLot.AuctionStart = DateTime.UtcNow.AddMinutes(-30);
             existingLot.AuctionEnd   = DateTime.UtcNow.AddDays(7);
+            existingLot.Duration     = AuctionDuration.OneWeek;
             existingLot.Status       = ListingStatus.Active;
             await dbContext.SaveChangesAsync();
         }
@@ -111,6 +112,17 @@ public static class SeedExtensions
                     CREATE NONCLUSTERED INDEX IX_ModerationLogs_ListingId ON dbo.ModerationLogs (ListingId);
                     CREATE NONCLUSTERED INDEX IX_ModerationLogs_ModeratorId ON dbo.ModerationLogs (ModeratorId);
                 END");
+        }
+        catch { /* The application can still start where schema changes are managed externally. */ }
+
+        try
+        {
+            await dbContext.Database.ExecuteSqlRawAsync(
+                "IF COL_LENGTH('dbo.CarListings','Duration') IS NULL BEGIN ALTER TABLE dbo.CarListings ADD Duration int NOT NULL CONSTRAINT DF_CarListings_Duration DEFAULT(0) END");
+            await dbContext.Database.ExecuteSqlRawAsync(
+                "ALTER TABLE dbo.CarListings ALTER COLUMN AuctionStart datetime2 NULL");
+            await dbContext.Database.ExecuteSqlRawAsync(
+                "ALTER TABLE dbo.CarListings ALTER COLUMN AuctionEnd datetime2 NULL");
         }
         catch { /* The application can still start where schema changes are managed externally. */ }
 
@@ -234,6 +246,7 @@ public static class SeedExtensions
             CurrentPrice = 95000m,
             AuctionStart = DateTime.UtcNow.AddMinutes(-15),
             AuctionEnd = DateTime.UtcNow.AddDays(3),
+            Duration = AuctionDuration.OneWeek,
             Status = ListingStatus.Active,
             SellerId = seller.Id,
             CarId = car.Id
