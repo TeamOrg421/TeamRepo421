@@ -225,7 +225,7 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
         setBidError('');
         setBidSuccess('');
         setIsWatched(false);
-      } catch (error) {
+      } catch {
         setCarData(null);
         setLoadError('The requested car could not be loaded from the server.');
       } finally {
@@ -433,11 +433,9 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
 
         await resp.json();
 
-        // State (bid list, current price, bid count) is updated via SignalR
-        // ReceiveBid broadcast — no manual state update needed here.
         setBidSuccess(`Success! You are currently the highest bidder at $${numericalBid.toLocaleString()}.`);
         setBidAmount('');
-      } catch (ex) {
+      } catch {
         setBidError('Failed to place bid.');
       }
     })();

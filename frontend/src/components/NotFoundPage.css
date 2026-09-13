@@ -1,0 +1,124 @@
+/* ==========================================================================
+   404 Not Found Page Styles - Pixel-Perfect Matching Design
+   ========================================================================== */
+
+.notfound-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 160px);
+  padding: 40px 20px 80px;
+  width: 100%;
+  color: #ffffff;
+}
+
+.notfound-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 48px;
+  max-width: 960px;
+  width: 100%;
+  background: transparent;
+  padding: 20px 10px;
+}
+
+/* ─── Illustration Wrap ─────────────────────────────────────────────────── */
+.notfound-illustration-wrap {
+  flex: 1.1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+}
+
+.notfound-svg {
+  width: 100%;
+  max-width: 480px;
+  height: auto;
+  filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.4));
+}
+
+/* ─── Content Text Wrap ─────────────────────────────────────────────────── */
+.notfound-content {
+  flex: 0.9;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  min-width: 0;
+}
+
+.notfound-code {
+  font-size: clamp(72px, 9vw, 110px);
+  font-weight: 900;
+  line-height: 0.95;
+  letter-spacing: -0.04em;
+  color: #ffffff;
+  margin: 0;
+  text-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
+.notfound-heading {
+  font-size: clamp(20px, 2.5vw, 26px);
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+  line-height: 1.25;
+}
+
+.notfound-description {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 380px;
+}
+
+.notfound-btn {
+  margin-top: 12px;
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 28px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notfound-btn:hover {
+  background: #1d4ed8;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.5);
+}
+
+.notfound-btn:active {
+  transform: translateY(0);
+}
+
+/* ─── Responsive Breakdown ──────────────────────────────────────────────── */
+@media (max-width: 820px) {
+  .notfound-card {
+    flex-direction: column;
+    text-align: center;
+    gap: 36px;
+  }
+
+  .notfound-content {
+    align-items: center;
+  }
+
+  .notfound-svg {
+    max-width: 380px;
+  }
+}

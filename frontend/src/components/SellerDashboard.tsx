@@ -110,7 +110,7 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate }) => {
     void loadDashboard();
   }, [isAuthenticated]);
 
-  const tabListings = useMemo(() => listings.filter((listing) => getListingState(listing) === activeTab), [activeTab, listings, now]);
+  const tabListings = useMemo(() => listings.filter((listing) => getListingState(listing) === activeTab), [activeTab, listings]);
 
   if (!isAuthenticated) return <section className="seller-dashboard-page"><div className="seller-dashboard-empty"><h1>Dashboard</h1><p>Sign in to manage your listings.</p><button type="button" onClick={() => onNavigate('login')}>Sign In</button></div></section>;
 

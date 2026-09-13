@@ -7,9 +7,6 @@ import {
 
 const SIGNALR_URL = 'http://localhost:5254/hubs/auction';
 
-/**
- * Payload broadcasted by the server on every new bid.
- */
 export interface BidPayload {
   bidder: string;
   userId?: string;
@@ -18,12 +15,6 @@ export interface BidPayload {
   currentPrice: number;
 }
 
-/**
- * Builds, starts and returns a SignalR HubConnection that is
- * already joined to the group for the given auctionListingId.
- *
- * The caller is responsible for calling connection.stop() on cleanup.
- */
 export async function createAuctionConnection(
   listingId: string
 ): Promise<HubConnection> {
@@ -31,7 +22,6 @@ export async function createAuctionConnection(
 
   const connection = new HubConnectionBuilder()
     .withUrl(SIGNALR_URL, {
-      // Forward the JWT so the hub can optionally authorise the connection
       accessTokenFactory: () => token ?? '',
     })
     .withAutomaticReconnect()
@@ -39,16 +29,11 @@ export async function createAuctionConnection(
     .build();
 
   await connection.start();
-
-  // Join the group dedicated to this auction listing
   await connection.invoke('JoinAuction', listingId);
 
   return connection;
 }
 
-/**
- * Gracefully leaves the auction group and stops the connection.
- */
 export async function destroyAuctionConnection(
   connection: HubConnection,
   listingId: string
@@ -57,7 +42,6 @@ export async function destroyAuctionConnection(
     try {
       await connection.invoke('LeaveAuction', listingId);
     } catch {
-      // Ignore — we're tearing down anyway
     }
     await connection.stop();
   }

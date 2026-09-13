@@ -48,118 +48,6 @@ interface CommentItem {
   imageUrl?: string;
 }
 
-// Fallback demo bids matching the provided screenshot
-const DEMO_BIDS: BidItem[] = [
-  {
-    id: 'demo-1',
-    amount: 25250,
-    time: '2025-08-16T12:00:00Z',
-    listingId: 'demo-lot-1',
-    carTitle: '1991 Nissan Skyline GT-R',
-    description: 'Extensively Modified for Racing, Dyno-Verified 706whp, 6-Speed Sequential Manual',
-    imageUrl: 'https://images.unsplash.com/photo-1617814076367-b759c7d7e738?auto=format&fit=crop&w=800&q=80',
-    currentPrice: 25250,
-    bidCount: 1,
-  },
-  {
-    id: 'demo-2',
-    amount: 115000,
-    time: '2025-08-16T12:00:00Z',
-    listingId: 'demo-lot-2',
-    carTitle: '2022 Porsche 911 Turbo S Coupe',
-    description: '580-hp Twin-Turbo Flat-6, Bordeaux White Interior, Unmodified, and additional info.',
-    imageUrl: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=800&q=80',
-    currentPrice: 115000,
-    bidCount: 1,
-  },
-  {
-    id: 'demo-3',
-    amount: 135250,
-    time: '2025-08-16T12:00:00Z',
-    listingId: 'demo-lot-3',
-    carTitle: '2013 Porsche Panamera S',
-    description: '2 Owners, V8 Power, Yachting Blue Metallic, California-Owned',
-    imageUrl: 'https://images.unsplash.com/photo-1580273916550-e323be2ae537?auto=format&fit=crop&w=800&q=80',
-    currentPrice: 135250,
-    bidCount: 2,
-  },
-  {
-    id: 'demo-4',
-    amount: 18000,
-    time: '2025-08-16T12:00:00Z',
-    listingId: 'demo-lot-4',
-    carTitle: '1999 BMW Z3 M Roadster',
-    description: '23,700 Miles, 5-Speed Manual, Evergreen, Unmodified',
-    imageUrl: 'https://images.unsplash.com/photo-1555353540-64580b51c258?auto=format&fit=crop&w=800&q=80',
-    currentPrice: 18000,
-    bidCount: 1,
-  },
-  {
-    id: 'demo-5',
-    amount: 2200,
-    time: '2025-08-16T12:00:00Z',
-    listingId: 'demo-lot-5',
-    carTitle: '2008 Cadillac Escalade EXT',
-    description: '6.2-Liter V8, AWD, Recent Service, California-Owned',
-    imageUrl: 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=800&q=80',
-    currentPrice: 2200,
-    bidCount: 1,
-  },
-  {
-    id: 'demo-6',
-    amount: 1350,
-    time: '2025-08-16T12:00:00Z',
-    listingId: 'demo-lot-6',
-    carTitle: '2009 Mini Cooper S',
-    description: '6-Speed Manual, Turbo 4-Cylinder, Florida-Owned, Mostly Unmodified',
-    imageUrl: 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&w=800&q=80',
-    currentPrice: 1350,
-    bidCount: 1,
-  },
-  {
-    id: 'demo-7',
-    amount: 135000,
-    time: '2025-08-16T12:00:00Z',
-    listingId: 'demo-lot-7',
-    carTitle: '1964 Ford Galaxie 500 Convertible',
-    description: '431-Cubic-Inch V8, Blue Interior, Numerous Updates',
-    imageUrl: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&w=800&q=80',
-    currentPrice: 135000,
-    bidCount: 1,
-  },
-  {
-    id: 'demo-8',
-    amount: 28000,
-    time: '2025-08-16T12:00:00Z',
-    listingId: 'demo-lot-8',
-    carTitle: '2021 Porsche 718 Boxster',
-    description: '6,400 Miles, 6-Speed Manual, 300-hp Turbo Flat-4, Unmodified',
-    imageUrl: 'https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?auto=format&fit=crop&w=800&q=80',
-    currentPrice: 28000,
-    bidCount: 1,
-  },
-];
-
-// Fallback demo comments matching screenshot
-const DEMO_COMMENTS: CommentItem[] = [
-  {
-    id: 'comm-1',
-    carTitle: '1991 Nissan Skyline GT-R',
-    time: 'July 19, 2025 5:13 AM',
-    text: 'Do you have a photo of load and run hours? I’d like to compare them against the rebuild recommendations.',
-    listingId: 'demo-lot-1',
-    imageUrl: 'https://images.unsplash.com/photo-1617814076367-b759c7d7e738?auto=format&fit=crop&w=800&q=80',
-  },
-  {
-    id: 'comm-2',
-    carTitle: '2015 Jaguar F-Type R Coupe',
-    time: 'July 15, 2025 7:24 PM',
-    text: 'Do you have a photo of load and run hours? I’d like to compare them against the rebuild recommendations.',
-    listingId: 'demo-lot-2',
-    imageUrl: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=800&q=80',
-  },
-];
-
 const UserProfile: React.FC<UserProfileProps> = ({ onNavigate }) => {
   const { user: authUser, isAuthenticated, updateUser } = useAuth();
   const [profile, setProfile] = useState<UserProfileData | null>(null);
@@ -226,32 +114,24 @@ const UserProfile: React.FC<UserProfileProps> = ({ onNavigate }) => {
         const bidsResp = await apiCall('/users/me/bids');
         if (bidsResp.ok) {
           const bidsData = await bidsResp.json();
-          if (Array.isArray(bidsData) && bidsData.length > 0) {
-            setBids(bidsData);
-          } else {
-            setBids(DEMO_BIDS);
-          }
+          setBids(Array.isArray(bidsData) ? bidsData : []);
         } else {
-          setBids(DEMO_BIDS);
+          setBids([]);
         }
       } catch {
-        setBids(DEMO_BIDS);
+        setBids([]);
       }
 
       try {
         const commentsResp = await apiCall('/users/me/comments');
         if (commentsResp.ok) {
           const commentsData = await commentsResp.json();
-          if (Array.isArray(commentsData) && commentsData.length > 0) {
-            setComments(commentsData);
-          } else {
-            setComments(DEMO_COMMENTS);
-          }
+          setComments(Array.isArray(commentsData) ? commentsData : []);
         } else {
-          setComments(DEMO_COMMENTS);
+          setComments([]);
         }
       } catch {
-        setComments(DEMO_COMMENTS);
+        setComments([]);
       }
     };
 
@@ -530,26 +410,27 @@ const UserProfile: React.FC<UserProfileProps> = ({ onNavigate }) => {
     return url;
   };
 
-  const displayName = profile?.name || authUser?.name || authUser?.email?.split('@')[0] || 'Andrii';
+  const displayName = profile?.name || authUser?.name || authUser?.email?.split('@')[0] || 'User';
   const displayAvatar = sanitizeImageUrl(profile?.profileImageUrl || (authUser as any)?.profileImageUrl);
   const joinDate = profile?.createdAt
     ? new Date(profile.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-    : 'July 2021';
+    : 'Recently';
 
-  const userBio = profile?.bio || `Hi i'm ${displayName}, there some information about me`;
+  const userBio = profile?.bio || `Hi, I'm ${displayName}.`;
 
-  const totalBidsCount = bids.length || 43;
-  const totalWinsCount = bids.filter(b => b.isWin).length || 2;
+  const totalBidsCount = bids.length;
+  const totalWinsCount = bids.filter(b => b.isWin).length;
 
   const formatDate = (isoString: string) => {
     try {
+      if (!isoString) return '';
       return new Date(isoString).toLocaleDateString('en-US', {
         month: 'long',
         day: 'numeric',
         year: 'numeric',
       });
     } catch {
-      return 'August 16, 2025';
+      return '';
     }
   };
 
@@ -735,58 +616,72 @@ const UserProfile: React.FC<UserProfileProps> = ({ onNavigate }) => {
           <div className="profile-section-header">
             <h2 className="profile-section-title">Bid History</h2>
             <span className="profile-section-subtitle">
-              (Bid on {totalBidsCount} cars, {totalWinsCount} wins)
+              (Bid on {totalBidsCount} {totalBidsCount === 1 ? 'car' : 'cars'}, {totalWinsCount} {totalWinsCount === 1 ? 'win' : 'wins'})
             </span>
           </div>
 
-          <div className="profile-bids-grid-v2">
-            {bids.slice(0, visibleBidsCount).map(bid => (
-              <div
-                key={bid.id}
-                className="profile-bid-card-v2"
-                onClick={() => {
-                  if (bid.carId) {
-                    onNavigate('car', { carId: bid.carId });
-                  }
-                }}
-              >
-                <div className="profile-bid-img-wrap">
-                  <img
-                    src={sanitizeImageUrl(
-                      bid.imageUrl,
-                      'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=800&q=80'
-                    )}
-                    alt={bid.carTitle}
-                    className="profile-bid-img"
-                  />
-                  <div className="profile-bid-tag">
-                    <span>{bid.bidCount || 1} bid to</span>
-                    <span className="tag-bid-amount">
-                      ${bid.amount.toLocaleString()}
-                    </span>
+          {bids.length > 0 ? (
+            <>
+              <div className="profile-bids-grid-v2">
+                {bids.slice(0, visibleBidsCount).map(bid => (
+                  <div
+                    key={bid.id}
+                    className="profile-bid-card-v2"
+                    onClick={() => {
+                      if (bid.carId) {
+                        onNavigate('car', { carId: bid.carId });
+                      }
+                    }}
+                  >
+                    <div className="profile-bid-img-wrap">
+                      <img
+                        src={sanitizeImageUrl(
+                          bid.imageUrl,
+                          'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=800&q=80'
+                        )}
+                        alt={bid.carTitle}
+                        className="profile-bid-img"
+                      />
+                      <div className="profile-bid-tag">
+                        <span>{bid.bidCount || 1} bid to</span>
+                        <span className="tag-bid-amount">
+                          ${bid.amount.toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="profile-bid-card-body">
+                      <h3 className="profile-bid-car-title">{bid.carTitle}</h3>
+                      {bid.description && (
+                        <p className="profile-bid-specs">{bid.description}</p>
+                      )}
+                      <p className="profile-bid-date">{formatDate(bid.time)}</p>
+                    </div>
                   </div>
-                </div>
-
-                <div className="profile-bid-card-body">
-                  <h3 className="profile-bid-car-title">{bid.carTitle}</h3>
-                  <p className="profile-bid-specs">
-                    {bid.description || 'Extensively Modified for Racing, Dyno-Verified 706whp, 6-Speed Sequential Manual'}
-                  </p>
-                  <p className="profile-bid-date">{formatDate(bid.time)}</p>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
 
-          {visibleBidsCount < bids.length && (
-            <div className="profile-show-more-wrap">
-              <button
-                type="button"
-                className="profile-show-more-btn"
-                onClick={() => setVisibleBidsCount(prev => prev + 8)}
-              >
-                Show more
-              </button>
+              {visibleBidsCount < bids.length && (
+                <div className="profile-show-more-wrap">
+                  <button
+                    type="button"
+                    className="profile-show-more-btn"
+                    onClick={() => setVisibleBidsCount(prev => prev + 8)}
+                  >
+                    Show more
+                  </button>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="profile-empty-state">
+              <div className="profile-empty-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="profile-empty-title">No bids placed yet</div>
+              <div className="profile-empty-sub">When you bid on live auctions, your bidding history will appear here.</div>
             </div>
           )}
         </section>
@@ -800,36 +695,48 @@ const UserProfile: React.FC<UserProfileProps> = ({ onNavigate }) => {
             </span>
           </div>
 
-          <div className="profile-comments-grid">
-            {comments.map(comment => (
-              <div key={comment.id} className="profile-comment-card">
-                <div className="profile-comment-img-wrap">
-                  <img
-                    src={sanitizeImageUrl(
-                      comment.imageUrl,
-                      'https://images.unsplash.com/photo-1617814076367-b759c7d7e738?auto=format&fit=crop&w=800&q=80'
-                    )}
-                    alt={comment.carTitle}
-                    className="profile-comment-img"
-                  />
+          {comments.length > 0 ? (
+            <div className="profile-comments-grid">
+              {comments.map(comment => (
+                <div key={comment.id} className="profile-comment-card">
+                  <div className="profile-comment-img-wrap">
+                    <img
+                      src={sanitizeImageUrl(
+                        comment.imageUrl,
+                        'https://images.unsplash.com/photo-1617814076367-b759c7d7e738?auto=format&fit=crop&w=800&q=80'
+                      )}
+                      alt={comment.carTitle}
+                      className="profile-comment-img"
+                    />
+                  </div>
+                  <div className="profile-comment-content">
+                    <h3
+                      className="profile-comment-car-title"
+                      onClick={() => {
+                        if (comment.carId) {
+                          onNavigate('car', { carId: comment.carId });
+                        }
+                      }}
+                    >
+                      {comment.carTitle}
+                    </h3>
+                    <p className="profile-comment-time">{comment.time ? formatDate(comment.time) : ''}</p>
+                    <p className="profile-comment-text">{comment.text}</p>
+                  </div>
                 </div>
-                <div className="profile-comment-content">
-                  <h3
-                    className="profile-comment-car-title"
-                    onClick={() => {
-                      if (comment.carId) {
-                        onNavigate('car', { carId: comment.carId });
-                      }
-                    }}
-                  >
-                    {comment.carTitle}
-                  </h3>
-                  <p className="profile-comment-time">{comment.time}</p>
-                  <p className="profile-comment-text">{comment.text}</p>
-                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="profile-empty-state">
+              <div className="profile-empty-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
               </div>
-            ))}
-          </div>
+              <div className="profile-empty-title">No comments yet</div>
+              <div className="profile-empty-sub">Comments you post on vehicle listings will be displayed here.</div>
+            </div>
+          )}
         </section>
       </main>
 

@@ -1,7 +1,0 @@
-{
-  "name": "teamrepo421",
-  "private": true,
-  "dependencies": {
-    "@react-oauth/google": "^0.13.5"
-  }
-}

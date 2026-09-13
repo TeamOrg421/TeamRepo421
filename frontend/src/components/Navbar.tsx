@@ -38,7 +38,6 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, searchValue, onSearchChange
     return currentPage === targetPage;
   };
 
-  // Close menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {

@@ -98,7 +98,6 @@ export const AuthContainer: React.FC<AuthContainerProps> = ({
 
   const goTo = (v: AuthView) => { setError(''); setView(v); };
 
-  // ===================== CHECK RESET PASSWORD LINK =====================
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const token = params.get('token');
@@ -111,7 +110,6 @@ export const AuthContainer: React.FC<AuthContainerProps> = ({
     }
   }, []);
 
-  // ===================== GOOGLE AUTH =====================
   const handleGoogleCredential = async (idToken: string) => {
     setError('');
     setGoogleLoading(true);
@@ -139,7 +137,6 @@ export const AuthContainer: React.FC<AuthContainerProps> = ({
     }
   };
 
-  // ===================== EMAIL/PASSWORD AUTH =====================
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');

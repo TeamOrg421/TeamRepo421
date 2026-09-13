@@ -1,14 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 
-/*
-  AuthContext
-  - Centralized authentication context for the SPA.
-  - Stores JWT token in localStorage (for this prototype) and exposes
-    `login(token)` and `logout()` helpers.
-  - Parses common JWT claims to extract `name` and `email` for UI display.
-  - NOTE: For production consider storing tokens in httpOnly cookies
-    and using refresh tokens to improve security (avoid localStorage XSS risk).
-*/
+
 
 type User = {
   id: string
