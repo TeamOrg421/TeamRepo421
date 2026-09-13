@@ -44,8 +44,8 @@ interface ListingForm {
   description: string;
   location: string;
   startingPrice: string;
-  auctionStart: string;
-  auctionEnd: string;
+  auctionDuration: string;
+  customEndDate: string;
 }
 
 const enumOptions = {
@@ -77,38 +77,54 @@ const enumOptions = {
     ['6', 'Minivan'],
     ['7', 'Pickup'],
   ],
+  auctionDuration: [
+    ['0', 'A day'],
+    ['1', 'A week'],
+    ['2', 'A month'],
+    ['3', 'Forever'],
+    ['4', '1 hour'],
+    ['5', '12 hours'],
+    ['6', 'Custom date'],
+  ],
 } as const;
 
-const localDateValue = (date: Date) =>
-  new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+const initialForm = (): ListingForm => ({
+  make: '',
+  model: '',
+  year: String(new Date().getFullYear()),
+  vin: '',
+  mileage: '',
+  horsePower: '',
+  engineVolume: '',
+  fuelType: '0',
+  transmission: '1',
+  driveType: '2',
+  bodyType: '1',
+  doors: '2',
+  seats: '4',
+  exteriorColor: '',
+  interiorColor: '',
+  ownersCount: '1',
+  isAccidentFree: true,
+  title: '',
+  description: '',
+  location: '',
+  startingPrice: '',
+  auctionDuration: '1',
+  customEndDate: '',
+});
 
-const initialForm = (): ListingForm => {
-  const start = new Date(Date.now() + 10 * 60_000);
-  return {
-    make: '',
-    model: '',
-    year: String(new Date().getFullYear()),
-    vin: '',
-    mileage: '',
-    horsePower: '',
-    engineVolume: '',
-    fuelType: '0',
-    transmission: '1',
-    driveType: '2',
-    bodyType: '1',
-    doors: '2',
-    seats: '4',
-    exteriorColor: '',
-    interiorColor: '',
-    ownersCount: '1',
-    isAccidentFree: true,
-    title: '',
-    description: '',
-    location: '',
-    startingPrice: '',
-    auctionStart: localDateValue(start),
-    auctionEnd: localDateValue(new Date(start.getTime() + 7 * 86400000)),
-  };
+const parseLocalDateTime = (value: string) => {
+  if (!value) return null;
+  const match = value.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/);
+  if (!match) return null;
+  const [datePart, timePart] = value.split('T');
+  const [year, month, day] = datePart.split('-').map(Number);
+  const [hours, minutes] = timePart.split(':').map(Number);
+  if ([year, month, day, hours, minutes].some((item) => Number.isNaN(item))) {
+    return null;
+  }
+  return new Date(year, month - 1, day, hours, minutes, 0, 0);
 };
 
 const responseError = async (response: Response) => {
@@ -205,10 +221,12 @@ const SellCar: React.FC<SellCarProps> = ({ onNavigate }) => {
     Promise.allSettled([apiCall('/catalog/brands'), apiCall('/catalog/models')]).then(
       async ([brandResult, modelResult]) => {
         if (brandResult.status === 'fulfilled' && brandResult.value.ok) {
-          setBrands(await brandResult.value.json());
+          const bData = await brandResult.value.json();
+          setBrands(Array.isArray(bData) ? bData : []);
         }
         if (modelResult.status === 'fulfilled' && modelResult.value.ok) {
-          setModels(await modelResult.value.json());
+          const mData = await modelResult.value.json();
+          setModels(Array.isArray(mData) ? mData : []);
         }
       }
     );
@@ -273,18 +291,27 @@ const SellCar: React.FC<SellCarProps> = ({ onNavigate }) => {
     event.preventDefault();
     setError('');
     const startingPrice = Number(form.startingPrice);
-    const auctionStart = new Date(form.auctionStart);
-    const auctionEnd = new Date(form.auctionEnd);
+    const normalizedDuration = String(form.auctionDuration ?? '').trim();
+    const durationValue = Number(normalizedDuration);
+
+    if (!enumOptions.auctionDuration.some(([value]) => String(value) === normalizedDuration)) {
+      return setError('Choose a valid auction duration.');
+    }
 
     if (!Number.isFinite(startingPrice) || startingPrice < 0) {
       return setError('Enter a valid starting price of 0 or more.');
     }
-    if (
-      Number.isNaN(auctionStart.getTime()) ||
-      Number.isNaN(auctionEnd.getTime()) ||
-      auctionEnd <= auctionStart
-    ) {
-      return setError('The auction end date must be later than the start date.');
+
+    let customEndDate: Date | null = null;
+    if (normalizedDuration === '6') {
+      customEndDate = parseLocalDateTime(form.customEndDate);
+      if (!customEndDate || Number.isNaN(customEndDate.getTime())) {
+        return setError('Choose a custom end date for the auction.');
+      }
+      const minimumAllowed = new Date(Date.now() + 5 * 60 * 1000);
+      if (customEndDate <= minimumAllowed) {
+        return setError('The custom auction end date must be at least 5 minutes in the future.');
+      }
     }
 
     setIsSubmitting(true);
@@ -318,8 +345,11 @@ const SellCar: React.FC<SellCarProps> = ({ onNavigate }) => {
             description: form.description.trim(),
             location: form.location.trim(),
             startingPrice,
-            auctionStart: auctionStart.toISOString(),
-            auctionEnd: auctionEnd.toISOString(),
+            duration: durationValue,
+            customEndDate:
+              customEndDate && !Number.isNaN(customEndDate.getTime())
+                ? new Date(customEndDate.getTime() - customEndDate.getTimezoneOffset() * 60000).toISOString()
+                : null,
           },
         }),
       });
@@ -327,25 +357,27 @@ const SellCar: React.FC<SellCarProps> = ({ onNavigate }) => {
       if (!response.ok) {
         return setError(await responseError(response));
       }
+
       const created = (await response.json()) as { carId?: string };
       if (!created.carId) {
         return setError('Your listing was created, but its ID is missing.');
       }
 
-      const failed = (
-        await Promise.all(
-          photos.map(async (photo, index) => {
-            try {
-              return (await uploadPhoto(created.carId!, photo, index === 0)) ? null : photo.name;
-            } catch {
-              return photo.name;
-            }
-          })
-        )
-      ).filter(Boolean);
+      const failedUploads: string[] = [];
+      for (const [index, photo] of photos.entries()) {
+        try {
+          if (!(await uploadPhoto(created.carId, photo, index === 0))) {
+            failedUploads.push(photo.name);
+          }
+        } catch {
+          failedUploads.push(photo.name);
+        }
+      }
 
       setPhotoWarning(
-        failed.length ? `Your listing was created, but ${failed.length} photo(s) could not be uploaded.` : ''
+        failedUploads.length
+          ? `Your listing was created, but ${failedUploads.length} photo(s) could not be uploaded.`
+          : ''
       );
       setCreatedCarId(created.carId);
       setStage('success');
@@ -361,7 +393,16 @@ const SellCar: React.FC<SellCarProps> = ({ onNavigate }) => {
       <section className="sell-page-wrapper">
         <div className="sell-success-container">
           <div className="sell-success-badge">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              width="32"
+              height="32"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <polyline points="20 6 9 17 4 12" />
             </svg>
           </div>
@@ -971,24 +1012,31 @@ const SellCar: React.FC<SellCarProps> = ({ onNavigate }) => {
             </label>
 
             <label className="sell-input-group">
-              <span>Auction Starts</span>
-              <input
-                required
-                type="datetime-local"
-                value={form.auctionStart}
-                onChange={(e) => update('auctionStart', e.target.value)}
-              />
+              <span>Auction Length</span>
+              <select
+                value={form.auctionDuration}
+                onChange={(e) => update('auctionDuration', e.target.value)}
+              >
+                {enumOptions.auctionDuration.map(([val, label]) => (
+                  <option key={val} value={val}>
+                    {label}
+                  </option>
+                ))}
+              </select>
             </label>
 
-            <label className="sell-input-group">
-              <span>Auction Ends</span>
-              <input
-                required
-                type="datetime-local"
-                value={form.auctionEnd}
-                onChange={(e) => update('auctionEnd', e.target.value)}
-              />
-            </label>
+            {form.auctionDuration === '6' && (
+              <label className="sell-input-group">
+                <span>Custom End Date</span>
+                <input
+                  required
+                  type="datetime-local"
+                  min={new Date(Date.now() + 5 * 60 * 1000).toISOString().slice(0, 16)}
+                  value={form.customEndDate}
+                  onChange={(e) => update('customEndDate', e.target.value)}
+                />
+              </label>
+            )}
           </div>
 
           {error && (

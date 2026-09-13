@@ -14,6 +14,7 @@ namespace FakeBank.DataAccess.Entities
         public bool IsBlocked { get; set; }
         public Guid UserId { get; set; }
         public Guid BankCardToken { get; set; } = Guid.NewGuid();
+        public string Email { get; set; } = string.Empty;
 
         public virtual ICollection<BankTransaction> Transactions { get; set; } = [];
     }

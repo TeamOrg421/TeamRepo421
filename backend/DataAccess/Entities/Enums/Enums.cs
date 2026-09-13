@@ -29,4 +29,16 @@
     {
         Sedan, Coupe, Hatchback, SUV, Wagon, Convertible, Minivan, Pickup
     }
+
+    // How long the auction runs once a moderator approves it.
+    public enum AuctionDuration
+    {
+        OneDay,
+        OneWeek,
+        OneMonth,
+        Forever,
+        OneHour,
+        TwelveHours,
+        Custom
+    }
 }

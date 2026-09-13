@@ -18,33 +18,34 @@ namespace BusinessLogic.Services
         }
         public async Task<IList<LeaderBordEntety>> Get10LeaderBordEntetyAsync()
         {
-            // Шаг 1: Извлекаем из БД данные с помощью GetAllAsync (включая связанные сущности)
-            // Благодаря вашему обновленному репозиторию, этот шаг теперь отработает через быстрый Split Query!
-            var rawWinners = await _auctionWinnerRepository.GetAllAsync(includes: new[] { "Winner", "Listing.Car.Model" });
+            var rawWinners = await _auctionWinnerRepository.GetAllAsync(includes: new[] { "Winner", "Listing", "Listing.Car", "Listing.Car.Model" });
 
-            // Шаг 2: Безопасно группируем и собираем объекты в памяти (In-Memory) через LINQ-to-Objects.
-            // Здесь string.Join и методы выборки отработают на 100% успешно и без ошибок БД.
             var items = rawWinners
+                .Where(x => x != null && x.WinnerId != Guid.Empty)
                 .GroupBy(x => x.WinnerId)
                 .Select(g => {
-                    // Берем первую запись из группы для получения данных пользователя и предотвращения NullReferenceException
-                    var firstWinnerRow = g.FirstOrDefault();
+                    // Get the most recent winner record to ensure current user name
+                    var mostRecentWinner = g.OrderByDescending(x => x.FinishedAt).FirstOrDefault();
+                    var userName = mostRecentWinner?.Winner?.UserName
+                        ?? mostRecentWinner?.Winner?.Name
+                        ?? "Unknown User";
 
                     return new LeaderBordEntety
                     {
                         UserId = g.Key,
-                        UserName = firstWinnerRow?.Winner?.UserName ?? "Unknown User",
+                        UserName = userName,
                         TotalWinningBid = g.Sum(x => x.WinningBid),
                         TotalWins = g.Count(),
-                        // Безопасное склеивание названий машин, которое раньше вызывало ошибку 500
                         CarName = string.Join(", ", g
                             .Select(x => x.Listing?.Car?.Model?.Name)
                             .Where(name => !string.IsNullOrEmpty(name))
-                            .Distinct()) // Distinct уберет дубликаты, если один пользователь выиграл одинаковые модели
+                            .Distinct())
                     };
                 })
                 .OrderByDescending(x => x.TotalWinningBid)
-                .Take(10) // Берем топ-10 лидеров
+                .ThenByDescending(x => x.TotalWins)
+                .ThenBy(x => x.UserName)
+                .Take(10)
                 .ToList();
 
             return items;

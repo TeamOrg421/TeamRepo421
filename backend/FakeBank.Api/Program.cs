@@ -19,6 +19,10 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddDbContext<FakeBankDb>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddHttpClient("MainApi", client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["MainApi:BaseUrl"] ?? "http://localhost:5254/");
+});
 
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<IBankCardService, BankCardService>();
@@ -35,7 +39,7 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<FakeBankDb>();
-    await db.Database.EnsureCreatedAsync();
+    await db.Database.MigrateAsync();
 
     var emptyCards = await db.BankCards.Where(c => c.Balance < 500000m).ToListAsync();
     foreach (var card in emptyCards)

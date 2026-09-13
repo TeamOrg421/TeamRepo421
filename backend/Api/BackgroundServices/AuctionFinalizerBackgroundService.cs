@@ -83,7 +83,7 @@ namespace Api.BackgroundServices
                         ListingId = lot.Id,
                         WinnerId = highestBid.UserId,
                         WinningBid = highestBid.Amount,
-                        FinishedAt = lot.AuctionEnd
+                        FinishedAt = lot.AuctionEnd ?? DateTime.UtcNow
                     };
 
                     dbContext.AuctionWinners.Add(winner);

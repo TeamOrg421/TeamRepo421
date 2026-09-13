@@ -33,6 +33,10 @@ namespace FakeBank.DataAccess
                     .IsRequired()
                     .HasMaxLength(100);
 
+                entity.Property(e => e.Email)
+                    .IsRequired()
+                    .HasMaxLength(255);
+
                 entity.Property(e => e.ExpiryDate)
                     .IsRequired()
                     .HasMaxLength(5);

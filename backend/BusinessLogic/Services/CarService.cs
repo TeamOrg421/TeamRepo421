@@ -46,13 +46,13 @@ namespace BusinessLogic.Services
 
         public async Task<IList<Car>> GetListCarAsync(int? page, int? size = null)
         {
-            var cars = await carRepository.GetAllAsync(pageNumber: page, pageSize: size, includes: new[] { "Model.Brand", "Specification", "Images", "Listings.Seller", "Listings.Bids" });
+            var cars = await carRepository.GetAllAsync(pageNumber: page, pageSize: size, includes: new[] { "Model.Brand", "Specification", "Images", "Listings.Seller", "Listings.Bids", "Listings.Winner", "Listings.Winner.Winner" });
             return cars.ToList();
         }
 
         public async Task<Car?> GetCarAsync(Guid carId)
         {
-            var car = await carRepository.GetByIdAsync(carId, "Model.Brand", "Specification", "Images", "Listings.Seller", "Listings.Bids");
+            var car = await carRepository.GetByIdAsync(carId, "Model.Brand", "Specification", "Images", "Listings.Seller", "Listings.Bids", "Listings.Winner", "Listings.Winner.Winner");
 
             if (car == null)
                 throw new Exception("Car not found");

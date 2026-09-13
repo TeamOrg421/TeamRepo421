@@ -22,6 +22,7 @@
         public string ExpiryDate { get; set; } = string.Empty;
         public string Cvv { get; set; } = string.Empty;
         public decimal Balance { get; set; }
+        public string Email { get; set; } = string.Empty;
     }
     //------------
     public class BankCardDto
@@ -40,6 +41,17 @@
 
         public bool IsBlocked { get; set; }
         public Guid BankCardToken { get; set; }
+        public string Email { get; set; } = string.Empty;
+    }
+
+    public class EmailSyncResultDto
+    {
+        public int TotalCards { get; set; }
+        public int UpdatedCards { get; set; }
+        public int AlreadyFilledCards { get; set; }
+        public int MissingUserIds { get; set; }
+        public int UsersNotFound { get; set; }
+        public int FailedRequests { get; set; }
     }
     public class BankTransactionDto
     {

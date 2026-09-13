@@ -11,8 +11,11 @@ namespace DataAccess.Entities
 
         public decimal StartingPrice { get; set; }
         public decimal CurrentPrice { get; set; } // Додано для реального часу (динамічно зростає зі ставками)
-        public DateTime AuctionStart { get; set; }
-        public DateTime AuctionEnd { get; set; }
+        // Null until a moderator approves the listing - the auction starts at approval time.
+        public DateTime? AuctionStart { get; set; }
+        // Null when Duration is Forever.
+        public DateTime? AuctionEnd { get; set; }
+        public AuctionDuration Duration { get; set; }
         public ListingStatus Status { get; set; }
 
         public Guid? ReviewedById { get; set; }

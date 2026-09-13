@@ -264,8 +264,7 @@ const AdminCars: React.FC<AdminCarsProps> = ({ onNavigate }) => {
             description: `Auction listing for ${make} ${model} (${year}).`,
             location: 'Location not specified',
             startingPrice: 0,
-            auctionStart: new Date().toISOString(),
-            auctionEnd: new Date(Date.now() + 86400000).toISOString(),
+            duration: 1, // AuctionDuration.OneWeek - starts once a moderator approves the listing.
           }
         };
 
