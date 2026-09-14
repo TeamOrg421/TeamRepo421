@@ -14,11 +14,20 @@ interface AuctionListItem {
   description: string;
   location: string;
   startingPrice: number;
+  currentPrice?: number;
   auctionStart: string;
   auctionEnd: string;
   carId?: string;
-  images?: Array<{ imageUrl?: string; isMain?: boolean }>;
+  year?: number;
+  brandName?: string;
+  modelName?: string;
+  mileage?: number;
+  fuelType?: string;
+  transmission?: string;
+  images?: Array<{ imageUrl?: string; isMain?: boolean } | string>;
   seller?: { name?: string; email?: string };
+  sellerName?: string;
+  sellerEmail?: string;
   car?: {
     id?: string;
     year?: number;
@@ -27,13 +36,32 @@ interface AuctionListItem {
     transmission?: string;
     fuelType?: string;
     model?: { name?: string; brand?: { name?: string } };
-    images?: Array<{ imageUrl?: string; isMain?: boolean }>;
+    images?: Array<{ imageUrl?: string; isMain?: boolean } | string>;
   };
 }
 
-const getAuctionImage = (auction: AuctionListItem) => {
-  const images = auction.car?.images ?? auction.images ?? [];
-  return images.find((image) => image.isMain)?.imageUrl ?? images[0]?.imageUrl ?? '';
+const enumLabels = {
+  fuelType: ['Gasoline', 'Diesel', 'Electric', 'Hybrid', 'Gas'],
+  transmission: ['Manual', 'Automatic', 'Automated manual', 'CVT'],
+};
+
+const formatEnum = (value: unknown, labels: string[]) => {
+  if (value == null) return '';
+  if (typeof value === 'number') return labels[value] ?? '';
+  if (typeof value === 'string' && value.trim()) {
+    const num = Number(value);
+    if (!Number.isNaN(num) && labels[num]) return labels[num];
+    return value;
+  }
+  return '';
+};
+
+const getAuctionImage = (auction: AuctionListItem): string => {
+  const list = auction.car?.images ?? auction.images ?? [];
+  if (!Array.isArray(list) || list.length === 0) return '';
+  const main: any = list.find((img: any) => img && typeof img === 'object' && (img.isMain || img.IsMain)) ?? list[0];
+  if (typeof main === 'string') return main;
+  return main?.imageUrl || main?.ImageUrl || main?.url || '';
 };
 
 const getAuctionId = (auction: AuctionListItem) => auction.id || auction.auctionId || '';
@@ -45,8 +73,6 @@ const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ onNavigate }) => {
   const [auctions, setAuctions] = useState<AuctionListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
-  const [rejectingId, setRejectingId] = useState<string | null>(null);
-  const [reason, setReason] = useState('');
   const [activeTab, setActiveTab] = useState<'new' | 'progress'>('new');
 
   const [activeAuctions, setActiveAuctions] = useState<AuctionListItem[]>([]);
@@ -60,7 +86,16 @@ const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ onNavigate }) => {
     try {
       const response = await apiCall('/AuctionModeration/pending');
       if (response.status === 401 || response.status === 403) throw new Error('You do not have permission to view this page.');
-      if (!response.ok) throw new Error('Unable to load pending auctions.');
+      if (!response.ok) {
+        let errDetail = 'Unable to load pending auctions.';
+        try {
+          const body = await response.json();
+          errDetail = body?.message || body?.title || errDetail;
+        } catch {
+          // ignore
+        }
+        throw new Error(errDetail);
+      }
       const data = await response.json();
       setAuctions(Array.isArray(data) ? data : []);
     } catch (error) {
@@ -76,7 +111,16 @@ const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ onNavigate }) => {
     try {
       const response = await apiCall('/AuctionModeration/active');
       if (response.status === 401 || response.status === 403) throw new Error('You do not have permission to view this page.');
-      if (!response.ok) throw new Error('Unable to load active auctions.');
+      if (!response.ok) {
+        let errDetail = 'Unable to load active auctions.';
+        try {
+          const body = await response.json();
+          errDetail = body?.message || body?.title || errDetail;
+        } catch {
+          // ignore
+        }
+        throw new Error(errDetail);
+      }
       const data = await response.json();
       setActiveAuctions(Array.isArray(data) ? data : []);
     } catch (error) {
@@ -99,33 +143,6 @@ const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ onNavigate }) => {
     }
   }, [isAuthenticated, isAuthorized, activeTab, activeLoaded, loadActiveAuctions]);
 
-  const approve = async (id: string) => {
-    const response = await apiCall(`/AuctionModeration/${id}/approve`, { method: 'POST' });
-    if (!response.ok) {
-      setMessage('The auction could not be approved.');
-      return;
-    }
-    setAuctions((current) => current.filter((auction) => auction.id !== id));
-  };
-
-  const reject = async (id: string) => {
-    if (!reason.trim()) {
-      setMessage('Add a reason before rejecting the auction.');
-      return;
-    }
-    const response = await apiCall(`/AuctionModeration/${id}/reject`, {
-      method: 'POST',
-      body: JSON.stringify({ reason: reason.trim() }),
-    });
-    if (!response.ok) {
-      setMessage('The auction could not be rejected.');
-      return;
-    }
-    setAuctions((current) => current.filter((auction) => auction.id !== id));
-    setRejectingId(null);
-    setReason('');
-  };
-
   const refresh = () => {
     if (activeTab === 'progress') void loadActiveAuctions();
     else void loadAuctions();
@@ -133,9 +150,9 @@ const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ onNavigate }) => {
 
   if (!isAuthenticated || !isAuthorized) {
     return (
-      <section className="dashboard-reference-page manager-reference-page">
-        <h1>Manager Dashboard</h1>
-        <div className="manager-reference-empty">
+      <section className="manager-dashboard-container">
+        <h1 className="manager-page-title">Dashboard</h1>
+        <div className="manager-empty-state">
           {isAuthenticated ? 'You do not have permission to view this page.' : 'Sign in with a manager or admin account to view this page.'}
         </div>
       </section>
@@ -143,92 +160,157 @@ const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ onNavigate }) => {
   }
 
   return (
-    <section className="dashboard-reference-page manager-reference-page">
-      <h1>Manager Dashboard</h1>
-      <div className="dashboard-tabs" role="tablist" aria-label="Manager dashboard sections">
-        <button className={activeTab === 'new' ? 'dashboard-tab active' : 'dashboard-tab'} onClick={() => setActiveTab('new')} type="button">
-          <span className="dashboard-tab-icon">▱</span><span>New commission</span>
+    <section className="manager-dashboard-container">
+      <h1 className="manager-page-title">Dashboard</h1>
+
+      {/* Tabs Header */}
+      <div className="manager-tabs-bar" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'new'}
+          className={`manager-tab-btn ${activeTab === 'new' ? 'active' : ''}`}
+          onClick={() => setActiveTab('new')}
+        >
+          <svg className="manager-tab-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="7" width="20" height="11" rx="3" />
+            <circle cx="7" cy="18" r="2" />
+            <circle cx="17" cy="18" r="2" />
+            <path d="M5 7l2-4h10l2 4" />
+          </svg>
+          <span>New commission</span>
         </button>
-        <button className={activeTab === 'progress' ? 'dashboard-tab active' : 'dashboard-tab'} onClick={() => setActiveTab('progress')} type="button">
-          <span className="dashboard-tab-icon">◷</span><span>In Progress</span>
+
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'progress'}
+          className={`manager-tab-btn ${activeTab === 'progress' ? 'active' : ''}`}
+          onClick={() => setActiveTab('progress')}
+        >
+          <svg className="manager-tab-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
+          </svg>
+          <span>In Progress</span>
         </button>
       </div>
 
-      {activeTab === 'new' && message && <p className="manager-message">{message}</p>}
-      {activeTab === 'progress' && activeMessage && <p className="manager-message">{activeMessage}</p>}
+      {activeTab === 'new' && message && <p className="manager-alert-msg">{message}</p>}
+      {activeTab === 'progress' && activeMessage && <p className="manager-alert-msg">{activeMessage}</p>}
 
-      {activeTab === 'progress' ? (
-        activeLoading ? (
-          <div className="manager-reference-empty">Loading active auctions...</div>
-        ) : activeAuctions.length === 0 ? (
-          <div className="manager-reference-empty">No auctions are currently running.</div>
+      {/* Tab 1: New Commission (Pending Submissions) - 2x2 Grid Layout */}
+      {activeTab === 'new' && (
+        loading ? (
+          <div className="manager-empty-state">Loading submissions...</div>
+        ) : auctions.length === 0 ? (
+          <div className="manager-empty-state">No auctions are waiting for review.</div>
         ) : (
-          <div className="dashboard-progress-grid">
-            {activeAuctions.map((auction) => {
+          <div className="manager-new-commissions-grid">
+            {auctions.map((auction) => {
               const imageUrl = getAuctionImage(auction);
               const auctionId = getAuctionId(auction);
-              const make = auction.car?.model?.brand?.name ?? '';
-              const model = auction.car?.model?.name ?? '';
+              const make = auction.brandName || auction.car?.model?.brand?.name || '';
+              const model = auction.modelName || auction.car?.model?.name || '';
+              const year = auction.year || auction.car?.year || '';
+              const displayTitle = `${year ? `${year} ` : ''}${make} ${model}`.trim() || auction.title;
+
               return (
-                <div className="dashboard-progress-card" key={auction.id}>
-                  {imageUrl ? (
-                    <img src={imageUrl} alt={auction.title} />
-                  ) : (
-                    <div className="manager-reference-image-placeholder dashboard-progress-image-empty">No photo</div>
-                  )}
-                  <div className="dashboard-progress-copy">
-                    <h2>{auction.car?.year ?? ''} {make} {model}</h2>
-                    <p>{auction.description}</p>
-                    <div className="dashboard-car-meta">
-                      {auction.car?.fuelType && <span>{auction.car.fuelType}</span>}
-                      {auction.car?.transmission && <span>{auction.car.transmission}</span>}
-                      {typeof auction.car?.mileage === 'number' && <span>{auction.car.mileage.toLocaleString()} km</span>}
+                <article className="manager-commission-card" key={auction.id}>
+                  <div className="manager-card-thumb-wrapper">
+                    {imageUrl ? (
+                      <img src={imageUrl} alt={displayTitle} className="manager-card-thumb" />
+                    ) : (
+                      <div className="manager-card-thumb-empty">No photo</div>
+                    )}
+                  </div>
+
+                  <div className="manager-card-body">
+                    <div>
+                      <h2 className="manager-card-title">{displayTitle}</h2>
+                      <p className="manager-card-desc">{auction.description}</p>
                     </div>
+
                     <button
                       type="button"
+                      className="manager-btn-view-detail"
                       onClick={() => auctionId && onNavigate('auction-review', { carId: auction.car?.id ?? auction.carId, auctionId })}
                     >
-                      Review details
+                      View Detail information
                     </button>
                   </div>
-                </div>
+                </article>
               );
             })}
           </div>
         )
-      ) : loading ? (
-        <div className="manager-reference-empty">Loading submissions...</div>
-      ) : auctions.length === 0 ? (
-        <div className="manager-reference-empty">No auctions are waiting for review.</div>
-      ) : (
-        <div className="dashboard-commission-list manager-commission-list">
-          {auctions.map((auction) => {
-            const imageUrl = getAuctionImage(auction);
-            const auctionId = getAuctionId(auction);
-            const make = auction.car?.model?.brand?.name ?? '';
-            const model = auction.car?.model?.name ?? '';
-            return (
-              <article className="dashboard-commission-row manager-commission-row" key={auction.id}>
-                {imageUrl ? <img src={imageUrl} alt={auction.title} /> : <div className="manager-reference-image-placeholder">No photo</div>}
-                <div className="dashboard-car-copy">
-                  <h2>{auction.title}</h2>
-                  <p>{auction.car?.year ?? ''} {make} {model} · {auction.description}</p>
-                  <div className="dashboard-car-meta">
-                    <span>Pending</span><span>{auction.location}</span><span>${Number(auction.startingPrice).toLocaleString()}</span>
-                  </div>
-                  {rejectingId === auction.id && <textarea value={reason} onChange={(event) => setReason(event.target.value)} placeholder="Reason for rejection" rows={3} />}
-                </div>
-                <div className="manager-reference-actions">
-                  <button className="manager-reference-approve" type="button" onClick={() => void approve(auction.id)}>Approve <b>›</b></button>
-                  {rejectingId === auction.id ? <><button className="manager-reference-reject" type="button" onClick={() => void reject(auction.id)}>Confirm reject</button><button type="button" onClick={() => { setRejectingId(null); setReason(''); }}>Cancel</button></> : <button className="manager-reference-reject" type="button" onClick={() => setRejectingId(auction.id)}>Reject <b>›</b></button>}
-                  <button type="button" onClick={() => auctionId && onNavigate('auction-review', { carId: auction.car?.id ?? auction.carId, auctionId })}>Review details <b>›</b></button>
-                </div>
-              </article>
-            );
-          })}
-        </div>
       )}
-      <button className="manager-reference-refresh" type="button" onClick={refresh}>Refresh submissions</button>
+
+      {/* Tab 2: In Progress (Active Auctions) - Horizontal Rows Layout */}
+      {activeTab === 'progress' && (
+        activeLoading ? (
+          <div className="manager-empty-state">Loading active auctions...</div>
+        ) : activeAuctions.length === 0 ? (
+          <div className="manager-empty-state">No auctions are currently running.</div>
+        ) : (
+          <div className="manager-progress-list">
+            {activeAuctions.map((auction) => {
+              const imageUrl = getAuctionImage(auction);
+              const make = auction.brandName || auction.car?.model?.brand?.name || '';
+              const model = auction.modelName || auction.car?.model?.name || '';
+              const year = auction.year || auction.car?.year || '';
+              const displayTitle = `${year ? `${year} ` : ''}${make} ${model}`.trim() || auction.title;
+              const mileage = auction.mileage ?? auction.car?.mileage;
+              const rawFuel = auction.fuelType ?? auction.car?.fuelType;
+              const rawTrans = auction.transmission ?? auction.car?.transmission;
+              const fuel = formatEnum(rawFuel, enumLabels.fuelType) || 'Gasoline';
+              const trans = formatEnum(rawTrans, enumLabels.transmission) || 'Automatic';
+              const targetCarId = auction.car?.id ?? auction.carId;
+
+              return (
+                <article className="manager-progress-row" key={auction.id}>
+                  <div className="manager-progress-thumb-wrapper">
+                    {imageUrl ? (
+                      <img src={imageUrl} alt={displayTitle} className="manager-progress-thumb" />
+                    ) : (
+                      <div className="manager-progress-thumb-empty">No photo</div>
+                    )}
+                  </div>
+
+                  <div className="manager-progress-info">
+                    <h2 className="manager-progress-title">{displayTitle}</h2>
+                    <p className="manager-progress-desc">{auction.description}</p>
+                  </div>
+
+                  <div className="manager-progress-badges">
+                    {fuel && <span className="manager-pill-badge">{fuel}</span>}
+                    {trans && <span className="manager-pill-badge">{trans}</span>}
+                    {typeof mileage === 'number' && (
+                      <span className="manager-pill-badge">{mileage.toLocaleString()} km</span>
+                    )}
+                  </div>
+
+                  <div className="manager-progress-actions">
+                    <button
+                      type="button"
+                      className="manager-constructor-btn"
+                      onClick={() => targetCarId && onNavigate('car', { carId: targetCarId })}
+                    >
+                      Car page <span className="manager-action-arrow">›</span>
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )
+      )}
+
+      <div className="manager-footer-refresh">
+        <button className="manager-refresh-action-btn" type="button" onClick={refresh}>
+          Refresh submissions
+        </button>
+      </div>
     </section>
   );
 };

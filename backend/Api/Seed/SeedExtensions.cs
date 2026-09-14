@@ -165,8 +165,20 @@ public static class SeedExtensions
 
     private static async Task<Car> SeedTestCarAsync(this ApplicationDbContext dbContext)
     {
-        var brand = new CarBrand { Id = Guid.NewGuid(), Name = "Porsche", Slug = "porsche" };
-        var model = new CarModel { Id = Guid.NewGuid(), Name = "911 GT3", Slug = "911-gt3", Brand = brand };
+        var brand = await dbContext.CarBrands.FirstOrDefaultAsync(b => b.Slug == "porsche");
+        if (brand == null)
+        {
+            brand = new CarBrand { Id = Guid.NewGuid(), Name = "Porsche", Slug = "porsche" };
+            dbContext.CarBrands.Add(brand);
+        }
+
+        var model = await dbContext.CarModels.FirstOrDefaultAsync(m => m.Slug == "911-gt3");
+        if (model == null)
+        {
+            model = new CarModel { Id = Guid.NewGuid(), Name = "911 GT3", Slug = "911-gt3", Brand = brand };
+            dbContext.CarModels.Add(model);
+        }
+
         var car = new Car
         {
             Id = Guid.NewGuid(),
@@ -201,13 +213,11 @@ public static class SeedExtensions
             IsMain = true
         };
 
-        dbContext.CarBrands.Add(brand);
-        dbContext.CarModels.Add(model);
         dbContext.Cars.Add(car);
         dbContext.CarSpecifications.Add(specification);
         dbContext.CarImages.Add(image);
 
-        await dbContext.SaveChangesAsync();
+         await dbContext.SaveChangesAsync();
         return car;
     }
 

@@ -308,9 +308,8 @@ const SellCar: React.FC<SellCarProps> = ({ onNavigate }) => {
       if (!customEndDate || Number.isNaN(customEndDate.getTime())) {
         return setError('Choose a custom end date for the auction.');
       }
-      const minimumAllowed = new Date(Date.now() + 5 * 60 * 1000);
-      if (customEndDate <= minimumAllowed) {
-        return setError('The custom auction end date must be at least 5 minutes in the future.');
+      if (customEndDate <= new Date()) {
+        return setError('The custom auction end date must be in the future.');
       }
     }
 
@@ -348,7 +347,7 @@ const SellCar: React.FC<SellCarProps> = ({ onNavigate }) => {
             duration: durationValue,
             customEndDate:
               customEndDate && !Number.isNaN(customEndDate.getTime())
-                ? new Date(customEndDate.getTime() - customEndDate.getTimezoneOffset() * 60000).toISOString()
+                ? customEndDate.toISOString()
                 : null,
           },
         }),
@@ -1031,7 +1030,7 @@ const SellCar: React.FC<SellCarProps> = ({ onNavigate }) => {
                 <input
                   required
                   type="datetime-local"
-                  min={new Date(Date.now() + 5 * 60 * 1000).toISOString().slice(0, 16)}
+                  min={new Date().toISOString().slice(0, 16)}
                   value={form.customEndDate}
                   onChange={(e) => update('customEndDate', e.target.value)}
                 />

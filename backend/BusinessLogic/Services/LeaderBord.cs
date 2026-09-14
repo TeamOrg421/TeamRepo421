@@ -1,4 +1,4 @@
-﻿using BusinessLogic.Interfaces;
+using BusinessLogic.Interfaces;
 using DataAccess.Entities;
 using DataAccess.IRepositories;
 using System;
@@ -18,7 +18,7 @@ namespace BusinessLogic.Services
         }
         public async Task<IList<LeaderBordEntety>> Get10LeaderBordEntetyAsync()
         {
-            var rawWinners = await _auctionWinnerRepository.GetAllAsync(includes: new[] { "Winner", "Listing", "Listing.Car", "Listing.Car.Model" });
+            var rawWinners = await _auctionWinnerRepository.GetAllAsync(includes: new[] { "Winner", "Listing", "Listing.Car", "Listing.Car.Model", "Listing.Car.Model.Brand" });
 
             var items = rawWinners
                 .Where(x => x != null && x.WinnerId != Guid.Empty)
@@ -26,9 +26,10 @@ namespace BusinessLogic.Services
                 .Select(g => {
                     // Get the most recent winner record to ensure current user name
                     var mostRecentWinner = g.OrderByDescending(x => x.FinishedAt).FirstOrDefault();
-                    var userName = mostRecentWinner?.Winner?.UserName
-                        ?? mostRecentWinner?.Winner?.Name
-                        ?? "Unknown User";
+                    var userName = mostRecentWinner?.Winner?.Name
+                        ?? mostRecentWinner?.Winner?.UserName
+                        ?? (mostRecentWinner?.Winner?.Email != null ? mostRecentWinner.Winner.Email.Split('@')[0] : null)
+                        ?? "Winner";
 
                     return new LeaderBordEntety
                     {
@@ -37,7 +38,13 @@ namespace BusinessLogic.Services
                         TotalWinningBid = g.Sum(x => x.WinningBid),
                         TotalWins = g.Count(),
                         CarName = string.Join(", ", g
-                            .Select(x => x.Listing?.Car?.Model?.Name)
+                            .Select(x => {
+                                var brand = x.Listing?.Car?.Model?.Brand?.Name;
+                                var model = x.Listing?.Car?.Model?.Name;
+                                if (!string.IsNullOrEmpty(brand) && !string.IsNullOrEmpty(model))
+                                    return $"{brand} {model}";
+                                return model ?? brand ?? x.Listing?.Title;
+                            })
                             .Where(name => !string.IsNullOrEmpty(name))
                             .Distinct())
                     };

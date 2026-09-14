@@ -1,4 +1,4 @@
-﻿using FakeBank.DataAccess.IRepositories;
+using FakeBank.DataAccess.IRepositories;
 using FakeBank.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using FakeBank.BusinessLogic.Interfaces;
@@ -39,16 +39,55 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<FakeBankDb>();
-    await db.Database.MigrateAsync();
-
-    var emptyCards = await db.BankCards.Where(c => c.Balance < 500000m).ToListAsync();
-    foreach (var card in emptyCards)
+    try
     {
-        card.Balance = 1000000m;
+        await db.Database.MigrateAsync();
     }
-    if (emptyCards.Count > 0)
+    catch (Exception ex)
     {
-        await db.SaveChangesAsync();
+        Console.WriteLine($"[FakeBankDb Migration Notice]: {ex.Message}");
+    }
+
+    try
+    {
+        await db.Database.ExecuteSqlRawAsync(@"
+            IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'BankCards')
+            BEGIN
+                IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'BankCards' AND COLUMN_NAME = 'BankCardToken')
+                BEGIN
+                    ALTER TABLE BankCards ADD BankCardToken UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID();
+                END
+                IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'BankCards' AND COLUMN_NAME = 'Email')
+                BEGIN
+                    ALTER TABLE BankCards ADD Email NVARCHAR(255) NOT NULL DEFAULT '';
+                END
+                IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'BankCards' AND COLUMN_NAME = 'UserId')
+                BEGIN
+                    ALTER TABLE BankCards ADD UserId UNIQUEIDENTIFIER NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000';
+                END
+            END
+        ");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[FakeBankDb Schema Patch Notice]: {ex.Message}");
+    }
+
+    try
+    {
+        var emptyCards = await db.BankCards.Where(c => c.Balance < 500000m).ToListAsync();
+        foreach (var card in emptyCards)
+        {
+            card.Balance = 1000000m;
+        }
+        if (emptyCards.Count > 0)
+        {
+            await db.SaveChangesAsync();
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[FakeBankDb Seeding Notice]: {ex.Message}");
     }
 }
 

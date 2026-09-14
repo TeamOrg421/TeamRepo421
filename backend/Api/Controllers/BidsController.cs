@@ -1,4 +1,4 @@
-﻿using Api.Hubs;
+using Api.Hubs;
 using BusinessLogic.Interfaces;
 using DataAccess.Entities;
 using DataAccess.IRepositories;
@@ -91,7 +91,7 @@ namespace Api.Controllers
 
             var lastBids = await _bidRepoAdd.GetLastBidAsync(model.ListingId);
             if (lastBids != null && lastBids.UserId == userId)
-                return BadRequest(new { message = "You cannot place two consecutive bids on the same listing." });
+                return BadRequest(new { message = "You already hold the highest bid on this auction. You cannot outbid yourself." });
 
             var bid = new Bid
             {

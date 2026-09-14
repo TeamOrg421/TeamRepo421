@@ -1,4 +1,4 @@
-﻿using BusinessLogic.DTOs;
+using BusinessLogic.DTOs;
 using BusinessLogic.Interfaces;
 using DataAccess.Entities;
 using DataAccess.Entities.Enums;
@@ -75,7 +75,7 @@ namespace BusinessLogic.Services
             var items = await auctionLotRepository.GetAllAsync(
                 pageNumber: pageNumber,
                 filtering: x => x.Status == ListingStatus.Pending,
-                includes: new[] { "Car", "Seller" });
+                includes: new[] { "Car", "Car.Images", "Car.Model", "Car.Model.Brand", "Car.Specification", "Seller" });
 
             return items.Select(x => new PendingAuctionDto
             {
@@ -83,36 +83,7 @@ namespace BusinessLogic.Services
                 Title = x.Title,
                 Description = x.Description,
                 Location = x.Location,
-
-                StartingPrice = x.StartingPrice,
-                CurrentPrice = x.CurrentPrice,
-
-                AuctionStart = x.AuctionStart,
-                AuctionEnd = x.AuctionEnd,
-                Duration = x.Duration,
-
-                Status = x.Status,
-
-                SellerId = x.SellerId,
-                SellerName = x.Seller.Name,
-                SellerEmail = x.Seller.Email,
-
-                CarId = x.CarId
-            }).ToList();
-        }
-        public async Task<IList<PendingAuctionDto>> GetActiveAuctionsAsync(int? pageNumber)
-        {
-            var items = await auctionLotRepository.GetAllAsync(
-                pageNumber: pageNumber,
-                filtering: x => x.Status == ListingStatus.Active,
-                includes: new[] { "Car", "Seller" });
-            return items.Select(x => new PendingAuctionDto
-            {
-                Id = x.Id,
-                Title = x.Title,
-                Description = x.Description,
-                Location = x.Location,
-                Images = x.Car.Images?.Select(image => new CarImageDto
+                Images = x.Car?.Images?.Select(image => new CarImageDto
                 {
                     Id = image.Id,
                     ImageUrl = image.ImageUrl,
@@ -130,10 +101,58 @@ namespace BusinessLogic.Services
                 Status = x.Status,
 
                 SellerId = x.SellerId,
-                SellerName = x.Seller.Name,
-                SellerEmail = x.Seller.Email,
+                SellerName = x.Seller != null ? x.Seller.Name : string.Empty,
+                SellerEmail = x.Seller?.Email,
 
-                CarId = x.CarId
+                CarId = x.CarId,
+                Year = x.Car?.Year,
+                BrandName = x.Car?.Model?.Brand?.Name,
+                ModelName = x.Car?.Model?.Name,
+                Mileage = x.Car?.Specification?.Mileage,
+                FuelType = x.Car?.Specification?.FuelType,
+                Transmission = x.Car?.Specification?.Transmission
+            }).ToList();
+        }
+        public async Task<IList<PendingAuctionDto>> GetActiveAuctionsAsync(int? pageNumber)
+        {
+            var items = await auctionLotRepository.GetAllAsync(
+                pageNumber: pageNumber,
+                filtering: x => x.Status == ListingStatus.Active,
+                includes: new[] { "Car", "Car.Images", "Car.Model", "Car.Model.Brand", "Car.Specification", "Seller" });
+            return items.Select(x => new PendingAuctionDto
+            {
+                Id = x.Id,
+                Title = x.Title,
+                Description = x.Description,
+                Location = x.Location,
+                Images = x.Car?.Images?.Select(image => new CarImageDto
+                {
+                    Id = image.Id,
+                    ImageUrl = image.ImageUrl,
+                    IsMain = image.IsMain,
+                    CarId = image.CarId
+                }).ToList() ?? new List<CarImageDto>(),
+
+                StartingPrice = x.StartingPrice,
+                CurrentPrice = x.CurrentPrice,
+
+                AuctionStart = x.AuctionStart,
+                AuctionEnd = x.AuctionEnd,
+                Duration = x.Duration,
+
+                Status = x.Status,
+
+                SellerId = x.SellerId,
+                SellerName = x.Seller != null ? x.Seller.Name : string.Empty,
+                SellerEmail = x.Seller?.Email,
+
+                CarId = x.CarId,
+                Year = x.Car?.Year,
+                BrandName = x.Car?.Model?.Brand?.Name,
+                ModelName = x.Car?.Model?.Name,
+                Mileage = x.Car?.Specification?.Mileage,
+                FuelType = x.Car?.Specification?.FuelType,
+                Transmission = x.Car?.Specification?.Transmission
             }).ToList();
         }
         public async Task<AuctionDetailsDto?> GetAuctionDetailsAsync(Guid listingId)
@@ -253,6 +272,12 @@ namespace BusinessLogic.Services
         public string? SellerEmail { get; set; }
 
         public Guid CarId { get; set; }
+        public int? Year { get; set; }
+        public string? BrandName { get; set; }
+        public string? ModelName { get; set; }
+        public int? Mileage { get; set; }
+        public FuelType? FuelType { get; set; }
+        public TransmissionType? Transmission { get; set; }
     }
     public class AuctionDetailsDto
     {

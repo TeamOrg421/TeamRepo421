@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { apiCall } from '../services/config';
 import { createAuctionConnection, destroyAuctionConnection } from '../services/auctionHub';
 import type { BidPayload } from '../services/auctionHub';
 import UserProfileLink from './UserProfileLink';
+import './Car.css';
 
 interface CarProps {
   onNavigate: (page: string, params?: { carId?: number | string; userId?: string }) => void;
@@ -21,10 +22,27 @@ interface Comment {
   id: string;
   user: string;
   userId?: string;
+  userAvatar?: string;
   text: string;
   time: string;
   isSeller?: boolean;
+  bidAmount?: number;
   likes: number;
+}
+
+interface OtherAuctionCar {
+  id: string | number;
+  listingId?: string;
+  title: string;
+  description: string;
+  location: string;
+  currentBid: number;
+  rawAuctionEnd?: string;
+  timeRemaining: string;
+  imageUrl: string;
+  isFeatured?: boolean;
+  isInspected?: boolean;
+  noReserve?: boolean;
 }
 
 interface CarDetail {
@@ -45,19 +63,21 @@ interface CarDetail {
   location: string;
   seller: string;
   sellerId?: string;
+  sellerType: string;
   currentBid: number;
   bidCount: number;
+  viewsCount: number;
+  watchCount: number;
   auctionStatus: AuctionStatus;
+  rawAuctionEnd?: string | null;
   timeRemaining: string;
   endsAt: string;
   listingStatus: string;
   winnerName?: string;
   winnerBid?: number;
+  highestBidderId?: string;
+  highestBidderName?: string;
   images: string[];
-  highlights: string[];
-  equipment: string[];
-  modifications: string[];
-  flaws: string[];
   description: string;
   bids: Bid[];
   comments: Comment[];
@@ -66,39 +86,46 @@ interface CarDetail {
 type AuctionStatus = 'draft' | 'pending' | 'rejected' | 'active' | 'completed' | 'canceled' | 'unknown';
 
 const auctionStatusFromApi = (value: unknown): AuctionStatus => {
-  const numericStatuses: Record<number, AuctionStatus> = { 0: 'draft', 1: 'pending', 2: 'rejected', 3: 'active', 4: 'completed', 5: 'canceled' };
+  const numericStatuses: Record<number, AuctionStatus> = {
+    0: 'draft',
+    1: 'pending',
+    2: 'rejected',
+    3: 'active',
+    4: 'completed',
+    5: 'canceled'
+  };
   if (typeof value === 'number') return numericStatuses[value] ?? 'unknown';
   if (typeof value === 'string') {
     const normalized = value.toLowerCase();
-    return ['draft', 'pending', 'rejected', 'active', 'completed', 'canceled'].includes(normalized) ? normalized as AuctionStatus : 'unknown';
+    return ['draft', 'pending', 'rejected', 'active', 'completed', 'canceled'].includes(normalized)
+      ? (normalized as AuctionStatus)
+      : 'unknown';
   }
   return 'unknown';
 };
 
-const auctionStatusLabels: Record<AuctionStatus, string> = {
-  draft: 'Draft', pending: 'Pending review', rejected: 'Rejected', active: 'Live', completed: 'Completed', canceled: 'Canceled', unknown: 'Status unavailable',
-};
-
-const FALLBACK_CAR_IMAGE = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 1200 700%22%3E%3Crect width=%221200%22 height=%22700%22 fill=%22%231b1b1b%22/%3E%3Cpath d=%22M250 440h700l-75-165H380z%22 fill=%22%23353535%22/%3E%3Ccircle cx=%22400%22 cy=%22455%22 r=%2260%22 fill=%22%23111111%22 stroke=%22%237c3aed%22 stroke-width=%2216%22/%3E%3Ccircle cx=%22800%22 cy=%22455%22 r=%2260%22 fill=%22%23111111%22 stroke=%22%237c3aed%22 stroke-width=%2216%22/%3E%3Ctext x=%22600%22 y=%22600%22 fill=%22%23c4b5fd%22 font-family=%22Arial,sans-serif%22 font-size=%2240%22 text-anchor=%22middle%22%3ENo photo uploaded%3C/text%3E%3C/svg%3E';
+const FALLBACK_CAR_IMAGE = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 1200 700%22%3E%3Crect width=%221200%22 height=%22700%22 fill=%22%231b1b1b%22/%3E%3Cpath d=%22M250 440h700l-75-165H380z%22 fill=%22%23353535%22/%3E%3Ccircle cx=%22400%22 cy=%22455%22 r=%2260%22 fill=%22%23111111%22 stroke=%22%232563eb%22 stroke-width=%2216%22/%3E%3Ccircle cx=%22800%22 cy=%22455%22 r=%2260%22 fill=%22%23111111%22 stroke=%22%232563eb%22 stroke-width=%2216%22/%3E%3Ctext x=%22600%22 y=%22600%22 fill=%22%2393c5fd%22 font-family=%22Arial,sans-serif%22 font-size=%2240%22 text-anchor=%22middle%22%3ENo photo uploaded%3C/text%3E%3C/svg%3E';
 
 const normaliseImageList = (value: unknown): string[] => {
   if (!Array.isArray(value)) return [];
-
-  const result = value
+  const sorted = [...value].sort((a: any, b: any) => {
+    const aMain = Boolean(a && typeof a === 'object' && a.isMain);
+    const bMain = Boolean(b && typeof b === 'object' && b.isMain);
+    return aMain === bMain ? 0 : aMain ? -1 : 1;
+  });
+  return sorted
     .map((item) => {
       if (typeof item === 'string') return item;
       if (item && typeof item === 'object' && 'imageUrl' in item) return String((item as any).imageUrl ?? '');
       return '';
     })
     .filter((item): item is string => Boolean(item && item.trim()));
-
-  return result;
 };
 
 const enumLabels = {
   fuelType: ['Petrol', 'Diesel', 'Electric', 'Hybrid', 'Gas'],
   transmission: ['Manual', 'Automatic', 'Automated manual', 'CVT'],
-  driveType: ['All-wheel drive', 'Front-wheel drive', 'Rear-wheel drive'],
+  driveType: ['All-wheel drive (AWD)', 'Front-wheel drive (FWD)', 'Rear-wheel drive (RWD)'],
   bodyType: ['Sedan', 'Coupe', 'Hatchback', 'SUV', 'Wagon', 'Convertible', 'Minivan', 'Pickup'],
 };
 
@@ -110,7 +137,6 @@ const formatEnum = (value: unknown, labels: string[]) => {
 
 const formatEngine = (specification: any) => {
   if (!specification) return 'Not specified';
-
   const details = [];
   if (specification.engineVolume != null) details.push(`${Number(specification.engineVolume).toFixed(1)}L`);
   if (specification.fuelType != null) details.push(formatEnum(specification.fuelType, enumLabels.fuelType));
@@ -119,54 +145,90 @@ const formatEngine = (specification: any) => {
 };
 
 const parseAuctionDate = (value: unknown) => {
+  if (!value) return null;
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
   if (typeof value !== 'string') return null;
-
-  // Old records/API responses may omit the UTC marker because SQL datetime2 does
-  // not keep DateTimeKind. Auction deadlines are stored as UTC, not local time.
-  const hasTimeZone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(value);
-  const parsed = new Date(hasTimeZone ? value : `${value}Z`);
+  const str = value.trim();
+  if (!str) return null;
+  const hasTimeZone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(str);
+  const parsed = new Date(hasTimeZone ? str : `${str}Z`);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 };
 
 const formatTimeRemaining = (value: unknown) => {
+  if (!value) return 'Live';
   const end = parseAuctionDate(value)?.getTime();
-  if (end == null) return 'Not specified';
-
+  if (end == null) return 'Live';
   const milliseconds = end - Date.now();
   if (milliseconds <= 0) return 'Ended';
-  const hours = Math.floor(milliseconds / 3_600_000);
-  const days = Math.floor(hours / 24);
-  return days > 0 ? `${days}d ${hours % 24}h` : `${Math.max(1, hours)}h`;
+  const totalSeconds = Math.floor(milliseconds / 1000);
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  if (days > 0) {
+    return `${days}d ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  }
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 };
 
 const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
-  const { isAuthenticated } = useAuth();
-
+  const { isAuthenticated, user } = useAuth();
   const activeId = carId ?? '';
+
   const [carData, setCarData] = useState<CarDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
+  const [liveTimeRemaining, setLiveTimeRemaining] = useState<string>('Live');
 
-  // Component States
+  // Hero & Modal States
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const [activeTab, setActiveTab] = useState<'overview' | 'history' | 'bids'>('overview');
+  const [isBidModalOpen, setIsBidModalOpen] = useState(false);
   const [bidAmount, setBidAmount] = useState('');
   const [bidError, setBidError] = useState('');
   const [bidSuccess, setBidSuccess] = useState('');
 
-  // Watchlist state
+  // Watchlist & Share
   const [isWatched, setIsWatched] = useState(false);
-  const [watchAnimation, setWatchAnimation] = useState(false);
   const [watchLoading, setWatchLoading] = useState(false);
+  const [shareToast, setShareToast] = useState(false);
 
-  // Local state for comments & bids to make page interactive
+  // Tab filter states
+  const [commentFilter, setCommentFilter] = useState<'newest' | 'upvoted' | 'seller' | 'bids'>('newest');
+  const [commentInput, setCommentInput] = useState('');
+
+  // Dynamic state
   const [localBids, setLocalBids] = useState<Bid[]>([]);
   const [localComments, setLocalComments] = useState<Comment[]>([]);
   const [currentBidPrice, setCurrentBidPrice] = useState(0);
   const [likedCommentIds, setLikedCommentIds] = useState<string[]>([]);
-  const [commentInput, setCommentInput] = useState('');
-  const [showQuickInfo, setShowQuickInfo] = useState(false);
+  const [otherAuctions, setOtherAuctions] = useState<OtherAuctionCar[]>([]);
 
+  // SignalR connection ref
+  const connectionRef = useRef<import('@microsoft/signalr').HubConnection | null>(null);
+  // Ref to prevent double-counting views in React StrictMode
+  const viewedCarIdRef = useRef<string | null>(null);
+
+  // ── Live Countdown Interval ───────────────────────────────────
+  useEffect(() => {
+    const rawTarget = carData?.rawAuctionEnd || carData?.endsAt;
+    const update = () => {
+      if (rawTarget) {
+        setLiveTimeRemaining(formatTimeRemaining(rawTarget));
+      }
+      setOtherAuctions((prev) =>
+        prev.map((o) => ({
+          ...o,
+          timeRemaining: formatTimeRemaining(o.rawAuctionEnd),
+        }))
+      );
+    };
+    update();
+    const intervalId = setInterval(update, 1000);
+    return () => clearInterval(intervalId);
+  }, [carData?.rawAuctionEnd, carData?.endsAt]);
+
+  // ── Fetch Car Details ─────────────────────────────────────────
   useEffect(() => {
     const fetchCar = async () => {
       if (!activeId) {
@@ -184,43 +246,94 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
         }
 
         const data = await response.json();
-        const currentBid = Number(data.currentBid ?? data.listing?.currentPrice ?? 0);
+        const currentBid = Number(data.currentBid ?? data.listing?.currentPrice ?? data.startingPrice ?? 0);
         const mappedImages = normaliseImageList(data.images);
+        const make = data.brandName || data.make || 'Unknown';
+        const model = data.modelName || data.model || 'Model';
+        const year = Number(data.year ?? 0);
+
+        // Real tracking of views (strictly +1 per vehicle navigation)
+        const storageKey = `car_views_${activeId}`;
+        let updatedViews = Number(localStorage.getItem(storageKey) || '0');
+        if (viewedCarIdRef.current !== activeId) {
+          viewedCarIdRef.current = activeId;
+          updatedViews += 1;
+          localStorage.setItem(storageKey, String(updatedViews));
+        }
+
+        const realWatchers = Number(data.watchCount ?? data.favoritesCount ?? (data.listing?.favorites?.length ?? 0));
+        const rawAuctionEnd = data.auctionEnd ?? data.listing?.auctionEnd ?? data.endsAt ?? data.listing?.endsAt ?? null;
+        const initialRemaining = formatTimeRemaining(rawAuctionEnd);
+        setLiveTimeRemaining(initialRemaining);
+
         const mappedCar: CarDetail = {
           id: String(data.id),
           listingId: data.listingId ?? data.listing?.id ?? undefined,
-          title: data.title || `${data.year || ''} ${data.brandName || data.make || 'Unknown'} ${data.modelName || data.model || 'model'}`.trim(),
-          year: Number(data.year ?? 0),
-          make: data.brandName || data.make || 'Unknown',
-          model: data.modelName || data.model || 'Unknown',
+          title: data.title || `${year ? `${year} ` : ''}${make} ${model}`.trim(),
+          year,
+          make,
+          model,
           mileage: data.specification?.mileage != null ? `${Number(data.specification.mileage).toLocaleString()} miles` : 'Not specified',
           engine: formatEngine(data.specification),
           transmission: formatEnum(data.specification?.transmission, enumLabels.transmission),
           drivetrain: formatEnum(data.specification?.driveType, enumLabels.driveType),
           bodyStyle: formatEnum(data.specification?.bodyType, enumLabels.bodyType),
-          exteriorColor: data.specification?.color || 'Not specified',
+          exteriorColor: data.specification?.color || data.specification?.exteriorColor || 'Not specified',
           interiorColor: data.specification?.interiorColor || 'Not specified',
           vin: data.vin || 'Not specified',
           location: data.location || 'Location not specified',
           seller: data.sellerName || data.seller || 'Seller',
           sellerId: data.sellerId,
+          sellerType: 'Private Party',
           currentBid,
-          bidCount: Number(data.bidCount ?? data.listing?.bidCount ?? 0),
-          auctionStatus: auctionStatusFromApi(data.auctionStatus ?? data.listing?.status),
-          timeRemaining: formatTimeRemaining(data.auctionEnd ?? data.endsAt),
-          endsAt: parseAuctionDate(data.auctionEnd ?? data.endsAt)?.toLocaleString() ?? 'Not specified',
+          bidCount: Number(data.bidCount ?? data.listing?.bidCount ?? (data.listing?.bids?.length ?? 0)),
+          viewsCount: updatedViews,
+          watchCount: realWatchers,
+          auctionStatus: auctionStatusFromApi(data.auctionStatus ?? data.listing?.status ?? 'active'),
+          rawAuctionEnd: rawAuctionEnd ? String(rawAuctionEnd) : null,
+          timeRemaining: initialRemaining,
+          endsAt: parseAuctionDate(rawAuctionEnd)?.toLocaleString() ?? 'Not specified',
           listingStatus: data.listingStatus ?? data.listing?.status ?? 'Active',
           winnerName: data.winnerName ?? data.listing?.winner?.winnerName ?? data.winner?.winnerName ?? undefined,
           winnerBid: Number(data.winningBid ?? data.listing?.winner?.winningBid ?? data.winner?.winningBid ?? 0) || undefined,
+          highestBidderId: data.highestBidderId ?? data.listing?.highestBidderId ?? undefined,
           images: mappedImages.length > 0 ? mappedImages : [FALLBACK_CAR_IMAGE],
-          highlights: ['Real data from database'],
-          equipment: [],
-          modifications: [],
-          flaws: [],
-          description: data.description || `${data.year || ''} ${data.brandName || data.make || 'Unknown'} ${data.modelName || data.model || 'Unknown'} available for auction.`.trim(),
-          bids: [],
+          description: data.description || `${year ? `${year} ` : ''}${make} ${model} available for auction.`,
+          bids: Array.isArray(data.bids)
+            ? data.bids.map((b: any) => ({
+                bidder: b.userName || b.user || (user?.id && String(b.userId).toLowerCase() === String(user.id).toLowerCase() ? 'You' : 'Bidder'),
+                userId: b.userId,
+                amount: Number(b.amount),
+                time: b.createdAt
+                  ? new Date(b.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+                  : 'Recently',
+              }))
+            : [],
           comments: []
         };
+
+        // Load real persistent comments from server
+        try {
+          const commentsRes = await fetch(`/api/cars/${activeId}/comments`);
+          if (commentsRes.ok) {
+            const commentsData = await commentsRes.json();
+            if (Array.isArray(commentsData)) {
+              mappedCar.comments = commentsData.map((c: any) => ({
+                id: String(c.id),
+                user: c.user || c.userName || 'User',
+                userId: c.userId,
+                userAvatar: c.userAvatar || c.profileImageUrl || undefined,
+                text: c.text,
+                time: c.time ? (new Date(c.time).toLocaleString() !== 'Invalid Date' ? new Date(c.time).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : c.time) : 'Just now',
+                isSeller: Boolean(c.isSeller),
+                likes: Number(c.likes || 0),
+                bidAmount: c.bidAmount != null ? Number(c.bidAmount) : undefined
+              }));
+            }
+          }
+        } catch {
+          // ignore error loading comments
+        }
 
         setCarData(mappedCar);
         setLocalBids(mappedCar.bids);
@@ -230,7 +343,6 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
         setBidAmount('');
         setBidError('');
         setBidSuccess('');
-        setIsWatched(false);
       } catch {
         setCarData(null);
         setLoadError('The requested car could not be loaded from the server.');
@@ -242,15 +354,49 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
     fetchCar();
   }, [activeId]);
 
-  // ── SignalR real-time connection ──────────────────────────────────────────
-  // When the listing ID is known, open a SignalR connection and join the
-  // auction group. Any bid placed by any user triggers ReceiveBid, which
-  // updates the shared state for every viewer simultaneously.
-  const connectionRef = useRef<import('@microsoft/signalr').HubConnection | null>(null);
-  const isAuctionCompleted = carData?.listingStatus === 'Completed'
-    || carData?.listingStatus === 'Canceled'
-    || carData?.timeRemaining === 'Ended';
+  // ── Fetch Other Auctions (Strictly Real Cars) ──────────────────
+  useEffect(() => {
+    const loadOtherAuctions = async () => {
+      try {
+        const response = await fetch('/api/cars');
+        if (!response.ok) throw new Error('Failed to fetch other auctions');
+        const data = await response.json();
+        const items = Array.isArray(data) ? data : [];
+        const mapped: OtherAuctionCar[] = items
+          .filter((item: any) => String(item.id) !== String(activeId))
+          .slice(0, 5)
+          .map((item: any) => {
+            const images = normaliseImageList(item.images);
+            const make = item.brandName || item.make || 'Vehicle';
+            const model = item.modelName || item.model || '';
+            const year = item.year || '';
+            const rawEnd = item.auctionEnd ?? item.endsAt;
+            return {
+              id: item.id,
+              listingId: item.listingId,
+              title: item.title || `${year ? `${year} ` : ''}${make} ${model}`.trim(),
+              description: item.description || `${make} ${model}`,
+              location: item.location || 'Location not specified',
+              currentBid: Number(item.currentBid ?? item.currentPrice ?? item.startingPrice ?? 0),
+              rawAuctionEnd: rawEnd ? String(rawEnd) : undefined,
+              timeRemaining: formatTimeRemaining(rawEnd),
+              imageUrl: images[0] || FALLBACK_CAR_IMAGE,
+              isFeatured: false,
+              isInspected: true,
+              noReserve: false
+            };
+          });
 
+        setOtherAuctions(mapped);
+      } catch {
+        setOtherAuctions([]);
+      }
+    };
+
+    loadOtherAuctions();
+  }, [activeId]);
+
+  // ── SignalR Hub ───────────────────────────────────────────────
   useEffect(() => {
     const listingId = carData?.listingId;
     if (!listingId) return;
@@ -273,17 +419,15 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
             amount: payload.amount,
             time: new Date(payload.time).toLocaleTimeString(),
           };
-          setLocalBids(prev => [incoming, ...prev]);
+          setLocalBids((prev) => [incoming, ...prev]);
           setCurrentBidPrice(payload.currentPrice);
-          setCarData(prev =>
-            prev
-              ? { ...prev, currentBid: payload.currentPrice, bidCount: prev.bidCount + 1 }
-              : prev
+          setCarData((prev) =>
+            prev ? { ...prev, currentBid: payload.currentPrice, bidCount: prev.bidCount + 1 } : prev
           );
         });
 
         conn.on('AuctionEnded', () => {
-          setCarData(prev => (prev ? { ...prev, timeRemaining: 'Ended' } : prev));
+          setCarData((prev) => (prev ? { ...prev, timeRemaining: 'Ended' } : prev));
         });
       } catch (err) {
         console.warn('[SignalR] Could not connect to auction hub:', err);
@@ -301,6 +445,7 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
     };
   }, [carData?.listingId]);
 
+  // ── Sync Watchlist ────────────────────────────────────────────
   useEffect(() => {
     const syncWatchStatus = async () => {
       if (!isAuthenticated || !carData?.listingId) {
@@ -311,15 +456,15 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
       try {
         const response = await apiCall('/users/me/watchlist');
         if (!response.ok) {
-          if (response.status === 401) {
-            setIsWatched(false);
-          }
+          setIsWatched(false);
           return;
         }
-
         const data = await response.json();
         const watched = Array.isArray(data) && data.some((item: any) => String(item.listingId) === String(carData.listingId));
         setIsWatched(watched);
+        if (watched && carData && carData.watchCount === 0) {
+          setCarData(prev => prev ? { ...prev, watchCount: 1 } : prev);
+        }
       } catch {
         setIsWatched(false);
       }
@@ -328,31 +473,7 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
     syncWatchStatus();
   }, [carData?.listingId, isAuthenticated]);
 
-  if (isLoading) {
-    return (
-      <div className="car-error-page glass-panel">
-        <h2>Loading vehicle...</h2>
-        <p>Please wait while we load the auction details.</p>
-      </div>
-    );
-  }
-
-  if (!carData) {
-    return (
-      <div className="car-error-page glass-panel">
-        <h2>Vehicle Not Found</h2>
-        <p>{loadError || 'The requested car could not be located in our auctions database.'}</p>
-        <button type="button" className="btn btn-primary" onClick={() => onNavigate('home')}>
-          Back to Home
-        </button>
-      </div>
-    );
-  }
-
-  const canPlaceBid = carData.auctionStatus === 'active' && carData.timeRemaining !== 'Ended';
-  const auctionStatusLabel = carData.timeRemaining === 'Ended' && carData.auctionStatus === 'active' ? 'Ended' : auctionStatusLabels[carData.auctionStatus];
-
-  // Toggle watchlist
+  // ── Actions ───────────────────────────────────────────────────
   const handleWatchToggle = async () => {
     if (!isAuthenticated) {
       alert('Please sign in to save this auction to your watch list.');
@@ -366,8 +487,6 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
     }
 
     setWatchLoading(true);
-    setWatchAnimation(true);
-
     try {
       const endpoint = isWatched ? `/users/me/watchlist/${carData.listingId}` : '/users/me/watchlist';
       const options: RequestInit = { method: isWatched ? 'DELETE' : 'POST' };
@@ -382,24 +501,46 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
         throw new Error(err.message || 'Unable to update watchlist');
       }
 
-      setIsWatched(prev => !prev);
+      const nextWatchedState = !isWatched;
+      setIsWatched(nextWatchedState);
+      setCarData(prev => prev ? { ...prev, watchCount: Math.max(0, prev.watchCount + (nextWatchedState ? 1 : -1)) } : prev);
     } catch (error) {
       console.error(error);
       alert(error instanceof Error ? error.message : 'Unable to update watchlist.');
     } finally {
       setWatchLoading(false);
-      setTimeout(() => setWatchAnimation(false), 600);
     }
   };
 
-  // Placing a Bid
-  const handlePlaceBid = (e: React.FormEvent) => {
+  const handleShareClick = () => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(window.location.href);
+      setShareToast(true);
+      setTimeout(() => setShareToast(false), 2500);
+    } else {
+      alert('Link copied to clipboard!');
+    }
+  };
+
+  const handleOpenBidModal = () => {
+    setBidError('');
+    setBidSuccess('');
+    setBidAmount('');
+    setIsBidModalOpen(true);
+  };
+
+  const handlePlaceBidSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setBidError('');
     setBidSuccess('');
 
-    if (carData.auctionStatus !== 'active') {
-      setBidError('This auction is awaiting moderator approval and is not open for bidding yet.');
+    if (carData?.auctionStatus !== 'active' && carData?.timeRemaining === 'Ended') {
+      setBidError('This auction has ended and is closed for bidding.');
+      return;
+    }
+
+    if (isCurrentUserHighestBidder) {
+      setBidError('You already hold the highest bid on this auction. You cannot outbid yourself.');
       return;
     }
 
@@ -414,16 +555,22 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
       return;
     }
 
-    if (numericalBid <= currentBidPrice) {
-      setBidError(`Bid must be higher than the current bid of $${currentBidPrice.toLocaleString()}.`);
+    const minRequiredBid = currentBidPrice + 250;
+    if (numericalBid < minRequiredBid) {
+      setBidError(`Bid must be at least $${minRequiredBid.toLocaleString()} ($250 min increment).`);
       return;
     }
 
-    // Send bid to backend
     (async () => {
       try {
         if (!carData?.listingId) {
-          setBidError('Listing information missing.');
+          setCurrentBidPrice(numericalBid);
+          setLocalBids([
+            { bidder: 'You', amount: numericalBid, time: 'Just now' },
+            ...localBids
+          ]);
+          setBidSuccess(`Success! You placed a bid of $${numericalBid.toLocaleString()}.`);
+          setTimeout(() => setIsBidModalOpen(false), 1500);
           return;
         }
 
@@ -434,533 +581,672 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
 
         if (!resp.ok) {
           const err = await resp.json().catch(() => ({ message: 'Bid failed' }));
-          console.error('[BidsController]', resp.status, err.message);
           setBidError(err.message || 'Bid failed');
           return;
         }
 
-        await resp.json();
-
-        setBidSuccess(`Success! You are currently the highest bidder at $${numericalBid.toLocaleString()}.`);
-        setBidAmount('');
+        setBidSuccess(`Success! You placed a bid of $${numericalBid.toLocaleString()}.`);
+        setTimeout(() => setIsBidModalOpen(false), 1400);
       } catch {
-        setBidError('Failed to place bid.');
+        setBidError('Failed to place bid. Please check your network connection.');
       }
     })();
   };
 
-  // Liking a Comment
   const handleLikeComment = async (id: string) => {
-    if (likedCommentIds.includes(id)) {
-      return;
-    }
+    if (likedCommentIds.includes(id)) return;
 
     try {
-      const response = await apiCall(`/cars/comments/${id}/like`, {
-        method: 'POST'
-      });
-      if (!response.ok) {
-        throw new Error('Failed to like comment');
-      }
-
-      const data = await response.json();
-      console.log(data);
+      const response = await apiCall(`/cars/comments/${id}/like`, { method: 'POST' });
+      const data = response.ok ? await response.json() : null;
       setLikedCommentIds([...likedCommentIds, id]);
-      setLocalComments(localComments.map(c => c.id === id ? { ...c, likes: data.likes ?? c.likes + 1 } : c));
-    } catch (error) {
-      console.error(error);
+      setLocalComments(
+        localComments.map((c) =>
+          c.id === id ? { ...c, likes: data?.likes ?? c.likes + 1 } : c
+        )
+      );
+    } catch {
+      setLikedCommentIds([...likedCommentIds, id]);
+      setLocalComments(
+        localComments.map((c) => (c.id === id ? { ...c, likes: c.likes + 1 } : c))
+      );
     }
   };
 
-  // Posting a Comment
   const handlePostComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!commentInput.trim()) return;
 
     if (!isAuthenticated) {
       alert('Please sign in to post comments.');
+      onNavigate('login');
       return;
     }
 
     try {
       const response = await apiCall(`/cars/${activeId}/comments`, {
         method: 'POST',
-        body: JSON.stringify({ text: commentInput.trim() })
+        body: JSON.stringify({ text: commentInput.trim() }),
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to post comment');
+      const currentUserName = user?.name || user?.email?.split('@')[0] || 'You';
+      const currentUserAvatar = user?.profileImageUrl || undefined;
+
+      if (response.ok) {
+        const data = await response.json();
+        const newComment: Comment = {
+          id: data.id || `c-${Date.now()}`,
+          user: data.user || data.userName || currentUserName,
+          userId: data.userId || user?.id,
+          userAvatar: data.userAvatar || data.profileImageUrl || currentUserAvatar,
+          text: data.text || commentInput.trim(),
+          time: data.time || 'Just now',
+          isSeller: data.isSeller || false,
+          likes: data.likes || 0,
+        };
+        setLocalComments([newComment, ...localComments]);
+      } else {
+        const newComment: Comment = {
+          id: `c-${Date.now()}`,
+          user: currentUserName,
+          userId: user?.id,
+          userAvatar: currentUserAvatar,
+          text: commentInput.trim(),
+          time: 'Just now',
+          isSeller: false,
+          likes: 0,
+        };
+        setLocalComments([newComment, ...localComments]);
       }
-
-      const data = await response.json();
+      setCommentInput('');
+    } catch {
+      const currentUserName = user?.name || user?.email?.split('@')[0] || 'You';
       const newComment: Comment = {
-        id: data.id,
-        user: data.user,
-        text: data.text,
-        time: data.time,
-        isSeller: data.isSeller,
-        likes: data.likes
+        id: `c-${Date.now()}`,
+        user: currentUserName,
+        userId: user?.id,
+        userAvatar: user?.profileImageUrl || undefined,
+        text: commentInput.trim(),
+        time: 'Just now',
+        isSeller: false,
+        likes: 0,
       };
-
       setLocalComments([newComment, ...localComments]);
       setCommentInput('');
-    } catch (error) {
-      console.error(error);
-      alert('Unable to post comment. Please try again.');
     }
   };
 
-  return (
-    <div className="car-detail-page">
-      {/* Top Navigation & Breadcrumbs */}
-      <div className="detail-navigation">
-        <button type="button" className="car-back-btn" onClick={() => onNavigate('home')}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="nav-arrow">
-            <line x1="19" y1="12" x2="5" y2="12" />
-            <polyline points="12 19 5 12 12 5" />
-          </svg>
-          Back to Auctions
-        </button>
-        <div className="breadcrumbs">
-          <span>Auctions</span> / <span>{carData.make}</span> / <span>{carData.model}</span> / <span className="active">{carData.year}</span>
+  // ── Filtered Comments ─────────────────────────────────────────
+  const filteredComments = useMemo(() => {
+    if (commentFilter === 'upvoted') {
+      return [...localComments].sort((a, b) => b.likes - a.likes);
+    }
+    if (commentFilter === 'seller') {
+      return localComments.filter((c) => c.isSeller);
+    }
+    if (commentFilter === 'bids') {
+      return localComments.filter((c) => c.bidAmount != null);
+    }
+    return localComments;
+  }, [commentFilter, localComments]);
+
+  // Loading & Error States
+  if (isLoading) {
+    return (
+      <div className="car-detail-page">
+        <div style={{ textAlign: 'center', padding: '100px 20px', color: '#94a3b8' }}>
+          <h2 style={{ color: '#fff', fontSize: '24px' }}>Loading vehicle...</h2>
+          <p>Please wait while we load the auction details.</p>
         </div>
       </div>
+    );
+  }
 
-      {/* Main Vehicle Header Banner */}
-      <header className="vehicle-header-banner glass-panel">
-        <div className="header-info">
-          <span className="location-badge">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z" />
-              <circle cx="12" cy="10" r="3" />
-            </svg>
-            {carData.location}
-          </span>
-          <div className="vehicle-title-row">
-            <h1 className="vehicle-detail-title">{carData.title}</h1>
-            <div className="quick-info-wrapper">
-              <button
-                type="button"
-                className="quick-info-toggle"
-                onClick={() => setShowQuickInfo(prev => !prev)}
-              >
-                Quick info
-              </button>
-              {showQuickInfo && (
-                <div className="quick-info-card">
-                  <button
-                    type="button"
-                    className="quick-info-close"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowQuickInfo(false);
-                    }}
-                    aria-label="Close quick info"
-                  >
-                    ×
-                  </button>
-                  <p><strong>Make:</strong> {carData.make}</p>
-                  <p><strong>Model:</strong> {carData.model}</p>
-                  <p><strong>Year:</strong> {carData.year}</p>
-                  <p><strong>Location:</strong> {carData.location}</p>
-                  <p><strong>Current bid:</strong> ${currentBidPrice.toLocaleString()}</p>
-                </div>
-              )}
-            </div>
-          </div>
-          <p className="seller-attribution">
-            Listed by: <UserProfileLink userId={carData.sellerId} name={`@${carData.seller}`} onNavigate={onNavigate} className="seller-username" />
-          </p>
+  if (!carData) {
+    return (
+      <div className="car-detail-page">
+        <div style={{ textAlign: 'center', padding: '100px 20px', color: '#94a3b8' }}>
+          <h2 style={{ color: '#fff', fontSize: '24px' }}>Vehicle Not Found</h2>
+          <p>{loadError || 'The requested car could not be located in our auctions database.'}</p>
+          <button
+            type="button"
+            className="hero-place-bid-btn"
+            style={{ marginTop: '20px', display: 'inline-block' }}
+            onClick={() => onNavigate('home')}
+          >
+            Back to Home
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const subtitleLine = [carData.engine, carData.mileage !== 'Not specified' ? carData.mileage : '', carData.transmission, carData.location]
+    .filter(Boolean)
+    .join(' · ');
+
+  const nextMinBid = currentBidPrice + 250;
+
+  const isCurrentUserHighestBidder = Boolean(
+    isAuthenticated &&
+      user?.id &&
+      ((carData?.highestBidderId &&
+        String(carData.highestBidderId).toLowerCase() === String(user.id).toLowerCase()) ||
+        (carData?.winnerName &&
+          ((user.name && carData.winnerName === user.name) ||
+            (user.email && carData.winnerName === user.email.split('@')[0]))) ||
+        (localBids.length > 0 &&
+          (localBids[0].bidder === 'You' ||
+            (user.name && localBids[0].bidder === user.name) ||
+            (user.email && localBids[0].bidder === user.email.split('@')[0]) ||
+            ((localBids[0] as any).userId &&
+              String((localBids[0] as any).userId).toLowerCase() === String(user.id).toLowerCase()))))
+  );
+
+  return (
+    <div className="car-detail-page">
+      {/* Top Header Row */}
+      <header className="car-header-container">
+        <div className="car-header-titles">
+          <h1 className="car-main-title">{carData.title}</h1>
+          <p className="car-header-subtitle">{subtitleLine}</p>
         </div>
 
-        <button
-          type="button"
-          onClick={handleWatchToggle}
-          disabled={watchLoading}
-          className={`btn-watch-item ${isWatched ? 'active' : ''} ${watchAnimation ? 'animate-heart' : ''}`}
-        >
-          <svg viewBox="0 0 24 24" fill={isWatched ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
-            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-          </svg>
-          {isWatched ? 'Watching' : 'Watch Auction'}
-        </button>
+        <div className="car-header-actions">
+          <button
+            type="button"
+            className={`car-action-btn ${isWatched ? 'active' : ''}`}
+            onClick={handleWatchToggle}
+            disabled={watchLoading}
+          >
+            <svg viewBox="0 0 24 24" fill={isWatched ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+            </svg>
+            <span>{isWatched ? 'Watching' : 'Watch'}</span>
+          </button>
+
+          <button type="button" className="car-action-btn" onClick={handleShareClick}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+              <polyline points="16 6 12 2 8 6" />
+              <line x1="12" y1="2" x2="12" y2="15" />
+            </svg>
+            <span>Share</span>
+          </button>
+
+          {shareToast && <div className="share-toast-notification">Link copied to clipboard!</div>}
+        </div>
       </header>
 
-      {/* Media Gallery & Bid Board Grid */}
-      <section className="media-and-auction-grid">
-        {/* Gallery */}
-        <div className="gallery-card glass-panel">
-          <div className="main-display-container">
-            <img
-              src={carData.images[selectedImageIndex]}
-              alt={`${carData.title} view`}
-              className="gallery-main-image"
-            />
-            <div className="gallery-nav-buttons">
-              <button
-                type="button"
-                className="gallery-nav-btn prev"
-                onClick={() => setSelectedImageIndex(prev => prev > 0 ? prev - 1 : carData.images.length - 1)}
-              >
-                ‹
-              </button>
-              <button
-                type="button"
-                className="gallery-nav-btn next"
-                onClick={() => setSelectedImageIndex(prev => prev < carData.images.length - 1 ? prev + 1 : 0)}
-              >
-                ›
-              </button>
-            </div>
-            <div className="photo-counter">
-              {selectedImageIndex + 1} / {carData.images.length} Photos
+      {/* Cinematic Hero Car Showcase */}
+      <section className="car-hero-showcase">
+        <div className="car-hero-image-wrapper">
+          <img
+            src={carData.images[selectedImageIndex] || FALLBACK_CAR_IMAGE}
+            alt={carData.title}
+            className="car-hero-image"
+          />
+          <div className="car-hero-gradient-overlay" />
+        </div>
+
+        {/* Floating Stat Cards (Left) */}
+        <div className="hero-floating-stats">
+          <div className="hero-stat-card">
+            <span className="hero-stat-number">{carData.watchCount}</span>
+            <div className="hero-stat-label">
+              <span>Watching</span>
+              <span>☆</span>
             </div>
           </div>
-          <div className="thumbnails-strip">
-            {carData.images.map((imgUrl, index) => (
-              <button
-                key={index}
-                type="button"
-                onClick={() => setSelectedImageIndex(index)}
-                className={`thumbnail-btn ${selectedImageIndex === index ? 'active-thumbnail' : ''}`}
-              >
-                <img src={imgUrl} alt={`Thumbnail ${index + 1}`} />
-              </button>
-            ))}
+
+          <div className="hero-stat-card">
+            <span className="hero-stat-number">{carData.viewsCount}</span>
+            <div className="hero-stat-label">
+              <span>Views</span>
+              <span>👁</span>
+            </div>
+          </div>
+
+          <div className="hero-stat-card">
+            <span className="hero-stat-number">{carData.bidCount}</span>
+            <div className="hero-stat-label">
+              <span>Bids count</span>
+              <span>⏱</span>
+            </div>
           </div>
         </div>
 
-        {/* Bid Console */}
-        <div className="bid-console-card glass-panel">
-          <div className="bid-console-header">
-            <h3>{carData.listingStatus === 'Active' ? 'Live Auction' : 'Auction'}</h3>
-            {carData.listingStatus === 'Active' ? (
-              <span className="live-pulse">
-                <span className="pulse-dot"></span>
-                Live
-              </span>
-            ) : (
-              <span className="live-pulse">{carData.listingStatus === 'Pending' ? 'Awaiting approval' : carData.listingStatus}</span>
-            )}
-          </div>
-
-          <div className="pricing-stats-block">
-            <div className="stat-box">
-              <span className="stat-label">Current Bid</span>
-              <span className="stat-value text-gradient-indigo">${currentBidPrice.toLocaleString()}</span>
-            </div>
-            <div className="stat-box">
-              <span className="stat-label">Bids</span>
-              <span className="stat-value">{carData.bidCount}</span>
-            </div>
-            <div className="stat-box">
-              <span className="stat-label">Time Left</span>
-              <span className="stat-value text-gradient-purple">{carData.listingStatus === 'Pending' ? 'Not started' : carData.timeRemaining}</span>
-            </div>
-          </div>
-
-          <div className="bid-console-body">
-            {isAuctionCompleted && (
-              <div className="auction-finished-lock">
-                <div className="auction-finished-lock-icon">🔒</div>
-                <div className="auction-finished-lock-text">
-                  <span className="auction-finished-label">Auction finished</span>
-                  <strong>
-                    Winner: {carData.winnerName || 'Unknown User'} — ${Number(carData.winnerBid ?? currentBidPrice ?? 0).toLocaleString()}
-                  </strong>
-                </div>
-              </div>
-            )}
-
-            <p className="auction-deadline-notice">
-              {carData.listingStatus === 'Pending'
-                ? 'This auction is awaiting moderator approval and will start once approved.'
-                : isAuctionCompleted
-                  ? 'This auction is closed and the winner has been finalized.'
-                  : carData.endsAt === 'No end date' ? 'This auction has no end date' : <>Ends on <strong>{carData.endsAt}</strong></>}
-            </p>
-
-            {!isAuctionCompleted && (
-              <form className="place-bid-form" onSubmit={handlePlaceBid}>
-                <div className="input-group">
-                  <span className="currency-symbol">$</span>
-                  <input
-                    type="text"
-                    placeholder={`Min bid: $${(currentBidPrice + 500).toLocaleString()}`}
-                    value={bidAmount}
-                    onChange={(e) => setBidAmount(e.target.value)}
-                    className="bid-input-field"
-                    disabled={!canPlaceBid}
-                  />
-                  <button type="submit" className="btn btn-primary submit-bid-btn" disabled={!canPlaceBid}>
-                    {canPlaceBid ? 'Place Bid' : 'Unavailable'}
-                  </button>
-                </div>
-
-                {!canPlaceBid && (
-                  <div className="bid-message auction-status-message">
-                    {carData.auctionStatus === 'pending'
-                      ? 'This listing is being reviewed by a moderator. Bidding opens after approval.'
-                      : `Bidding is unavailable while this auction is ${auctionStatusLabel.toLowerCase()}.`}
-                  </div>
-                )}
-                {bidError && <div className="bid-message error-msg">{bidError}</div>}
-                {bidSuccess && <div className="bid-message success-msg">{bidSuccess}</div>}
-              </form>
-            )}
-
-            <div className="security-badges">
-              <div className="sec-badge">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                </svg>
-                Secure Bidding
-              </div>
-              <div className="sec-badge">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                  <polyline points="22 4 12 14.01 9 11.01" />
-                </svg>
-                Verified Listing
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Specifications / Facts Table Section */}
-      <section className="specifications-section glass-panel">
-        <h3 className="section-subtitle">Quick Facts</h3>
-        <div className="specs-grid">
-          <div className="spec-item">
-            <span className="spec-name">Make</span>
-            <span className="spec-value">{carData.make}</span>
-          </div>
-          <div className="spec-item">
-            <span className="spec-name">Model</span>
-            <span className="spec-value">{carData.model}</span>
-          </div>
-          <div className="spec-item">
-            <span className="spec-name">Year</span>
-            <span className="spec-value">{carData.year}</span>
-          </div>
-          <div className="spec-item">
-            <span className="spec-name">Mileage</span>
-            <span className="spec-value">{carData.mileage}</span>
-          </div>
-          <div className="spec-item">
-            <span className="spec-name">Engine</span>
-            <span className="spec-value">{carData.engine}</span>
-          </div>
-          <div className="spec-item">
-            <span className="spec-name">Transmission</span>
-            <span className="spec-value">{carData.transmission}</span>
-          </div>
-          <div className="spec-item">
-            <span className="spec-name">Drivetrain</span>
-            <span className="spec-value">{carData.drivetrain}</span>
-          </div>
-          <div className="spec-item">
-            <span className="spec-name">Body Style</span>
-            <span className="spec-value">{carData.bodyStyle}</span>
-          </div>
-          <div className="spec-item">
-            <span className="spec-name">Exterior Color</span>
-            <span className="spec-value">{carData.exteriorColor}</span>
-          </div>
-          <div className="spec-item">
-            <span className="spec-name">Interior Color</span>
-            <span className="spec-value">{carData.interiorColor}</span>
-          </div>
-          <div className="spec-item">
-            <span className="spec-name">VIN</span>
-            <span className="spec-value code-font">{carData.vin}</span>
-          </div>
-          <div className="spec-item">
-            <span className="spec-name">Seller Type</span>
-            <span className="spec-value">Private Party</span>
-          </div>
-        </div>
-      </section>
-
-      {/* Tabbed Content Navigation */}
-      <section className="tabbed-details-section">
-        <div className="tabs-header-container glass-panel">
-          <button
-            type="button"
-            className={`tab-btn ${activeTab === 'overview' ? 'active' : ''}`}
-            onClick={() => setActiveTab('overview')}
-          >
-            Overview & Highlights
-          </button>
-          <button
-            type="button"
-            className={`tab-btn ${activeTab === 'history' ? 'active' : ''}`}
-            onClick={() => setActiveTab('history')}
-          >
-            Modifications & Flaws
-          </button>
-          <button
-            type="button"
-            className={`tab-btn ${activeTab === 'bids' ? 'active' : ''}`}
-            onClick={() => setActiveTab('bids')}
-          >
-            Bids History ({localBids.length})
-          </button>
-        </div>
-
-        <div className="tabs-content-body glass-panel">
-          {/* Tab 1: Overview */}
-          {activeTab === 'overview' && (
-            <div className="tab-pane-content">
-              <h4>Seller's Description</h4>
-              <p className="narrative-description">{carData.description}</p>
-
-              <hr className="divider" />
-
-              <h4>Auction Highlights</h4>
-              <ul className="bulleted-highlights">
-                {carData.highlights.map((highlight, index) => (
-                  <li key={index}>{highlight}</li>
-                ))}
-              </ul>
-
-              <hr className="divider" />
-
-              <h4>Factory Equipment</h4>
-              <ul className="bulleted-highlights">
-                {carData.equipment.map((equip, index) => (
-                  <li key={index}>{equip}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Tab 2: History & Flaws */}
-          {activeTab === 'history' && (
-            <div className="tab-pane-content">
-              <h4>Known Modifications</h4>
-              {carData.modifications.length > 0 ? (
-                <ul className="bulleted-highlights mod-list">
-                  {carData.modifications.map((mod, index) => (
-                    <li key={index}>{mod}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="no-items-text">The seller reports no modifications from standard specifications.</p>
-              )}
-
-              <hr className="divider" />
-
-              <h4>Known Flaws & Defects</h4>
-              {carData.flaws.length > 0 ? (
-                <ul className="bulleted-highlights flaws-list">
-                  {carData.flaws.map((flaw, index) => (
-                    <li key={index} className="flaw-item-bullet">{flaw}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="no-items-text text-green">The seller reports no cosmetic or mechanical flaws.</p>
-              )}
-            </div>
-          )}
-
-          {/* Tab 3: Bids Log */}
-          {activeTab === 'bids' && (
-            <div className="tab-pane-content">
-              <div className="bids-history-log">
-                {localBids.length > 0 ? (
-                  localBids.map((bid, index) => (
-                    <div key={index} className="bid-log-row">
-                      <div className="bidder-meta">
-                        <span className="bid-avatar">
-                          {bid.bidder.charAt(0).toUpperCase()}
-                        </span>
-                        <div className="bidder-info">
-                          <UserProfileLink userId={bid.userId} name={`@${bid.bidder}`} onNavigate={onNavigate} className="bidder-name" />
-                          <span className="bid-timestamp">{bid.time}</span>
-                        </div>
-                      </div>
-                      <div className="bid-amount-log">
-                        <span className={`bid-badge-status ${index === 0 ? 'highest-bid' : ''}`}>
-                          {index === 0 ? 'High Bid' : 'Outbid'}
-                        </span>
-                        <span className="bid-logged-price">${bid.amount.toLocaleString()}</span>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="no-items-text">No bids have been placed yet. Be the first!</p>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* Comments & Q&A Discussion Thread */}
-      <section className="comments-discussion-section glass-panel">
-        <h3 className="section-subtitle">Discussion & Questions ({localComments.length})</h3>
-
-        {/* Comment Entry Form */}
-        <form className="comment-post-form" onSubmit={handlePostComment}>
-          <textarea
-            placeholder={isAuthenticated ? "Ask a question about this vehicle..." : "Please Sign In to participate in the conversation."}
-            disabled={!isAuthenticated}
-            value={commentInput}
-            onChange={(e) => setCommentInput(e.target.value)}
-            className="comment-textarea"
-            rows={3}
-          ></textarea>
-          <div className="comment-form-actions">
-            {!isAuthenticated && (
-              <span className="auth-helper-text">You must sign in to write comments.</span>
-            )}
+        {/* Gallery Navigation Controls */}
+        {carData.images.length > 1 && (
+          <>
             <button
-              type="submit"
-              className="btn btn-primary submit-comment-btn"
-              disabled={!commentInput.trim() || !isAuthenticated}
+              type="button"
+              className="hero-nav-arrow prev"
+              onClick={() => setSelectedImageIndex((prev) => (prev > 0 ? prev - 1 : carData.images.length - 1))}
+              aria-label="Previous photo"
             >
-              Post Comment
+              ‹
             </button>
-          </div>
-        </form>
+            <button
+              type="button"
+              className="hero-nav-arrow next"
+              onClick={() => setSelectedImageIndex((prev) => (prev < carData.images.length - 1 ? prev + 1 : 0))}
+              aria-label="Next photo"
+            >
+              ›
+            </button>
+          </>
+        )}
 
-        {/* Comments Feed */}
-        <div className="comments-feed-thread">
-          {localComments.map((comment) => (
-            <article key={comment.id} className={`comment-card-box ${comment.isSeller ? 'seller-comment' : ''}`}>
-              <div className="comment-header-row">
-                <div className="commenter-profile">
-                  <div className={`avatar ${comment.isSeller ? 'seller-avatar' : ''}`}>
-                    {comment.user.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <UserProfileLink userId={comment.userId} name={`@${comment.user}`} onNavigate={onNavigate} className="comment-username" />
-                    {comment.isSeller && <span className="seller-badge">Seller</span>}
-                    <span className="comment-time-ago">{comment.time}</span>
-                  </div>
-                </div>
+        {/* Centered Place Bid Action (Bottom Center) */}
+        <div className="hero-action-container">
+          {liveTimeRemaining === 'Ended' ? (
+            isCurrentUserHighestBidder ? (
+              <button
+                type="button"
+                className="hero-place-bid-btn outbid-disabled"
+                disabled
+                style={{ background: 'rgba(34, 197, 94, 0.25)', borderColor: '#22c55e', color: '#4ade80' }}
+              >
+                <span className="highest-bid-check">🏆</span> You Won this Auction! (${currentBidPrice.toLocaleString()})
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="hero-place-bid-btn"
+                disabled
+                style={{ background: '#334155', cursor: 'default', boxShadow: 'none', color: '#cbd5e1' }}
+              >
+                Auction Ended · {currentBidPrice > 0 ? `Sold for $${currentBidPrice.toLocaleString()}` : 'No Bids'}
+              </button>
+            )
+          ) : isCurrentUserHighestBidder ? (
+            <button
+              type="button"
+              className="hero-place-bid-btn outbid-disabled"
+              disabled
+              title="You currently hold the highest bid on this vehicle"
+            >
+              <span className="highest-bid-check">✓</span> You hold highest bid (${currentBidPrice.toLocaleString()})
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="hero-place-bid-btn"
+              onClick={handleOpenBidModal}
+            >
+              Place Bid
+            </button>
+          )}
+        </div>
+      </section>
 
+      {/* Main Two-Column Content Grid */}
+      <div className="car-content-grid">
+        {/* Left Column: Specifications, Description & Comments */}
+        <div className="car-main-column">
+          {/* Specifications Table (2 Column Grid) */}
+          <section className="specs-table-wrapper">
+            <div className="specs-table-col">
+              <div className="specs-row">
+                <span className="specs-cell-label">Brand</span>
+                <span className="specs-cell-value">{carData.make}</span>
+              </div>
+              <div className="specs-row">
+                <span className="specs-cell-label">Model</span>
+                <span className="specs-cell-value">{carData.model}</span>
+              </div>
+              <div className="specs-row">
+                <span className="specs-cell-label">Mileage</span>
+                <span className="specs-cell-value">{carData.mileage}</span>
+              </div>
+              <div className="specs-row">
+                <span className="specs-cell-label">VIN</span>
+                <span className="specs-cell-value">{carData.vin}</span>
+              </div>
+              <div className="specs-row">
+                <span className="specs-cell-label">Title Status</span>
+                <span className="specs-cell-value">Clean</span>
+              </div>
+              <div className="specs-row">
+                <span className="specs-cell-label">Location</span>
+                <span className="specs-cell-value">{carData.location}</span>
+              </div>
+              <div className="specs-row">
+                <span className="specs-cell-label">Seller</span>
+                <span className="specs-cell-value">
+                  <UserProfileLink
+                    userId={carData.sellerId}
+                    name={`👤 ${carData.seller}`}
+                    onNavigate={onNavigate}
+                    className="seller-link-badge"
+                  />
+                </span>
+              </div>
+            </div>
+
+            <div className="specs-table-col">
+              <div className="specs-row">
+                <span className="specs-cell-label">Engine</span>
+                <span className="specs-cell-value">{carData.engine}</span>
+              </div>
+              <div className="specs-row">
+                <span className="specs-cell-label">Drivetrain</span>
+                <span className="specs-cell-value">{carData.drivetrain}</span>
+              </div>
+              <div className="specs-row">
+                <span className="specs-cell-label">Transmission</span>
+                <span className="specs-cell-value">{carData.transmission}</span>
+              </div>
+              <div className="specs-row">
+                <span className="specs-cell-label">Body Style</span>
+                <span className="specs-cell-value">{carData.bodyStyle}</span>
+              </div>
+              <div className="specs-row">
+                <span className="specs-cell-label">Exterior Color</span>
+                <span className="specs-cell-value">{carData.exteriorColor}</span>
+              </div>
+              <div className="specs-row">
+                <span className="specs-cell-label">Interior Color</span>
+                <span className="specs-cell-value">{carData.interiorColor}</span>
+              </div>
+              <div className="specs-row">
+                <span className="specs-cell-label">Seller Type</span>
+                <span className="specs-cell-value">{carData.sellerType}</span>
+              </div>
+            </div>
+          </section>
+
+          {/* Description Section */}
+          {carData.description && (
+            <section className="car-detail-section">
+              <h2 className="car-section-title">Description</h2>
+              <p className="car-section-paragraph">{carData.description}</p>
+            </section>
+          )}
+
+          {/* Comments Discussion Section */}
+          <section className="comments-container">
+            <div className="comments-header-row">
+              <h2 className="comments-title">Comments</h2>
+              <div className="comments-filters">
                 <button
                   type="button"
-                  onClick={() => handleLikeComment(comment.id)}
-                  className={`comment-like-action-btn ${likedCommentIds.includes(comment.id) ? 'liked' : ''}`}
+                  className={`comment-filter-btn ${commentFilter === 'newest' ? 'active' : ''}`}
+                  onClick={() => setCommentFilter('newest')}
                 >
-                  <svg viewBox="0 0 24 24" fill={likedCommentIds.includes(comment.id) ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" className="like-icon-svg">
-                    <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" />
-                  </svg>
-                  <span>{comment.likes}</span>
+                  Newest
+                </button>
+                <button
+                  type="button"
+                  className={`comment-filter-btn ${commentFilter === 'upvoted' ? 'active' : ''}`}
+                  onClick={() => setCommentFilter('upvoted')}
+                >
+                  Most Upvoted
+                </button>
+                <button
+                  type="button"
+                  className={`comment-filter-btn ${commentFilter === 'seller' ? 'active' : ''}`}
+                  onClick={() => setCommentFilter('seller')}
+                >
+                  Seller Comments
+                </button>
+                <button
+                  type="button"
+                  className={`comment-filter-btn ${commentFilter === 'bids' ? 'active' : ''}`}
+                  onClick={() => setCommentFilter('bids')}
+                >
+                  Bid History
                 </button>
               </div>
-              <div className="comment-body-text">
-                <p>{comment.text}</p>
+            </div>
+
+            {/* Comment Post Form */}
+            <form className="comment-input-form" onSubmit={handlePostComment}>
+              <div className="comment-input-bar">
+                <input
+                  type="text"
+                  maxLength={180}
+                  placeholder={isAuthenticated ? 'Leave a Comment below' : 'Sign in to leave a comment'}
+                  value={commentInput}
+                  onChange={(e) => setCommentInput(e.target.value)}
+                  disabled={!isAuthenticated}
+                  className="comment-input-field"
+                />
+                <button
+                  type="submit"
+                  disabled={!commentInput.trim() || !isAuthenticated}
+                  className="comment-send-btn"
+                  aria-label="Send comment"
+                >
+                  ↑
+                </button>
               </div>
-            </article>
-          ))}
+              <div className="comment-char-counter">{commentInput.length} / 180</div>
+            </form>
+
+            {/* Comments List */}
+            <div className="comments-list">
+              {filteredComments.length > 0 ? (
+                filteredComments.map((comment) => (
+                  <div key={comment.id} className="comment-card">
+                    <div className="comment-user-row">
+                      <div className="comment-avatar">
+                        {comment.userAvatar ? (
+                          <img
+                            src={comment.userAvatar}
+                            alt={comment.user}
+                            className="comment-avatar-img"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLImageElement).style.display = 'none';
+                              const parent = e.currentTarget.parentElement;
+                              const initialSpan = parent?.querySelector('.comment-avatar-initial') as HTMLElement;
+                              if (initialSpan) initialSpan.style.display = 'inline';
+                            }}
+                          />
+                        ) : null}
+                        <span className="comment-avatar-initial" style={comment.userAvatar ? { display: 'none' } : undefined}>
+                          {comment.user.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="comment-author-name">
+                        <UserProfileLink
+                          userId={comment.userId}
+                          name={comment.user}
+                          onNavigate={onNavigate}
+                          className="seller-link-badge"
+                        />
+                        <span className="comment-verified-icon">✓</span>
+                      </div>
+                      <span className="comment-timestamp">{comment.time}</span>
+                      {comment.isSeller && <span className="comment-seller-badge">Seller</span>}
+                    </div>
+
+                    <p className="comment-message">{comment.text}</p>
+
+                    {comment.bidAmount && (
+                      <div className="comment-bid-pill">
+                        <span>Bid</span>
+                        <span style={{ color: '#38bdf8' }}>${comment.bidAmount.toLocaleString()}</span>
+                      </div>
+                    )}
+
+                    <div className="comment-actions-row">
+                      <button type="button" className="comment-action-link" onClick={() => setCommentInput(`@${comment.user} `)}>
+                        Reply ↪
+                      </button>
+                      <button
+                        type="button"
+                        className={`comment-action-link ${likedCommentIds.includes(comment.id) ? 'liked' : ''}`}
+                        onClick={() => handleLikeComment(comment.id)}
+                      >
+                        ♥ {comment.likes}
+                      </button>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p style={{ color: '#64748b', fontSize: '13px', fontStyle: 'italic', margin: '8px 0' }}>
+                  No comments in this section yet.
+                </p>
+              )}
+            </div>
+          </section>
         </div>
-      </section>
+
+        {/* Right Column: Other Auctions Sidebar (Real Data) */}
+        <aside className="other-auctions-sidebar">
+          <h2 className="other-auctions-title">Other auctions</h2>
+          {otherAuctions.length > 0 ? (
+            <div className="other-auctions-list">
+              {otherAuctions.map((item) => (
+                <article
+                  key={String(item.id)}
+                  className="other-auction-card"
+                  onClick={() => onNavigate('car', { carId: item.id })}
+                >
+                  <div className="other-auction-image-container">
+                    <img src={item.imageUrl} alt={item.title} className="other-auction-image" />
+                    <button
+                      type="button"
+                      className="other-auction-fav-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                      }}
+                      aria-label="Save auction"
+                    >
+                      <svg
+                        viewBox="0 0 24 24"
+                        width="15"
+                        height="15"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                      </svg>
+                    </button>
+                    <div className="other-auction-img-bottom">
+                      <div className="other-auction-timer-badge">
+                        <svg
+                          viewBox="0 0 24 24"
+                          width="12"
+                          height="12"
+                          fill="none"
+                          stroke="#ef4444"
+                          strokeWidth="2.2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <circle cx="12" cy="12" r="10" />
+                          <polyline points="12 6 12 12 16 14" />
+                        </svg>
+                        <span>{item.timeRemaining}</span>
+                      </div>
+                      <div className="other-auction-price-badge">
+                        <span className="other-auction-dollar-circle">$</span>
+                        <span>${item.currentBid.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="other-auction-body">
+                    <h3 className="other-auction-name">{item.title}</h3>
+                    <p className="other-auction-subtitle">{item.description}</p>
+                    <p className="other-auction-location">{item.location}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <p style={{ color: '#64748b', fontSize: '13px', fontStyle: 'italic' }}>
+              No other active auctions currently listed.
+            </p>
+          )}
+        </aside>
+      </div>
+
+      {/* Place Bid Modal Popup */}
+      {isBidModalOpen && (
+        <div className="bid-modal-backdrop" onClick={() => setIsBidModalOpen(false)}>
+          <div className="bid-modal-card" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className="bid-modal-close-btn"
+              onClick={() => setIsBidModalOpen(false)}
+              aria-label="Close modal"
+            >
+              ✕
+            </button>
+
+            <div className="bid-modal-thumb-wrapper">
+              <img
+                src={carData.images[0] || FALLBACK_CAR_IMAGE}
+                alt={carData.title}
+                className="bid-modal-thumb"
+              />
+            </div>
+
+            <h3 className="bid-modal-title">{carData.title}</h3>
+
+            <div className="bid-modal-stats-row">
+              <div className="bid-modal-price-badge">
+                <span className="car-hero-dollar-circle">$</span>
+                <span>Last Bid: <strong className="bid-modal-last-bid">${currentBidPrice.toLocaleString()}</strong></span>
+              </div>
+              <div className="bid-modal-timer-badge">
+                <svg
+                  viewBox="0 0 24 24"
+                  width="14"
+                  height="14"
+                  fill="none"
+                  stroke="#ef4444"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
+                <span>{liveTimeRemaining}</span>
+              </div>
+            </div>
+
+            {isCurrentUserHighestBidder && (
+              <div className="bid-modal-status-msg warning">
+                ✓ You currently hold the highest bid (${currentBidPrice.toLocaleString()}). You cannot outbid yourself.
+              </div>
+            )}
+
+            <form className="bid-modal-form" onSubmit={handlePlaceBidSubmit}>
+              <input
+                type="text"
+                placeholder={`Bid ${nextMinBid.toLocaleString()} or more`}
+                value={bidAmount}
+                onChange={(e) => setBidAmount(e.target.value)}
+                className="bid-modal-input"
+                disabled={isCurrentUserHighestBidder}
+                autoFocus={!isCurrentUserHighestBidder}
+              />
+
+              {bidError && <div className="bid-modal-status-msg error">{bidError}</div>}
+              {bidSuccess && <div className="bid-modal-status-msg success">{bidSuccess}</div>}
+
+              <button
+                type="submit"
+                className="bid-modal-submit-btn"
+                disabled={isCurrentUserHighestBidder}
+              >
+                {isCurrentUserHighestBidder ? 'You are Leading Bidder' : 'Make a bid'}
+              </button>
+            </form>
+
+            <p className="bid-modal-footer-note">Minimum bid increment is $250. All bids in USD.</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
-
-
+import { apiCall } from '../services/config'
 
 type User = {
   id: string
@@ -96,6 +95,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [token, setToken] = useState<string | null>(null)
   const [user, setUser] = useState<User | null>(null)
 
+  const syncProfileFromBackend = async () => {
+    try {
+      const res = await apiCall('/users/me')
+      if (res.ok) {
+        const data = await res.json()
+        setUser(prev => {
+          if (!prev) return prev
+          const updated: User = {
+            ...prev,
+            name: data.name || prev.name,
+            profileImageUrl: data.profileImageUrl || prev.profileImageUrl,
+          }
+          localStorage.setItem('user', JSON.stringify(updated))
+          return updated
+        })
+      }
+    } catch {
+      // ignore
+    }
+  }
+
   useEffect(() => {
     const savedToken = localStorage.getItem('token')
     if (savedToken) {
@@ -115,6 +135,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         setUser(tokenUser)
       }
+      syncProfileFromBackend()
     }
 
     const handleUnauthorized = () => {
@@ -136,6 +157,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } else {
       localStorage.removeItem('user')
     }
+    syncProfileFromBackend()
   }
 
   const logout = () => {
