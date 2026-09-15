@@ -21,7 +21,9 @@ namespace BusinessLogic.Services
             if (bankCard.IsDefault == true)
             {
                 var cards = await bankCardRepository.GetAllAsync(filtering: x => x.UserId == bankCard.UserId);
-                foreach(var card in cards)
+                if (cards.Count() >= 3)
+                    throw new InvalidOperationException("Cannot add more than 3 bank cards for a user.");
+                foreach (var card in cards)
                 {
                     card.IsDefault = false;
                     await bankCardRepository.UpdateAsync(card);

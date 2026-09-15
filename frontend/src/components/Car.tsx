@@ -840,7 +840,25 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
 
         {/* Centered Place Bid Action (Bottom Center) */}
         <div className="hero-action-container">
-          {liveTimeRemaining === 'Ended' ? (
+          {carData.auctionStatus === 'pending' || carData.auctionStatus === 'draft' ? (
+            <button
+              type="button"
+              className="hero-place-bid-btn"
+              disabled
+              style={{ background: '#334155', cursor: 'default', boxShadow: 'none', color: '#cbd5e1' }}
+            >
+              Auction not started yet · awaiting admin approval
+            </button>
+          ) : carData.auctionStatus === 'rejected' || carData.auctionStatus === 'canceled' ? (
+            <button
+              type="button"
+              className="hero-place-bid-btn"
+              disabled
+              style={{ background: '#334155', cursor: 'default', boxShadow: 'none', color: '#cbd5e1' }}
+            >
+              {carData.auctionStatus === 'rejected' ? 'Listing rejected' : 'Auction canceled'}
+            </button>
+          ) : liveTimeRemaining === 'Ended' ? (
             isCurrentUserHighestBidder ? (
               <button
                 type="button"

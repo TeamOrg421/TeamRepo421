@@ -60,7 +60,8 @@ namespace BusinessLogic.Services
                 await _paymentService.ProcessAuctionPaymentAsync(
                     highestBid.UserId,
                     auction.SellerId,
-                    highestBid.Amount);
+                    highestBid.Amount,
+                    auction.Id);
             }
             catch (Exception ex)
             {

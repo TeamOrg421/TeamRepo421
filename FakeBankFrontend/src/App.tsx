@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 
 const API_URL = '/api';
 
@@ -37,6 +37,7 @@ interface BankTransactionDto {
   status: TransactionStatus | number;
   createdAt: string;
   relatedTransactionId?: string | null;
+  description?: string | null;
 }
 
 interface CreateBankCardForm {
@@ -100,6 +101,11 @@ const AdminBank: React.FC = () => {
   const [page, setPage] = useState<number>(1);
   const [typeFilter, setTypeFilter] = useState<'all' | TransactionType>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | TransactionStatus>('all');
+  const [ledgerSearch, setLedgerSearch] = useState('');
+  const [ledgerSort, setLedgerSort] = useState<'newest' | 'oldest' | 'amount-desc' | 'amount-asc'>('newest');
+  const [cardSearch, setCardSearch] = useState('');
+  const [cardStatus, setCardStatus] = useState<'all' | 'active' | 'blocked'>('all');
+  const [cardSort, setCardSort] = useState<'newest' | 'name-asc' | 'balance-desc' | 'balance-asc'>('newest');
 
   // Cards List (Paginated)
   const [allCards, setAllCards] = useState<BankCardDto[]>([]);
@@ -108,7 +114,7 @@ const AdminBank: React.FC = () => {
   const [detailedCard, setDetailedCard] = useState<BankCardDto | null>(null);
 
   // Customer lookup
-  const [lookupName, setLookupName] = useState<string>('');
+  const [lookupEmail, setLookupEmail] = useState<string>('');
   const [lookupLoading, setLookupLoading] = useState<boolean>(false);
   const [customerCards, setCustomerCards] = useState<BankCardDto[] | null>(null);
   const [selectedCard, setSelectedCard] = useState<BankCardDto | null>(null);
@@ -127,6 +133,7 @@ const AdminBank: React.FC = () => {
   const [transferToCardId, setTransferToCardId] = useState<string>('');
 
   const [reversingTx, setReversingTx] = useState<BankTransactionDto | null>(null);
+  const [detailedTx, setDetailedTx] = useState<BankTransactionDto | null>(null);
 
   // Toast
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -140,7 +147,11 @@ const AdminBank: React.FC = () => {
   const fetchLedger = useCallback(async (targetPage: number) => {
     setLedgerLoading(true);
     try {
-      const res = await fetch(`${API_URL}/payment?page=${targetPage}`);
+      const params = new URLSearchParams({ page: String(targetPage), sort: ledgerSort });
+      if (ledgerSearch.trim()) params.set('search', ledgerSearch.trim());
+      if (typeFilter !== 'all') params.set('type', typeFilter);
+      if (statusFilter !== 'all') params.set('status', statusFilter);
+      const res = await fetch(`${API_URL}/payment?${params.toString()}`);
       if (res.ok) {
         const data = await res.json();
         setTransactions(Array.isArray(data) ? data : []);
@@ -153,12 +164,15 @@ const AdminBank: React.FC = () => {
     } finally {
       setLedgerLoading(false);
     }
-  }, []);
+  }, [ledgerSearch, ledgerSort, statusFilter, typeFilter]);
 
   const fetchAllCards = useCallback(async (targetPage: number) => {
     setCardsLoading(true);
     try {
-      const res = await fetch(`${API_URL}/payment/GetCards?page=${targetPage}`);
+      const params = new URLSearchParams({ page: String(targetPage), sort: cardSort });
+      if (cardSearch.trim()) params.set('search', cardSearch.trim());
+      if (cardStatus !== 'all') params.set('status', cardStatus);
+      const res = await fetch(`${API_URL}/payment/GetCards?${params.toString()}`);
       if (res.ok) {
         const data = await res.json();
         setAllCards(Array.isArray(data) ? data : []);
@@ -171,7 +185,7 @@ const AdminBank: React.FC = () => {
     } finally {
       setCardsLoading(false);
     }
-  }, []);
+  }, [cardSearch, cardSort, cardStatus]);
 
   useEffect(() => {
     fetchLedger(page);
@@ -181,9 +195,12 @@ const AdminBank: React.FC = () => {
     fetchAllCards(cardsPage);
   }, [cardsPage, fetchAllCards]);
 
-  const refreshCustomerCards = async (name: string) => {
+  useEffect(() => { setPage(1); }, [ledgerSearch, ledgerSort, statusFilter, typeFilter]);
+  useEffect(() => { setCardsPage(1); }, [cardSearch, cardSort, cardStatus]);
+
+  const refreshCustomerCards = async (email: string) => {
     try {
-      const res = await fetch(`${API_URL}/payment/login?name=${encodeURIComponent(name)}`);
+      const res = await fetch(`${API_URL}/payment/login?email=${encodeURIComponent(email)}`);
       if (res.ok) {
         const data = await res.json();
         const cards: BankCardDto[] = Array.isArray(data) ? data : [];
@@ -201,19 +218,19 @@ const AdminBank: React.FC = () => {
 
   const handleLookup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!lookupName.trim()) {
-      showToast('⚠️ Введіть імʼя власника картки');
+    if (!lookupEmail.trim()) {
+      showToast('⚠️ Введіть email власника картки');
       return;
     }
     setLookupLoading(true);
     setSelectedCard(null);
     try {
-      const res = await fetch(`${API_URL}/payment/login?name=${encodeURIComponent(lookupName.trim())}`);
+      const res = await fetch(`${API_URL}/payment/login?email=${encodeURIComponent(lookupEmail.trim())}`);
       if (res.ok) {
         const data = await res.json();
         const cards: BankCardDto[] = Array.isArray(data) ? data : [];
         setCustomerCards(cards);
-        if (cards.length === 0) showToast('Картки для цього користувача не знайдені');
+        if (cards.length === 0) showToast('Картки для цього email не знайдені');
       } else {
         const err = await res.text();
         showToast(`❌ Помилка: ${err || res.statusText}`);
@@ -277,8 +294,8 @@ const AdminBank: React.FC = () => {
         setIsCardModalOpen(false);
         setCardForm(DEFAULT_CARD_FORM);
         await fetchAllCards(cardsPage);
-        if (lookupName.trim().toLowerCase() === cardForm.cardHolderName.trim().toLowerCase()) {
-          await refreshCustomerCards(lookupName.trim());
+        if (lookupEmail.trim()) {
+          await refreshCustomerCards(lookupEmail.trim());
         }
       } else {
         const err = await res.text();
@@ -340,7 +357,7 @@ const AdminBank: React.FC = () => {
       if (res.ok) {
         showToast(`✅ Операцію ${actionModal} успішно виконано`);
         setActionModal(null);
-        if (lookupName.trim()) await refreshCustomerCards(lookupName.trim());
+        if (lookupEmail.trim()) await refreshCustomerCards(lookupEmail.trim());
         await fetchLedger(page);
         await fetchAllCards(cardsPage);
       } else {
@@ -366,7 +383,7 @@ const AdminBank: React.FC = () => {
         setReversingTx(null);
         await fetchLedger(page);
         await fetchAllCards(cardsPage);
-        if (lookupName.trim()) await refreshCustomerCards(lookupName.trim());
+        if (lookupEmail.trim()) await refreshCustomerCards(lookupEmail.trim());
       } else {
         const err = await res.text();
         showToast(`❌ Помилка скасування: ${err || res.statusText}`);
@@ -391,20 +408,34 @@ const AdminBank: React.FC = () => {
     .filter((t) => normalizeStatus(t.status) === 'Success')
     .reduce((sum, t) => sum + (t.amount || 0), 0);
 
-  const filteredTransactions = transactions.filter((t) => {
-    const matchesTypeKey = typeFilter === 'all' || normalizeType(t.type) === typeFilter;
-    const matchesStatus = statusFilter === 'all' || normalizeStatus(t.status) === statusFilter;
-    return matchesTypeKey && matchesStatus;
-  });
+  const filteredTransactions = useMemo(() => {
+    const query = ledgerSearch.trim().toLowerCase();
+    return transactions
+      .filter((t) => {
+        const matchesTypeKey = typeFilter === 'all' || normalizeType(t.type) === typeFilter;
+        const matchesStatus = statusFilter === 'all' || normalizeStatus(t.status) === statusFilter;
+        const searchable = [t.id, t.cardId, t.secondCardId, t.description, normalizeType(t.type)]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        return matchesTypeKey && matchesStatus && (!query || searchable.includes(query));
+      })
+      .sort((a, b) => {
+        if (ledgerSort === 'amount-desc') return b.amount - a.amount;
+        if (ledgerSort === 'amount-asc') return a.amount - b.amount;
+        const dateDifference = new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        return ledgerSort === 'newest' ? dateDifference : -dateDifference;
+      });
+  }, [ledgerSearch, ledgerSort, statusFilter, transactions, typeFilter]);
 
   return (
     <div className="fb-container">
       <style>{`
         :root {
-          --bg-main: #0b0f19;
-          --bg-card: rgba(23, 31, 51, 0.7);
-          --accent-primary: #6366f1;
-          --accent-primary-hover: #4f46e5;
+          --bg-main: #222222;
+          --bg-card: #222222;
+          --accent-primary: #4a4a4a;
+          --accent-primary-hover: #5a5a5a;
           --accent-green: #10b981;
           --accent-red: #ef4444;
           --accent-amber: #f59e0b;
@@ -416,13 +447,13 @@ const AdminBank: React.FC = () => {
 
         .fb-container {
           min-height: 100vh;
-          width: 96%;
+          width: 100%;
           max-width: 1920px;
-          margin: 0 auto;
-          background: radial-gradient(circle at 50% 0%, #1e1b4b 0%, var(--bg-main) 70%);
+          margin: 0;
+          background: #222222;
           color: var(--text-main);
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-          padding: 1.5rem;
+          padding: 1.5rem 25.438px 3rem;
           box-sizing: border-box;
         }
 
@@ -453,9 +484,7 @@ const AdminBank: React.FC = () => {
         }
 
         .fb-title span {
-          background: linear-gradient(135deg, #818cf8 0%, #c084fc 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
+          color: #b7e52a;
         }
 
         .fb-subtitle {
@@ -472,11 +501,10 @@ const AdminBank: React.FC = () => {
         }
 
         .fb-stat-card {
-          background: var(--bg-card);
-          border: 1px solid var(--border);
-          backdrop-filter: blur(12px);
-          border-radius: var(--radius);
-          padding: 1.25rem;
+          background: #222222;
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 12px;
+          padding: 1rem;
           display: flex;
           align-items: center;
           gap: 1rem;
@@ -512,12 +540,11 @@ const AdminBank: React.FC = () => {
         }
 
         .fb-panel {
-          background: var(--bg-card);
-          border: 1px solid var(--border);
-          backdrop-filter: blur(12px);
-          border-radius: var(--radius);
-          padding: 1.5rem;
-          margin-bottom: 2rem;
+          background: #222;
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 12px;
+          padding: 1.25rem;
+          margin-bottom: 1.5rem;
         }
 
         .fb-panel-title {
@@ -536,7 +563,7 @@ const AdminBank: React.FC = () => {
           flex: 1;
           background: rgba(0, 0, 0, 0.2);
           border: 1px solid var(--border);
-          border-radius: 10px;
+          border-radius: 4px;
           padding: 0.75rem 1rem;
           color: #fff;
           outline: none;
@@ -547,10 +574,11 @@ const AdminBank: React.FC = () => {
         }
 
         .fb-btn {
-          background: var(--accent-primary);
+          background: #4a4a4a;
+          color: #ffffff;
           color: #fff;
           border: none;
-          border-radius: 10px;
+          border-radius: 4px;
           padding: 0.75rem 1.25rem;
           font-weight: 600;
           cursor: pointer;
@@ -561,15 +589,18 @@ const AdminBank: React.FC = () => {
         }
 
         .fb-btn:hover {
-          background: var(--accent-primary-hover);
+          background: #5a5a5a;
         }
 
         .fb-btn-secondary {
-          background: rgba(255, 255, 255, 0.1);
+          background: transparent;
+          color: #e7e7e7;
+          border: 1px solid #717171;
         }
 
         .fb-btn-secondary:hover {
-          background: rgba(255, 255, 255, 0.15);
+          background: #272727;
+          border-color: #a0a0a0;
         }
 
         .fb-card-item {
@@ -627,14 +658,73 @@ const AdminBank: React.FC = () => {
         }
 
         .fb-table th, .fb-table td {
-          padding: 1rem;
-          border-bottom: 1px solid var(--border);
+          padding: 0.8rem;
+          border-bottom: 1px solid #3b3b3b;
         }
 
         .fb-table th {
           color: var(--text-muted);
           font-size: 0.8rem;
           text-transform: uppercase;
+        }
+
+        .fb-ledger-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 1rem;
+          margin-bottom: 1rem;
+        }
+
+        .fb-ledger-pagination {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+
+        .fb-ledger-tabs {
+          display: flex;
+          gap: 1.5rem;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+          margin-bottom: 1rem;
+          overflow-x: auto;
+        }
+
+        .fb-ledger-tabs button {
+          background: none;
+          border: 0;
+          border-bottom: 2px solid transparent;
+          color: #9ca3af;
+          cursor: pointer;
+          font-size: 0.85rem;
+          padding: 0.65rem 0;
+          white-space: nowrap;
+        }
+
+        .fb-ledger-tabs button:hover,
+        .fb-ledger-tabs button.active {
+          color: #ffffff;
+        }
+
+        .fb-ledger-tabs button.active {
+          border-bottom-color: #ffffff;
+          font-weight: 700;
+        }
+
+        .fb-ledger-controls {
+          display: grid;
+          grid-template-columns: minmax(220px, 1fr) minmax(130px, 180px) minmax(180px, 220px);
+          gap: 0.65rem;
+          margin-bottom: 1rem;
+        }
+
+        .fb-select {
+          background: #1a1a1a;
+          border: 1px solid #414141;
+          border-radius: 4px;
+          color: #f3f3f3;
+          min-width: 0;
+          padding: 0.75rem 0.8rem;
         }
 
         .fb-detail-row {
@@ -750,14 +840,14 @@ const AdminBank: React.FC = () => {
       <div className="fb-grid">
         {/* Customer lookup */}
         <div className="fb-panel">
-          <div className="fb-panel-title">Пошук клієнта</div>
+          <div className="fb-panel-title">Пошук клієнта за email</div>
           <form className="fb-form-group" onSubmit={handleLookup}>
             <input
               type="text"
               className="fb-input"
-              placeholder="Імʼя власника картки..."
-              value={lookupName}
-              onChange={(e) => setLookupName(e.target.value)}
+              placeholder="Email власника картки..."
+              value={lookupEmail}
+              onChange={(e) => setLookupEmail(e.target.value)}
             />
             <button type="submit" className="fb-btn" disabled={lookupLoading}>
               {lookupLoading ? '...' : 'Шукати'}
@@ -847,18 +937,9 @@ const AdminBank: React.FC = () => {
 
       {/* Ledger Table */}
       <div className="fb-panel">
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '1rem',
-          }}
-        >
-          <div className="fb-panel-title" style={{ margin: 0 }}>
-            Журнал транзакцій
-          </div>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+        <div className="fb-ledger-header">
+          <div className="fb-panel-title" style={{ margin: 0 }}>Журнал транзакцій</div>
+          <div className="fb-ledger-pagination">
             <button
               className="fb-btn fb-btn-secondary fb-btn-sm"
               disabled={page <= 1}
@@ -878,12 +959,47 @@ const AdminBank: React.FC = () => {
           </div>
         </div>
 
+        <div className="fb-ledger-tabs" role="tablist" aria-label="Фільтр транзакцій">
+          {(['all', 'Success', 'Failed'] as const).map((value) => (
+            <button
+              key={value}
+              type="button"
+              className={statusFilter === value || (value === 'all' && statusFilter === 'all') ? 'active' : ''}
+              onClick={() => setStatusFilter(value === 'all' ? 'all' : value)}
+            >
+              {value === 'all' ? 'Усі' : value === 'Success' ? 'Успішні' : 'Помилкові'}
+            </button>
+          ))}
+        </div>
+
+        <div className="fb-ledger-controls">
+          <input
+            className="fb-input"
+            type="search"
+            placeholder="Пошук за ID, карткою або описом..."
+            value={ledgerSearch}
+            onChange={(event) => setLedgerSearch(event.target.value)}
+          />
+          <select className="fb-select" value={typeFilter} onChange={(event) => setTypeFilter(event.target.value as 'all' | TransactionType)}>
+            <option value="all">Усі типи</option>
+            {TYPE_ORDER.map((type) => <option key={type} value={type}>{type}</option>)}
+          </select>
+          <select className="fb-select" value={ledgerSort} onChange={(event) => setLedgerSort(event.target.value as typeof ledgerSort)}>
+            <option value="newest">Найновіші</option>
+            <option value="oldest">Найстаріші</option>
+            <option value="amount-desc">Сума: більша першою</option>
+            <option value="amount-asc">Сума: менша першою</option>
+          </select>
+        </div>
+
         <div className="fb-table-container">
           <table className="fb-table">
             <thead>
               <tr>
                 <th>ID</th>
                 <th>Тип</th>
+                <th>Деталі</th>
+                <th>Картки</th>
                 <th>Сума</th>
                 <th>Статус</th>
                 <th>Дата</th>
@@ -893,13 +1009,13 @@ const AdminBank: React.FC = () => {
             <tbody>
               {ledgerLoading ? (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center' }}>
+                    <td colSpan={8} style={{ textAlign: 'center' }}>
                     Завантаження даних...
                   </td>
                 </tr>
               ) : filteredTransactions.length === 0 ? (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                  <td colSpan={8} style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
                     Транзакцій не знайдено
                   </td>
                 </tr>
@@ -910,6 +1026,10 @@ const AdminBank: React.FC = () => {
                     <tr key={tx.id}>
                       <td style={{ fontFamily: 'monospace' }}>{shortId(tx.id)}</td>
                       <td>{normalizeType(tx.type)}</td>
+                      <td>{tx.description || '—'}</td>
+                      <td style={{ fontFamily: 'monospace', fontSize: '0.78rem' }}>
+                        {shortId(tx.cardId)}{tx.secondCardId ? ` → ${shortId(tx.secondCardId)}` : ''}
+                      </td>
                       <td style={{ fontWeight: 600 }}>{formatMoney(tx.amount)}</td>
                       <td>
                         <span
@@ -922,15 +1042,23 @@ const AdminBank: React.FC = () => {
                         {formatDate(tx.createdAt)}
                       </td>
                       <td>
-                        {status === 'Success' && (
+                        <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
                           <button
                             className="fb-btn fb-btn-secondary fb-btn-sm"
-                            style={{ color: 'var(--accent-red)' }}
-                            onClick={() => setReversingTx(tx)}
+                            onClick={() => setDetailedTx(tx)}
                           >
-                            Reverse
+                            Детальніше
                           </button>
-                        )}
+                          {status === 'Success' && (
+                            <button
+                              className="fb-btn fb-btn-secondary fb-btn-sm"
+                              style={{ color: 'var(--accent-red)' }}
+                              onClick={() => setReversingTx(tx)}
+                            >
+                              Reverse
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -972,6 +1100,27 @@ const AdminBank: React.FC = () => {
               Вперед →
             </button>
           </div>
+        </div>
+
+        <div className="fb-ledger-controls">
+          <input
+            className="fb-input"
+            type="search"
+            placeholder="Пошук за власником, email або карткою..."
+            value={cardSearch}
+            onChange={(event) => setCardSearch(event.target.value)}
+          />
+          <select className="fb-select" value={cardStatus} onChange={(event) => setCardStatus(event.target.value as typeof cardStatus)}>
+            <option value="all">Усі картки</option>
+            <option value="active">Активні</option>
+            <option value="blocked">Заблоковані</option>
+          </select>
+          <select className="fb-select" value={cardSort} onChange={(event) => setCardSort(event.target.value as typeof cardSort)}>
+            <option value="newest">Найновіші</option>
+            <option value="name-asc">Власник: A–Я</option>
+            <option value="balance-desc">Баланс: більший першою</option>
+            <option value="balance-asc">Баланс: менший першою</option>
+          </select>
         </div>
 
         <div className="fb-table-container">
@@ -1275,6 +1424,38 @@ const AdminBank: React.FC = () => {
                 onClick={handleConfirmReverse}
               >
                 Підтвердити скасування
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {detailedTx && (
+        <div className="fb-modal-overlay">
+          <div className="fb-modal">
+            <div className="fb-modal-header">
+              <h3 style={{ margin: 0 }}>Деталі транзакції</h3>
+              <button
+                style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}
+                onClick={() => setDetailedTx(null)}
+              >
+                ✕
+              </button>
+            </div>
+            <div style={{ display: 'grid', gap: '0.75rem', color: 'var(--text-muted)' }}>
+              <div><strong>ID:</strong> <span style={{ fontFamily: 'monospace', color: '#fff' }}>{detailedTx.id}</span></div>
+              <div><strong>Тип:</strong> <span style={{ color: '#fff' }}>{normalizeType(detailedTx.type)}</span></div>
+              <div><strong>Деталі:</strong> <span style={{ color: '#fff' }}>{detailedTx.description || 'Без опису'}</span></div>
+              <div><strong>Картка:</strong> <span style={{ fontFamily: 'monospace', color: '#fff' }}>{detailedTx.cardId}</span></div>
+              {detailedTx.secondCardId && <div><strong>Друга картка:</strong> <span style={{ fontFamily: 'monospace', color: '#fff' }}>{detailedTx.secondCardId}</span></div>}
+              <div><strong>Сума:</strong> <span style={{ color: '#fff' }}>{formatMoney(detailedTx.amount)}</span></div>
+              <div><strong>Статус:</strong> <span style={{ color: '#fff' }}>{normalizeStatus(detailedTx.status)}</span></div>
+              <div><strong>Дата:</strong> <span style={{ color: '#fff' }}>{formatDate(detailedTx.createdAt)}</span></div>
+              {detailedTx.relatedTransactionId && <div><strong>Пов’язана транзакція:</strong> <span style={{ fontFamily: 'monospace', color: '#fff' }}>{detailedTx.relatedTransactionId}</span></div>}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+              <button className="fb-btn fb-btn-secondary" onClick={() => setDetailedTx(null)}>
+                Закрити
               </button>
             </div>
           </div>

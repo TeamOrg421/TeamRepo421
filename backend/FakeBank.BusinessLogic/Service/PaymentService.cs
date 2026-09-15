@@ -1,5 +1,6 @@
 using FakeBank.BusinessLogic.Interfaces;
 using FakeBank.DataAccess.Entities;
+using Microsoft.EntityFrameworkCore;
 using Shared.Contracts;
 using System;
 using System.Collections.Generic;
@@ -15,15 +16,18 @@ namespace FakeBank.BusinessLogic.Service
         private readonly IBankCardService bankCardService;
         private readonly ITransactionService transactionService;
         private readonly IHttpClientFactory httpClientFactory;
+        private readonly FakeBank.DataAccess.FakeBankDb db;
 
         public PaymentService(
             IBankCardService bankCardService,
             ITransactionService transactionService,
-            IHttpClientFactory httpClientFactory)
+            IHttpClientFactory httpClientFactory,
+            FakeBank.DataAccess.FakeBankDb db)
         {
             this.bankCardService = bankCardService;
             this.transactionService = transactionService;
             this.httpClientFactory = httpClientFactory;
+            this.db = db;
         }
 
         // ---- Mapping helpers ----
@@ -55,7 +59,8 @@ namespace FakeBank.BusinessLogic.Service
                 Type = transaction.Type,
                 Status = transaction.Status,
                 CreatedAt = transaction.CreatedAt,
-                RelatedTransactionId = transaction.RelatedTransactionId
+                RelatedTransactionId = transaction.RelatedTransactionId,
+                Description = transaction.Description
             };
         }
 
@@ -264,9 +269,26 @@ namespace FakeBank.BusinessLogic.Service
             return ToResultDto(transaction, resultingBalance);
         }
         //GetCardsAsync
-        public async Task<IList<BankCardDto>> GetCardsAsync(int? page)
+        public async Task<IList<BankCardDto>> GetCardsAsync(int? page, string? search = null, string? status = null, string? sort = null)
         {
-            var cards = await bankCardService.GetAllBankCardsAsync(page, null, null);
+            var query = db.BankCards.AsNoTracking();
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var term = search.Trim();
+                query = query.Where(card => card.CardHolderName.Contains(term) || card.Name.Contains(term) || card.Email.Contains(term) || card.CardNumber.Contains(term));
+            }
+            if (string.Equals(status, "blocked", StringComparison.OrdinalIgnoreCase)) query = query.Where(card => card.IsBlocked);
+            if (string.Equals(status, "active", StringComparison.OrdinalIgnoreCase)) query = query.Where(card => !card.IsBlocked);
+            query = string.Equals(sort, "balance-asc", StringComparison.OrdinalIgnoreCase)
+                ? query.OrderBy(card => card.Balance)
+                : string.Equals(sort, "balance-desc", StringComparison.OrdinalIgnoreCase)
+                    ? query.OrderByDescending(card => card.Balance)
+                    : string.Equals(sort, "name-asc", StringComparison.OrdinalIgnoreCase)
+                        ? query.OrderBy(card => card.CardHolderName)
+                        : query.OrderByDescending(card => card.Id);
+            var pageSize = 10;
+            var pageNumber = page.GetValueOrDefault(1) < 1 ? 1 : page.GetValueOrDefault(1);
+            var cards = await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
             return cards.Select(ToDto).ToList();
         }
         public async Task<BankTransactionDto> DepositAsync(DepositDto dto)
@@ -294,9 +316,26 @@ namespace FakeBank.BusinessLogic.Service
             return ToDto(transaction);
         }
 
-        public async Task<IEnumerable<BankTransactionDto>> GetAllPaymentsAsync(int? page)
+        public async Task<IEnumerable<BankTransactionDto>> GetAllPaymentsAsync(int? page, string? search = null, string? type = null, string? status = null, string? sort = null)
         {
-            var transactions = await transactionService.GetAllTransactionsAsync(page, null, null);
+            var query = db.BankTransactions.AsNoTracking();
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var term = search.Trim();
+                query = query.Where(transaction => transaction.Id.ToString().Contains(term) || transaction.CardId.ToString().Contains(term) || (transaction.SecondCardId != null && transaction.SecondCardId.ToString()!.Contains(term)) || (transaction.Description != null && transaction.Description.Contains(term)));
+            }
+            if (Enum.TryParse<TransactionType>(type, true, out var transactionType)) query = query.Where(transaction => transaction.Type == transactionType);
+            if (Enum.TryParse<TransactionStatus>(status, true, out var transactionStatus)) query = query.Where(transaction => transaction.Status == transactionStatus);
+            query = string.Equals(sort, "amount-asc", StringComparison.OrdinalIgnoreCase)
+                ? query.OrderBy(transaction => transaction.Amount)
+                : string.Equals(sort, "amount-desc", StringComparison.OrdinalIgnoreCase)
+                    ? query.OrderByDescending(transaction => transaction.Amount)
+                    : string.Equals(sort, "oldest", StringComparison.OrdinalIgnoreCase)
+                        ? query.OrderBy(transaction => transaction.CreatedAt)
+                        : query.OrderByDescending(transaction => transaction.CreatedAt);
+            var pageSize = 10;
+            var pageNumber = page.GetValueOrDefault(1) < 1 ? 1 : page.GetValueOrDefault(1);
+            var transactions = await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
             return transactions.Select(ToDto);
         }
 
@@ -345,12 +384,13 @@ namespace FakeBank.BusinessLogic.Service
             var transaction = new BankTransaction
             {
                 Id = Guid.NewGuid(),
-                CardId = dto.FromCardId,
-                SecondCardId = dto.ToCardId,
+                CardId = senderCard.Id,
+                SecondCardId = receiverCard.Id,
                 Amount = dto.Amount,
                 Type = TransactionType.Transfer,
                 Status = TransactionStatus.Success,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                Description = string.IsNullOrWhiteSpace(dto.Description) ? "Card transfer" : dto.Description.Trim()
             };
             await transactionService.CreateTransactionAsync(transaction);
             return ToDto(transaction);
@@ -374,7 +414,7 @@ namespace FakeBank.BusinessLogic.Service
             var transaction = new BankTransaction
             {
                 Id = Guid.NewGuid(),
-                CardId = dto.CardId,
+                CardId = card.Id,
                 Amount = dto.Amount,
                 Type = TransactionType.Withdraw,
                 Status = TransactionStatus.Success,
@@ -420,9 +460,10 @@ namespace FakeBank.BusinessLogic.Service
             return card.Balance;
         }
 
-        public async Task<IList<BankCardDto>> Login(string name)
+        public async Task<IList<BankCardDto>> Login(string email)
         {
-            var cards = await bankCardService.GetAllBankCardsAsync(null, null, i => i.Name == name);
+            var normalizedEmail = email.Trim();
+            var cards = await bankCardService.GetAllBankCardsAsync(null, null, i => i.Email == normalizedEmail);
             return cards.Select(ToDto).ToList();
         }
     }

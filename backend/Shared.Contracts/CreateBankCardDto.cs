@@ -70,6 +70,8 @@
         public DateTime CreatedAt { get; set; }
 
         public Guid? RelatedTransactionId { get; set; }
+
+        public string? Description { get; set; }
     }
     public class DepositDto
     {
@@ -96,6 +98,8 @@
         public Guid ToCardId { get; set; }
 
         public decimal Amount { get; set; }
+
+        public string? Description { get; set; }
     }
     public class ReverseTransactionDto
     {
