@@ -7,7 +7,7 @@ namespace Api.HostedServices
     public class AuctionFinalizationHostedService : BackgroundService
     {
         private readonly IServiceScopeFactory _scopeFactory;
-        private readonly TimeSpan _period = TimeSpan.FromMinutes(1);
+        private readonly TimeSpan _period = TimeSpan.FromSeconds(5);
 
         public AuctionFinalizationHostedService(IServiceScopeFactory scopeFactory)
         {

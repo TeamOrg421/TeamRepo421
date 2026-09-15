@@ -38,7 +38,6 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, searchValue, onSearchChange
     return currentPage === targetPage;
   };
 
-  // Close menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
@@ -127,10 +126,21 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, searchValue, onSearchChange
                   {isAuthenticated && (
                     <div className="hamburger-dropdown-user">
                       <span className="hamburger-user-avatar">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <circle cx="12" cy="8" r="4" />
-                          <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
-                        </svg>
+                        {user?.profileImageUrl ? (
+                          <img
+                            src={user.profileImageUrl}
+                            alt={user.name || 'Avatar'}
+                            className="hamburger-avatar-img"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                        ) : (
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <circle cx="12" cy="8" r="4" />
+                            <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+                          </svg>
+                        )}
                       </span>
                       <span className="hamburger-user-name">{user?.name || user?.email || 'User'}</span>
                     </div>

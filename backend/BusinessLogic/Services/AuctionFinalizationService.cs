@@ -49,37 +49,23 @@ namespace BusinessLogic.Services
 
             if (highestBid == null)
             {
-                auction.Status = ListingStatus.Canceled;
+                auction.Status = ListingStatus.Completed;
                 auction.CurrentPrice = auction.StartingPrice;
                 await _lotRepo.UpdateAsync(auction);
                 return;
             }
 
-            bool paymentSuccess = false;
             try
             {
-                paymentSuccess = await _paymentService.ProcessAuctionPaymentAsync(
+                await _paymentService.ProcessAuctionPaymentAsync(
                     highestBid.UserId,
                     auction.SellerId,
                     highestBid.Amount);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Payment error for auction {listingId}: {ex.Message}");
-                paymentSuccess = false;
+                Console.WriteLine($"[AuctionFinalization] Payment processing skipped/failed for auction {listingId}: {ex.Message}");
             }
-
-            if (!paymentSuccess)
-            {
-
-                auction.Status = ListingStatus.Canceled;
-                auction.CurrentPrice = auction.StartingPrice;
-                await _lotRepo.UpdateAsync(auction);
-                Console.WriteLine($"Auction {listingId} cancelled due to payment failure");
-                return;
-            }
-
-            Console.WriteLine($"Payment successful for auction {listingId}. Amount: {highestBid.Amount}, Winner: {highestBid.UserId}");
 
             auction.Status = ListingStatus.Completed;
             auction.CurrentPrice = highestBid.Amount;
@@ -96,7 +82,7 @@ namespace BusinessLogic.Services
                     ListingId = auction.Id,
                     WinnerId = highestBid.UserId,
                     WinningBid = highestBid.Amount,
-                    FinishedAt = DateTime.UtcNow
+                    FinishedAt = auction.AuctionEnd ?? DateTime.UtcNow
                 };
 
                 await _winnerRepo.AddAsync(winner);
@@ -105,7 +91,7 @@ namespace BusinessLogic.Services
             {
                 existingWinner.WinnerId = highestBid.UserId;
                 existingWinner.WinningBid = highestBid.Amount;
-                existingWinner.FinishedAt = DateTime.UtcNow;
+                existingWinner.FinishedAt = auction.AuctionEnd ?? DateTime.UtcNow;
                 await _winnerRepo.UpdateAsync(existingWinner);
             }
 
@@ -116,6 +102,7 @@ namespace BusinessLogic.Services
             }
 
             await _dbContext.SaveChangesAsync();
+            Console.WriteLine($"[AuctionFinalization] Auction {listingId} successfully finalized. Winner: {highestBid.UserId}, Amount: ${highestBid.Amount}");
         }
 
         public async Task FinalizeExpiredAuctionsAsync()

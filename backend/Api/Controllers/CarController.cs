@@ -76,8 +76,8 @@ namespace Api.Controllers
 
             if (lotDto.Duration == AuctionDuration.Custom)
             {
-                if (!lotDto.CustomEndDate.HasValue || lotDto.CustomEndDate.Value <= DateTime.UtcNow.AddMinutes(5))
-                    return BadRequest("For a custom auction, choose a future end date at least 5 minutes ahead.");
+                if (!lotDto.CustomEndDate.HasValue || lotDto.CustomEndDate.Value <= DateTime.UtcNow)
+                    return BadRequest("For a custom auction, choose a future end date.");
             }
 
             if (specificationDto.Mileage < 0 || specificationDto.HorsePower < 0 || specificationDto.EngineVolume < 0 ||
@@ -237,6 +237,7 @@ namespace Api.Controllers
             var carDto = mapper.Map<CarDto>(car);
             var listing = car.Listings?
                 .OrderByDescending(item => item.Status == ListingStatus.Active)
+                .ThenByDescending(item => item.Status == ListingStatus.Completed)
                 .ThenByDescending(item => item.AuctionStart)
                 .FirstOrDefault();
 
@@ -256,8 +257,31 @@ namespace Api.Controllers
             carDto.AuctionStart = listing.AuctionStart;
             carDto.AuctionEnd = listing.AuctionEnd;
             carDto.ListingStatus = listing.Status.ToString();
-            carDto.WinnerName = listing.Winner?.Winner?.UserName ?? listing.Winner?.Winner?.Name ?? "Unknown User";
-            carDto.WinningBid = listing.Winner?.WinningBid ?? 0m;
+            carDto.WinnerName = listing.Winner?.Winner?.Name ?? listing.Winner?.Winner?.UserName ?? (listing.Winner?.Winner?.Email != null ? listing.Winner.Winner.Email.Split('@')[0] : null);
+            carDto.WinningBid = listing.Winner?.WinningBid ?? (listing.Status == ListingStatus.Completed ? listing.CurrentPrice : 0m);
+
+            var highestBid = listing.Bids?.OrderByDescending(b => b.Amount).ThenByDescending(b => b.CreatedAt).FirstOrDefault();
+            if (highestBid != null)
+            {
+                carDto.HighestBidderId = highestBid.UserId;
+                carDto.HighestBidderName = highestBid.User?.Name ?? highestBid.User?.UserName ?? (highestBid.User?.Email != null ? highestBid.User.Email.Split('@')[0] : "Bidder");
+            }
+
+            if (listing.Bids != null)
+            {
+                carDto.Bids = listing.Bids
+                    .OrderByDescending(b => b.Amount)
+                    .Select(b => new BidDto
+                    {
+                        Id = b.Id,
+                        Amount = b.Amount,
+                        CreatedAt = b.CreatedAt,
+                        UserId = b.UserId,
+                        UserName = b.User?.Name ?? b.User?.UserName ?? (b.User?.Email != null ? b.User.Email.Split('@')[0] : "Bidder")
+                    })
+                    .ToList();
+            }
+
             return carDto;
         }
 
@@ -447,6 +471,135 @@ namespace Api.Controllers
             await carService.DeleteCarImageAsync(imageId);
 
             return NoContent();
+        }
+
+        // ============= Comments for Car Listing ===============
+
+        [HttpGet("{carId:guid}/comments")]
+        public async Task<IActionResult> GetCarComments(Guid carId)
+        {
+            var listing = await dbContext.CarListings
+                .Where(l => l.CarId == carId || l.Id == carId)
+                .OrderByDescending(l => l.Status == ListingStatus.Active)
+                .ThenByDescending(l => l.AuctionStart)
+                .FirstOrDefaultAsync();
+
+            var listingId = listing?.Id;
+
+            var commentsQuery = dbContext.Comments
+                .Include(c => c.User)
+                .AsNoTracking();
+
+            List<Comment> comments;
+            if (listingId.HasValue)
+            {
+                comments = await commentsQuery
+                    .Where(c => c.ListingId == listingId.Value || (c.Listing != null && c.Listing.CarId == carId))
+                    .OrderByDescending(c => c.CreatedAt)
+                    .ToListAsync();
+            }
+            else
+            {
+                comments = await commentsQuery
+                    .Where(c => c.Listing != null && c.Listing.CarId == carId)
+                    .OrderByDescending(c => c.CreatedAt)
+                    .ToListAsync();
+            }
+
+            var result = comments.Select(c => new
+            {
+                id = c.Id.ToString(),
+                userId = c.UserId.ToString(),
+                user = !string.IsNullOrWhiteSpace(c.User?.Name) ? c.User.Name : (!string.IsNullOrWhiteSpace(c.User?.UserName) ? c.User.UserName : "User"),
+                userAvatar = c.User?.ProfileImageUrl,
+                text = c.Text,
+                time = c.CreatedAt.ToString("o"),
+                isSeller = listing != null && c.UserId == listing.SellerId,
+                likes = c.Likes
+            }).ToList();
+
+            return Ok(result);
+        }
+
+        public class PostCarCommentDto
+        {
+            public string Text { get; set; } = string.Empty;
+        }
+
+        [HttpPost("{carId:guid}/comments")]
+        [Authorize]
+        public async Task<IActionResult> AddCarComment(Guid carId, [FromBody] PostCarCommentDto dto)
+        {
+            if (string.IsNullOrWhiteSpace(dto?.Text))
+                return BadRequest(new { message = "Comment text cannot be empty." });
+
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!Guid.TryParse(userIdClaim, out var userId))
+                return Unauthorized(new { message = "Invalid user identity." });
+
+            var user = await dbContext.Users.FindAsync(userId);
+            if (user == null)
+                return Unauthorized(new { message = "User not found." });
+
+            var listing = await dbContext.CarListings
+                .Where(l => l.CarId == carId || l.Id == carId)
+                .OrderByDescending(l => l.Status == ListingStatus.Active)
+                .ThenByDescending(l => l.AuctionStart)
+                .FirstOrDefaultAsync();
+
+            if (listing == null)
+            {
+                listing = new AuctionLot
+                {
+                    Id = Guid.NewGuid(),
+                    CarId = carId,
+                    SellerId = userId,
+                    Title = "Listing",
+                    Description = "Listing",
+                    Status = ListingStatus.Active
+                };
+                await dbContext.CarListings.AddAsync(listing);
+                await dbContext.SaveChangesAsync();
+            }
+
+            var comment = new Comment
+            {
+                Id = Guid.NewGuid(),
+                ListingId = listing.Id,
+                UserId = userId,
+                Text = dto.Text.Trim(),
+                CreatedAt = DateTime.UtcNow,
+                Likes = 0
+            };
+
+            await dbContext.Comments.AddAsync(comment);
+            await dbContext.SaveChangesAsync();
+
+            return Ok(new
+            {
+                id = comment.Id.ToString(),
+                userId = user.Id.ToString(),
+                user = !string.IsNullOrWhiteSpace(user.Name) ? user.Name : (!string.IsNullOrWhiteSpace(user.UserName) ? user.UserName : "User"),
+                userAvatar = user.ProfileImageUrl,
+                text = comment.Text,
+                time = comment.CreatedAt.ToString("o"),
+                isSeller = listing != null && user.Id == listing.SellerId,
+                likes = comment.Likes
+            });
+        }
+
+        [HttpPost("comments/{commentId:guid}/like")]
+        [Authorize]
+        public async Task<IActionResult> LikeComment(Guid commentId)
+        {
+            var comment = await dbContext.Comments.FindAsync(commentId);
+            if (comment == null)
+                return NotFound(new { message = "Comment not found." });
+
+            comment.Likes += 1;
+            await dbContext.SaveChangesAsync();
+
+            return Ok(new { likes = comment.Likes });
         }
     }
 }

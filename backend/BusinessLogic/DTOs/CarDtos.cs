@@ -45,6 +45,9 @@ namespace BusinessLogic.DTOs
         public string? ListingStatus { get; set; }
         public string? WinnerName { get; set; }
         public decimal? WinningBid { get; set; }
+        public Guid? HighestBidderId { get; set; }
+        public string? HighestBidderName { get; set; }
+        public List<BidDto> Bids { get; set; } = new();
     }
 
     public class CarListItemDto

@@ -44,7 +44,10 @@ namespace DataAccess.Repositories
             }
 
             if (pageNumber != null)
+            {
+                query = query.OrderBy(x => x.Id);
                 query = await query.PaginateAsync(pageNumber ?? 0, pageSize ?? DefaultPageSize);
+            }
             query = query.AsSplitQuery();
 
             return await query.ToListAsync();

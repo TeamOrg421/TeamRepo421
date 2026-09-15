@@ -39,10 +39,18 @@ const tabItems: Array<{ id: DashboardTab; label: string; icon: React.ReactNode }
   { id: 'past', label: 'Past Listings', icon: <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10M7 21h10M8 3v5a4 4 0 0 0 8 0V3M16 21v-5a4 4 0 0 0-8 0v5M8 8l8 8" /></svg> },
 ];
 
+const parseUtcTime = (val?: string | null) => {
+  if (!val) return NaN;
+  const str = val.trim();
+  if (!str) return NaN;
+  const hasTz = str.includes('Z') || /[+-]\d{2}:?\d{2}$/.test(str);
+  return new Date(hasTz ? str : `${str}Z`).getTime();
+};
+
 const getListingState = (listing: SellerListing) => {
   const now = Date.now();
-  const start = new Date(listing.auctionStart).getTime();
-  const end = new Date(listing.auctionEnd).getTime();
+  const start = parseUtcTime(listing.auctionStart);
+  const end = parseUtcTime(listing.auctionEnd);
   if (listing.status === 'Completed' || listing.status === 'Canceled' || (Number.isFinite(end) && end <= now)) return 'past';
   if (listing.status === 'Active' && Number.isFinite(start) && start <= now) return 'live';
   return 'progress';
@@ -51,17 +59,22 @@ const getListingState = (listing: SellerListing) => {
 const formatPrice = (value: number) => `$${Number(value ?? 0).toLocaleString()}`;
 
 const formatDate = (value: string) => {
-  const date = new Date(value);
+  if (!value) return 'Date to be announced';
+  const hasTz = value.includes('Z') || /[+-]\d{2}:?\d{2}$/.test(value);
+  const date = new Date(hasTz ? value : `${value}Z`);
   return Number.isNaN(date.getTime()) ? 'Date to be announced' : new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: '2-digit' }).format(date);
 };
 
 const getTimeRemaining = (value: string, now: number) => {
-  const ms = new Date(value).getTime() - now;
-  if (!Number.isFinite(ms) || ms <= 0) return 'Ended';
-  const seconds = Math.floor(ms / 1000) % 60;
-  const minutes = Math.floor(ms / 60000) % 60;
-  const hours = Math.floor(ms / 3600000) % 24;
-  const days = Math.floor(ms / 86400000);
+  const end = parseUtcTime(value);
+  if (Number.isNaN(end)) return 'Ended';
+  const ms = end - now;
+  if (ms <= 0) return 'Ended';
+  const totalSeconds = Math.floor(ms / 1000);
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
   return `${days ? `${days}d ` : ''}${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 };
 
@@ -110,7 +123,7 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate }) => {
     void loadDashboard();
   }, [isAuthenticated]);
 
-  const tabListings = useMemo(() => listings.filter((listing) => getListingState(listing) === activeTab), [activeTab, listings, now]);
+  const tabListings = useMemo(() => listings.filter((listing) => getListingState(listing) === activeTab), [activeTab, listings]);
 
   if (!isAuthenticated) return <section className="seller-dashboard-page"><div className="seller-dashboard-empty"><h1>Dashboard</h1><p>Sign in to manage your listings.</p><button type="button" onClick={() => onNavigate('login')}>Sign In</button></div></section>;
 
@@ -124,7 +137,7 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate }) => {
       <div className="seller-dashboard-summary">
         {isLive ? <><span>Time left</span><strong className="seller-dashboard-time">{getTimeRemaining(listing.auctionEnd, now)}</strong><span>Current bid</span><strong className="seller-dashboard-bid">{formatPrice(listing.currentPrice)}</strong></> : isPast ? <><span>{listing.status === 'Canceled' ? 'Ended' : 'Sold for'}</span><strong>{formatPrice(listing.currentPrice)}</strong></> : <><strong>Will be published on {formatDate(listing.auctionStart)}</strong><small>{listing.status === 'Rejected' ? 'Listing needs changes' : 'No additional information needed.'}</small></>}
       </div>
-      <div className="seller-dashboard-actions">{!isPast && <button type="button" onClick={() => onNavigate('car', { carId: listing.carId })}>{isLive ? 'See details' : 'Open chat'}</button>}<button type="button" onClick={() => onNavigate('car', { carId: listing.carId })}>See details <span aria-hidden="true">›</span></button></div>
+      <div className="seller-dashboard-actions">{!isPast && !isLive && <button type="button" onClick={() => onNavigate('car', { carId: listing.carId })}>Open chat</button>}<button type="button" onClick={() => onNavigate('car', { carId: listing.carId })}>See details <span aria-hidden="true">›</span></button></div>
     </article>;
   };
 

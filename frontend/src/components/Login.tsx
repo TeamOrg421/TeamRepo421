@@ -7,9 +7,7 @@ interface LoginProps {
 }
 
 const Login: React.FC<LoginProps> = ({ onNavigate, initialAuthView }) => {
-  // Перевіряємо URL параметри для скидання пароля
   const initialView = useMemo(() => {
-    // Якщо явно передано initialAuthView, використовуємо його
     if (initialAuthView && initialAuthView !== 'login') {
       return initialAuthView;
     }
@@ -18,7 +16,6 @@ const Login: React.FC<LoginProps> = ({ onNavigate, initialAuthView }) => {
     const token = params.get('token');
     const email = params.get('email');
 
-    // Якщо є токен та email, показуємо форму скидання пароля
     if (token && email) {
       return 'reset-password' as const;
     }

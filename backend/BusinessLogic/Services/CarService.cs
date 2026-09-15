@@ -52,7 +52,7 @@ namespace BusinessLogic.Services
 
         public async Task<Car?> GetCarAsync(Guid carId)
         {
-            var car = await carRepository.GetByIdAsync(carId, "Model.Brand", "Specification", "Images", "Listings.Seller", "Listings.Bids", "Listings.Winner", "Listings.Winner.Winner");
+            var car = await carRepository.GetByIdAsync(carId, "Model.Brand", "Specification", "Images", "Listings.Seller", "Listings.Bids", "Listings.Bids.User", "Listings.Winner", "Listings.Winner.Winner");
 
             if (car == null)
                 throw new Exception("Car not found");

@@ -101,7 +101,7 @@ namespace BusinessLogic.Services
 
         public async Task<CarModel> GetCarModelAsync(Guid modelId)
         {
-            var model = await carModelRepository.GetByIdAsync(modelId);
+            var model = await carModelRepository.GetByIdAsync(modelId, nameof(CarModel.Brand));
 
             if (model == null)
                 throw new Exception("Car model not found");
@@ -111,14 +111,14 @@ namespace BusinessLogic.Services
 
         public async Task<IList<CarModel>> GetCarModelsAsync(int? page, int? size = null)
         {
-            var models = await carModelRepository.GetAllAsync(page, size);
+            var models = await carModelRepository.GetAllAsync(page, size, null, nameof(CarModel.Brand));
             return models.ToList();
         }
 
         public async Task<IList<CarModel>> GetCarModelsByBrandAsync(Guid brandId, int? page, int? size = null)
         {
-            var models = await carModelRepository.GetAllAsync(page, size);
-            return models.Where(m => m.BrandId == brandId).ToList();
+            var models = await carModelRepository.GetAllAsync(page, size, m => m.BrandId == brandId, nameof(CarModel.Brand));
+            return models.ToList();
         }
 
         public async Task<IList<CarModel>?> GetModelsByBrandSlugAsync(string brandSlug)

@@ -4,7 +4,7 @@ import Navbar from './components/Navbar'
 import Home from './components/Home'
 import Login from './components/Login'
 import Register from './components/Register'
-import MainPage from './components/mainpage'
+import AboutPage from './components/AboutPage'
 import Car from './components/Car'
 import UserProfile from './components/UserProfile'
 import AdminCars from './components/AdminCars'
@@ -18,10 +18,11 @@ import PublicUserProfilePage from './components/PublicUserProfilePage'
 import Footer from './components/Footer'
 import Leaderboard from './components/Leaderboard'
 import AccountSidebar from './components/AccountSidebar'
+import NotFoundPage from './components/NotFoundPage'
 
 import { AuthProvider } from './contexts/AuthContext'
 
-type Page = 'home' | 'about' | 'leaderboard' | 'login' | 'register' | 'mainpage' | 'car' | 'profile' | 'user-profile' | 'adminCars' | 'watchlist' | 'settings' | 'sellCar' | 'seller' | 'manager' | 'auction-review'
+type Page = 'home' | 'about' | 'leaderboard' | 'login' | 'register' | 'mainpage' | 'car' | 'profile' | 'user-profile' | 'adminCars' | 'watchlist' | 'settings' | 'sellCar' | 'seller' | 'manager' | 'auction-review' | '404' | 'not-found'
 type AuthView = 'login' | 'register-step1' | 'register-step2' | 'forgot' | 'check-email' | 'reset-password' | 'reset-success';
 
 function App() {
@@ -33,15 +34,22 @@ function App() {
   const [catalogSearch, setCatalogSearch] = useState<string>('')
 
   useEffect(() => {
-    // Перевіримо URL параметри при завантаженні
+    // Handle password reset token from URL
     const params = new URLSearchParams(window.location.search);
     const token = params.get('token');
     const email = params.get('email');
 
-    // Якщо є параметри для скидання пароля, перейдемо на сторінку login
     if (token && email) {
       setCurrentPage('login');
       setAuthView('reset-password');
+      return;
+    }
+
+    const pageParam = params.get('page');
+    const path = window.location.pathname.replace(/^\/+|\/+$/g, '');
+
+    if (pageParam === '404' || pageParam === 'not-found' || path === '404' || path === 'not-found') {
+      setCurrentPage('404');
     }
   }, []);
 
@@ -74,7 +82,7 @@ function App() {
           )}
           {currentPage === 'login' && <Login onNavigate={navigate} initialAuthView={authView} />}
           {currentPage === 'register' && <Register onNavigate={navigate} />}
-          {(currentPage === 'mainpage' || currentPage === 'about') && <MainPage onNavigate={navigate} />}
+          {(currentPage === 'mainpage' || currentPage === 'about') && <AboutPage onNavigate={navigate} />}
           {currentPage === 'leaderboard' && <section className="account-shell"><AccountSidebar currentPage="leaderboard" onNavigate={navigate} /><div className="account-page-content"><Leaderboard onNavigate={navigate} /></div></section>}
           {currentPage === 'car' && <Car onNavigate={navigate} carId={selectedCarId} />}
           {currentPage === 'profile' && <UserProfile onNavigate={navigate} />}
@@ -92,6 +100,9 @@ function App() {
           ) : currentPage === 'auction-review' ? (
             <div className="manager-reference-empty">The auction could not be opened because its ID is missing.</div>
           ) : null}
+          {(currentPage === '404' || currentPage === 'not-found') && (
+            <NotFoundPage onNavigate={navigate} />
+          )}
         </main>
         <Footer onNavigate={navigate} />
       </div>

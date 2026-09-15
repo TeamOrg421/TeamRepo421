@@ -79,15 +79,11 @@ const AdminCars: React.FC<AdminCarsProps> = ({ onNavigate }) => {
   const [search, setSearch] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'available' | 'unavailable'>('all');
 
-  // Modal states
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [editingCar, setEditingCar] = useState<CarDto | null>(null);
   const [formData, setFormData] = useState<CarFormData>(DEFAULT_FORM);
 
-  // Delete modal state
   const [deletingCar, setDeletingCar] = useState<CarDto | null>(null);
-
-  // Toast alert state
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
@@ -97,7 +93,6 @@ const AdminCars: React.FC<AdminCarsProps> = ({ onNavigate }) => {
     }, 4000);
   };
 
-  // Fetch cars and models from backend API
   const fetchCarsAndModels = async () => {
     setLoading(true);
     try {
@@ -124,7 +119,6 @@ const AdminCars: React.FC<AdminCarsProps> = ({ onNavigate }) => {
     fetchCarsAndModels();
   }, []);
 
-  // Open create modal
   const handleOpenCreateModal = () => {
     setEditingCar(null);
     const randomVin = `WPO${Math.floor(10000000000000 + Math.random() * 90000000000000)}`;
@@ -167,7 +161,6 @@ const AdminCars: React.FC<AdminCarsProps> = ({ onNavigate }) => {
     }
   };
 
-  // Open edit modal
   const handleOpenEditModal = (car: CarDto) => {
     setEditingCar(car);
     setFormData({
@@ -186,7 +179,6 @@ const AdminCars: React.FC<AdminCarsProps> = ({ onNavigate }) => {
     setIsModalOpen(true);
   };
 
-  // Save Car (POST or PUT to /api/cars)
   const handleSaveCar = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -241,31 +233,35 @@ const AdminCars: React.FC<AdminCarsProps> = ({ onNavigate }) => {
         }
       } else {
         const selectedModel = models.find((m) => m.id === formData.modelId);
+        const make = selectedModel?.brandName?.trim() || 'Porsche';
+        const model = selectedModel?.name?.trim() || '911';
+        const year = Number(formData.year) || new Date().getFullYear();
+
         const createPayload = {
           car: {
-            make: selectedModel?.brandName || '',
-            model: selectedModel?.name || '',
-            year: Number(formData.year),
-            vin: formData.vin,
+            make,
+            model,
+            year,
+            vin: formData.vin.trim(),
             specification: {
-              mileage: Number(formData.mileage),
-              horsePower: Number(formData.horsePower),
-              engineVolume: Number(formData.engineVolume),
+              mileage: Number(formData.mileage) || 5000,
+              horsePower: Number(formData.horsePower) || 400,
+              engineVolume: Number(formData.engineVolume) || 3.0,
               fuelType: 0,
               transmission: 1,
               driveType: 0,
               bodyType: 0,
               doors: 4,
               seats: 5,
-              exteriorColor: formData.color,
+              exteriorColor: formData.color?.trim() || 'White',
               interiorColor: null,
               isAccidentFree: true,
               ownersCount: 1,
             },
           },
           auction: {
-            title: `${selectedModel?.brandName || 'Car'} ${selectedModel?.name || 'Model'} ${formData.year}`,
-            description: `Auction listing for ${selectedModel?.brandName || 'Car'} ${selectedModel?.name || 'Model'} (${formData.year}).`,
+            title: `${make} ${model} ${year}`,
+            description: `Auction listing for ${make} ${model} (${year}).`,
             location: 'Location not specified',
             startingPrice: 0,
             duration: 1, // AuctionDuration.OneWeek - starts once a moderator approves the listing.
@@ -310,7 +306,6 @@ const AdminCars: React.FC<AdminCarsProps> = ({ onNavigate }) => {
     }
   };
 
-  // Delete Car (DELETE /api/cars/{id})
   const handleConfirmDelete = async () => {
     if (!deletingCar) return;
 
@@ -333,7 +328,6 @@ const AdminCars: React.FC<AdminCarsProps> = ({ onNavigate }) => {
     }
   };
 
-  // Filter cars
   const filteredCars = cars.filter(car => {
     const title = `${car.brandName || ''} ${car.modelName || ''}`.toLowerCase();
     const searchLower = search.toLowerCase();

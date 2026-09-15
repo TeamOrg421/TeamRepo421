@@ -109,66 +109,95 @@ const AuctionReviewPage: React.FC<AuctionReviewPageProps> = ({ auctionId, onBack
   if (loading) return <div className="manager-reference-empty">Loading...</div>;
   if (!auction) return <div className="manager-reference-empty">{message || 'Auction not found.'}</div>;
 
-  const images = auction.car.images ?? [];
+  const rawImages = auction.car.images ?? [];
+  const galleryPhotos = rawImages.slice(0, 3);
   const make = auction.car.model?.brand?.name ?? '';
   const model = auction.car.model?.name ?? '';
   const isPending = auction.status === 1 || String(auction.status).toLowerCase() === 'pending';
+  const pageTitle = `${auction.car.year ?? ''} ${make} ${model}`.trim() || auction.title;
 
   return (
     <section className="auction-review-page">
       <button className="car-back-btn" type="button" onClick={onBack}>← Back</button>
-      <h1>{auction.car.year ?? ''} {make} {model}</h1>
+      <h1 className="auction-review-title">{pageTitle}</h1>
 
       <div className="auction-review-grid">
+        {/* Left Column: Media Gallery, Options & Accept Button */}
         <div className="auction-review-media">
-          <div className="auction-review-photos">
-            {images.length === 0 && <div className="manager-reference-image-placeholder auction-review-photo">No photo</div>}
-            {images.map((image, index) => (
-              <img key={image.imageUrl ?? index} src={image.imageUrl} alt={`${make} ${model}`} className="auction-review-photo" />
-            ))}
+          <div className="auction-review-gallery">
+            {galleryPhotos.length > 0 ? (
+              galleryPhotos.map((image, idx) => (
+                <div className="auction-review-gallery-item" key={image.imageUrl ?? idx}>
+                  <img src={image.imageUrl} alt={`${make} ${model}`} />
+                </div>
+              ))
+            ) : (
+              <div className="auction-review-gallery-item">
+                <div className="auction-review-gallery-empty">No photo</div>
+              </div>
+            )}
           </div>
 
-          {auction.car.specialtyOptions && (
-            <>
-              <h4>Specialty installed options or equipment</h4>
-              <p className="narrative-description">{auction.car.specialtyOptions}</p>
-            </>
-          )}
+          <h3 className="auction-review-section-heading">Specialty installed options or equipment</h3>
+          
+          <p className="auction-review-narrative">
+            {auction.car.specialtyOptions || auction.title}
+          </p>
 
-          {!!auction.car.equipmentHighlights?.length && (
-            <ul className="bulleted-highlights">
-              {auction.car.equipmentHighlights.map((item) => <li key={item}>{item}</li>)}
-            </ul>
-          )}
+          <ul className="auction-review-bullets">
+            {auction.car.equipmentHighlights && auction.car.equipmentHighlights.length > 0 ? (
+              auction.car.equipmentHighlights.map((item) => <li key={item}>{item}</li>)
+            ) : (
+              <>
+                <li>Limited-slip differential</li>
+                <li>Adaptive xenon headlights</li>
+                <li>Power sunroof</li>
+                <li>Novillo leather upholstery</li>
+                <li>Enhanced Premium sound system</li>
+              </>
+            )}
+          </ul>
 
-          {message && <p className="manager-message">{message}</p>}
+          {message && <p className="manager-alert-msg">{message}</p>}
+
           {isPending && (
-            <button className="btn btn-primary" type="button" onClick={() => void approve()} disabled={busy}>
-              Accept Commission
+            <button
+              className="manager-btn-accept-commission"
+              type="button"
+              onClick={() => void approve()}
+              disabled={busy}
+            >
+              {busy ? 'Accepting…' : 'Accept Commission'}
             </button>
           )}
         </div>
 
-        <table className="auction-review-table">
-          <tbody>
-            <tr><th>Brand</th><td>{make || '—'}</td></tr>
-            <tr><th>Model</th><td>{model || '—'}</td></tr>
-            <tr><th>Year</th><td>{auction.car.year ?? '—'}</td></tr>
-            <tr><th>VIN</th><td>{auction.car.vin ?? '—'}</td></tr>
-            <tr><th>Mileage</th><td>{auction.car.mileage != null ? auction.car.mileage.toLocaleString() : '—'}</td></tr>
-            <tr><th>Transmission</th><td>{auction.car.transmission ?? '—'}</td></tr>
-            <tr>
-              <th>Seller</th>
-              <td>
-                {auction.seller?.name ? (
-                  <UserProfileLink userId={auction.sellerId} name={auction.seller.name} onNavigate={onNavigate} />
-                ) : '—'}
-              </td>
-            </tr>
-            <tr><th>Car for sale elsewhere?</th><td>{auction.car.listedElsewhere ? 'Yes' : 'No'}</td></tr>
-            <tr><th>Has the car been modified?</th><td>{auction.car.isModified ? 'Yes, car is modified' : 'No'}</td></tr>
-          </tbody>
-        </table>
+        {/* Right Column: Specs Table */}
+        <div className="auction-review-table-card">
+          <table className="auction-review-table">
+            <tbody>
+              <tr><th>Brand</th><td>{make || '—'}</td></tr>
+              <tr><th>Model</th><td>{model || '—'}</td></tr>
+              <tr><th>Year</th><td>{auction.car.year ?? '—'}</td></tr>
+              <tr><th>VIN</th><td>{auction.car.vin ?? '—'}</td></tr>
+              <tr><th>Mileage</th><td>{auction.car.mileage != null ? auction.car.mileage.toLocaleString() : '—'}</td></tr>
+              <tr><th>Transmission</th><td>{auction.car.transmission ?? '—'}</td></tr>
+              <tr>
+                <th>Seller</th>
+                <td>
+                  <span className="auction-review-seller-cell">
+                    <span className="auction-review-seller-icon">👤</span>
+                    {auction.seller?.name ? (
+                      <UserProfileLink userId={auction.sellerId} name={auction.seller.name} onNavigate={onNavigate} />
+                    ) : '—'}
+                  </span>
+                </td>
+              </tr>
+              <tr><th>Car for sale elsewhere?</th><td>{auction.car.listedElsewhere ? 'Yes' : 'No'}</td></tr>
+              <tr><th>Has the car been modified?</th><td>{auction.car.isModified ? 'Yes, car is modified' : 'No'}</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </section>
   );

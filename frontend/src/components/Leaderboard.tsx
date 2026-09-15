@@ -13,7 +13,6 @@ interface LeaderboardProps {
   onNavigate?: (page: string, params?: { carId?: number | string }) => void;
 }
 
-// Статичні дані-заглушка на випадок, якщо в БД ще немає жодного переможця аукціону
 const FALLBACK_LEADERBOARD: LeaderBordEntety[] = [
   { userId: 'demo-1', userName: 'MotorMaverick', totalWinningBid: 128500, totalWins: 6, carName: 'Porsche 911, BMW M3, Audi RS6' },
   { userId: 'demo-2', userName: 'ClassicChaser', totalWinningBid: 97200, totalWins: 5, carName: 'Ford Mustang, Chevrolet Camaro' },
@@ -62,7 +61,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ onNavigate }) => {
       } catch {
         setEntries(FALLBACK_LEADERBOARD);
         setIsDemoData(true);
-        setError('Не вдалося зʼєднатися з сервером — показано демо-дані.');
+        setError('Unable to connect to server. Showing preview data.');
       } finally {
         setLoading(false);
       }
@@ -81,12 +80,12 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ onNavigate }) => {
             <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M6 4h12v6a6 6 0 0 1-12 0V4z" />
             <path d="M12 16v4M9 20h6" />
           </svg>
-          Топ переможці аукціонів
+          Top Auction Winners
         </p>
         <h1>
-          Лідер<span className="gradient-text-accent">борд</span>
+          Leader<span className="gradient-text-accent">board</span>
         </h1>
-        <p>Рейтинг користувачів за загальною сумою виграних ставок на CarsBids.</p>
+        <p>Ranking of top users by total winning bids volume on Veyo.</p>
       </div>
 
       {isDemoData && (
@@ -97,8 +96,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ onNavigate }) => {
             <line x1="12" y1="16" x2="12.01" y2="16" />
           </svg>
           <span>
-            У базі поки немає завершених аукціонів із переможцями, тож нижче показано приклад того, як виглядатиме
-            рейтинг.
+            No completed auctions with registered winners in the database yet. Showing leaderboard preview data below.
           </span>
         </div>
       )}
@@ -108,11 +106,10 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ onNavigate }) => {
       {loading ? (
         <div className="profile-loading glass-panel">
           <div className="profile-spinner" />
-          <span>Завантаження рейтингу...</span>
+          <span>Loading leaderboard...</span>
         </div>
       ) : (
         <>
-          {/* ===== ПОДІУМ: ТОП-3 ===== */}
           <div className="leaderboard-podium">
             {podium.map((entry, index) => (
               <div
@@ -126,14 +123,13 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ onNavigate }) => {
                 <div className="podium-username">{entry.userName}</div>
                 <div className="podium-bid">${entry.totalWinningBid.toLocaleString()}</div>
                 <div className="podium-wins">
-                  {entry.totalWins} {entry.totalWins === 1 ? 'перемога' : 'перемог'}
+                  {entry.totalWins} {entry.totalWins === 1 ? 'win' : 'wins'}
                 </div>
                 {entry.carName && <div className="podium-cars">{entry.carName}</div>}
               </div>
             ))}
           </div>
 
-          {/* ===== РЕШТА РЕЙТИНГУ: 4-10 ===== */}
           {rest.length > 0 && (
             <div className="leaderboard-list glass-panel">
               {rest.map((entry, index) => (
@@ -146,7 +142,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ onNavigate }) => {
                   <div className="leaderboard-row-avatar">{initialsOf(entry.userName)}</div>
                   <div className="leaderboard-row-info">
                     <div className="leaderboard-row-name">{entry.userName}</div>
-                    <div className="leaderboard-row-cars">{entry.carName || 'Немає даних про авто'}</div>
+                    <div className="leaderboard-row-cars">{entry.carName || 'No vehicle history'}</div>
                   </div>
                   <div className="leaderboard-row-stats">
                     <span className="leaderboard-row-wins">{entry.totalWins} W</span>
@@ -159,8 +155,8 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ onNavigate }) => {
 
           {entries.length === 0 && (
             <div className="catalog-empty">
-              <h3>Рейтинг порожній</h3>
-              <p>Поки що жоден аукціон не завершився з переможцем.</p>
+              <h3>Leaderboard is empty</h3>
+              <p>No auctions have finished with a winner yet.</p>
             </div>
           )}
         </>

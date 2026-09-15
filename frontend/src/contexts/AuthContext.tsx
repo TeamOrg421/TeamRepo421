@@ -1,14 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
-
-/*
-  AuthContext
-  - Centralized authentication context for the SPA.
-  - Stores JWT token in localStorage (for this prototype) and exposes
-    `login(token)` and `logout()` helpers.
-  - Parses common JWT claims to extract `name` and `email` for UI display.
-  - NOTE: For production consider storing tokens in httpOnly cookies
-    and using refresh tokens to improve security (avoid localStorage XSS risk).
-*/
+import { apiCall } from '../services/config'
 
 type User = {
   id: string
@@ -104,6 +95,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [token, setToken] = useState<string | null>(null)
   const [user, setUser] = useState<User | null>(null)
 
+  const syncProfileFromBackend = async () => {
+    try {
+      const res = await apiCall('/users/me')
+      if (res.ok) {
+        const data = await res.json()
+        setUser(prev => {
+          if (!prev) return prev
+          const updated: User = {
+            ...prev,
+            name: data.name || prev.name,
+            profileImageUrl: data.profileImageUrl || prev.profileImageUrl,
+          }
+          localStorage.setItem('user', JSON.stringify(updated))
+          return updated
+        })
+      }
+    } catch {
+      // ignore
+    }
+  }
+
   useEffect(() => {
     const savedToken = localStorage.getItem('token')
     if (savedToken) {
@@ -123,6 +135,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         setUser(tokenUser)
       }
+      syncProfileFromBackend()
     }
 
     const handleUnauthorized = () => {
@@ -144,6 +157,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } else {
       localStorage.removeItem('user')
     }
+    syncProfileFromBackend()
   }
 
   const logout = () => {
