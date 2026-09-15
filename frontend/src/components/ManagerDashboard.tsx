@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import './ManagerDashboard.css';
 
 interface ManagerDashboardProps {
-  onNavigate: (page: string, params?: { carId?: number | string; auctionId?: string }) => void;
+  onNavigate: (page: string, params?: { carId?: number | string; auctionId?: string; listingId?: string }) => void;
 }
 
 interface AuctionListItem {
@@ -253,6 +253,12 @@ const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ onNavigate }) => {
                         onClick={() => onNavigate('car', { carId: auction.car?.id ?? auction.carId })}
                       >
                         View Detail information
+                      </button>
+                      <button type="button" className="manager-btn-chat" disabled={!auctionId} onClick={() => onNavigate('chats', { auctionId })}>
+                        Request information
+                      </button>
+                      <button type="button" className="manager-btn-edit" disabled={!auctionId} onClick={() => onNavigate('manager-edit-listing', { listingId: auctionId })}>
+                        Edit listing
                       </button>
                       <button
                         type="button"

@@ -18,10 +18,12 @@ import Footer from './components/Footer'
 import Leaderboard from './components/Leaderboard'
 import AccountSidebar from './components/AccountSidebar'
 import NotFoundPage from './components/NotFoundPage'
+import ChatsPage from './components/ChatsPage'
+import ManagerListingEditor from './components/ManagerListingEditor'
 
 import { AuthProvider } from './contexts/AuthContext'
 
-type Page = 'home' | 'about' | 'leaderboard' | 'login' | 'register' | 'mainpage' | 'car' | 'profile' | 'user-profile' | 'adminCars' | 'watchlist' | 'settings' | 'sellCar' | 'seller' | 'manager' | '404' | 'not-found'
+type Page = 'home' | 'about' | 'leaderboard' | 'login' | 'register' | 'mainpage' | 'car' | 'profile' | 'user-profile' | 'adminCars' | 'watchlist' | 'settings' | 'sellCar' | 'seller' | 'manager' | 'manager-edit-listing' | 'chats' | '404' | 'not-found'
 type AuthView = 'login' | 'register-step1' | 'register-step2' | 'forgot' | 'check-email' | 'reset-password' | 'reset-success';
 
 function App() {
@@ -30,6 +32,8 @@ function App() {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
   const [authView, setAuthView] = useState<AuthView | null>(null)
   const [catalogSearch, setCatalogSearch] = useState<string>('')
+  const [selectedChatListingId, setSelectedChatListingId] = useState<string | null>(null)
+  const [selectedManagerListingId, setSelectedManagerListingId] = useState<string | null>(null)
 
   useEffect(() => {
     // Handle password reset token from URL
@@ -51,7 +55,7 @@ function App() {
     }
   }, []);
 
-  const navigate = (page: string, params?: { carId?: number | string; userId?: string; authView?: AuthView }) => {
+  const navigate = (page: string, params?: { carId?: number | string; userId?: string; auctionId?: string; listingId?: string; authView?: AuthView }) => {
     setCurrentPage(page as Page)
     if (params?.authView) {
       setAuthView(params.authView);
@@ -64,6 +68,8 @@ function App() {
     if (params?.userId !== undefined) {
       setSelectedUserId(params.userId)
     }
+    if (params?.auctionId !== undefined) setSelectedChatListingId(params.auctionId)
+    if (params?.listingId !== undefined) setSelectedManagerListingId(params.listingId)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -90,6 +96,8 @@ function App() {
           {currentPage === 'sellCar' && <SellCar onNavigate={navigate} />}
           {currentPage === 'seller' && <section className="account-shell"><AccountSidebar currentPage="seller" onNavigate={navigate} /><div className="account-page-content"><SellerDashboard onNavigate={navigate} /></div></section>}
           {currentPage === 'manager' && <section className="account-shell"><AccountSidebar currentPage="manager" onNavigate={navigate} /><div className="account-page-content"><ManagerDashboard onNavigate={navigate} /></div></section>}
+          {currentPage === 'manager-edit-listing' && <section className="account-shell"><AccountSidebar currentPage="manager" onNavigate={navigate} /><div className="account-page-content"><ManagerListingEditor listingId={selectedManagerListingId} onBack={() => navigate('manager')} /></div></section>}
+          {currentPage === 'chats' && <section className="account-shell"><AccountSidebar currentPage="chats" onNavigate={navigate} /><div className="account-page-content"><ChatsPage initialListingId={selectedChatListingId} /></div></section>}
           {(currentPage === '404' || currentPage === 'not-found') && (
             <NotFoundPage onNavigate={navigate} />
           )}

@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using DataAccess.Data;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
 namespace Api.Controllers
@@ -21,6 +23,7 @@ namespace Api.Controllers
         private readonly IBankApiClient fakeBankApi;
         private readonly UserManager<ApplicationUser> userManager;
         private readonly IHubContext<AuctionHub> _hubContext;
+        private readonly ApplicationDbContext _dbContext;
 
         public BidsController(
             IRepository<Bid> bidRepo,
@@ -29,7 +32,8 @@ namespace Api.Controllers
             IBankCardService bankCardService,
             IBankApiClient fakeBankApi,
             UserManager<ApplicationUser> userManager,
-            IHubContext<AuctionHub> hubContext)
+            IHubContext<AuctionHub> hubContext,
+            ApplicationDbContext dbContext)
         {
             _bidRepo = bidRepo;
             _bidRepoAdd = bidRepoAdd;
@@ -38,6 +42,7 @@ namespace Api.Controllers
             this.fakeBankApi = fakeBankApi;
             this.userManager = userManager;
             _hubContext = hubContext;
+            _dbContext = dbContext;
         }
 
         public class PlaceBidDto
@@ -104,14 +109,30 @@ namespace Api.Controllers
 
             await _bidRepo.AddAsync(bid);
 
+            // Alert the previous leader only. The current bidder obviously does not
+            // need an "outbid" notification for their own bid.
+            if (lastBids != null && lastBids.UserId != userId)
+            {
+                _dbContext.Notifications.Add(new Notification
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = lastBids.UserId,
+                    Title = "Your bid was outbid",
+                    Message = $"Someone placed a higher bid on {listing.Title}.",
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+
             listing.CurrentPrice = model.Amount;
             await _lotRepo.UpdateAsync(listing);
+            await _dbContext.SaveChangesAsync();
 
             // Broadcast the new bid to all clients watching this auction in real-time
             var bidderName = User.Identity?.Name ?? userIdClaim;
             var broadcastPayload = new
             {
                 bidder = bidderName,
+                userId = userId,
                 amount = bid.Amount,
                 time = bid.CreatedAt,
                 currentPrice = bid.Amount

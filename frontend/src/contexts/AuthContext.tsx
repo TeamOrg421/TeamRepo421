@@ -86,7 +86,15 @@ const getUserFromToken = (token: string): User | null => {
   return {
     email: email || undefined,
     name: name || undefined,
-    id: payload['sub'] || null,
+    // ASP.NET maps ClaimTypes.NameIdentifier to `nameid` in many JWTs, while
+    // some issuers use `sub`. Supporting both keeps ownership checks and chat
+    // alignment stable across existing and newly issued tokens.
+    id: getClaim(payload, [
+      'sub',
+      'nameid',
+      'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier',
+      'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier',
+    ]) || null,
     roles,
   }
 }

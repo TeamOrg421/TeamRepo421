@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import VeyoLogo from './VeyoLogo';
+import { apiCall } from '../services/config';
 
 interface NavbarProps {
   onNavigate: (page: string) => void;
@@ -10,9 +11,13 @@ interface NavbarProps {
 }
 
 const Navbar: React.FC<NavbarProps> = ({ onNavigate, searchValue, onSearchChange, currentPage = 'home' }) => {
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, user, logout, roles } = useAuth();
+  const isAdmin = roles.includes('Admin');
+  const isManager = isAdmin || roles.includes('Moderator');
   const [searchInput, setSearchInput] = useState(searchValue);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState<Array<{ id: string; title: string; message: string; isRead: boolean; createdAt: string }>>([]);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const navLinks = [
@@ -51,6 +56,35 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, searchValue, onSearchChange
   useEffect(() => {
     setSearchInput(searchValue);
   }, [searchValue]);
+
+  const loadNotifications = async () => {
+    if (!isAuthenticated) { setNotifications([]); return; }
+    try {
+      const response = await apiCall('/notifications');
+      if (response.ok) setNotifications(await response.json());
+    } catch { /* Notification polling must not affect navigation. */ }
+  };
+
+  useEffect(() => {
+    void loadNotifications();
+    if (!isAuthenticated) return;
+    const interval = window.setInterval(() => void loadNotifications(), 30000);
+    return () => window.clearInterval(interval);
+  }, [isAuthenticated]);
+
+  const toggleNotifications = () => {
+    const willOpen = !notificationsOpen;
+    setNotificationsOpen(willOpen);
+    if (willOpen) {
+      void loadNotifications();
+      if (notifications.some(notification => !notification.isRead)) {
+        void (async () => {
+          const response = await apiCall('/notifications/read-all', { method: 'POST' });
+          if (response.ok) setNotifications(current => current.map(notification => ({ ...notification, isRead: true })));
+        })();
+      }
+    }
+  };
 
   const submitSearch = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -99,13 +133,19 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, searchValue, onSearchChange
 
           <div className="navbar-actions">
             {/* Notification Icon with Red Dot */}
-            <button className="navbar-icon-btn navbar-notification-btn" type="button" aria-label="Notifications">
+            <div className="navbar-notifications-wrapper">
+            <button className="navbar-icon-btn navbar-notification-btn" type="button" aria-label="Notifications" onClick={toggleNotifications}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
                 <path d="M13.73 21a2 2 0 0 1-3.46 0" />
               </svg>
-              <span className="navbar-notification-dot" />
+              {notifications.some(notification => !notification.isRead) && <span className="navbar-notification-dot" />}
             </button>
+            {notificationsOpen && <div className="navbar-notifications-popover">
+              <div className="navbar-notifications-title">Notifications</div>
+              {isAuthenticated ? (notifications.length ? notifications.map(notification => <div key={notification.id} className={`navbar-notification-item ${notification.isRead ? '' : 'unread'}`}><strong>{notification.title}</strong><span>{notification.message}</span><time>{new Date(notification.createdAt).toLocaleString()}</time></div>) : <p>No notifications yet.</p>) : <p>Sign in to see notifications.</p>}
+            </div>}
+            </div>
 
             {/* User Profile / Hamburger with dropdown */}
             <div className="navbar-hamburger-wrapper" ref={menuRef}>
@@ -163,20 +203,21 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, searchValue, onSearchChange
                       >
                         Profile
                       </button>
-                      <button
+                      {isAdmin && <button
                         className="hamburger-dropdown-item hamburger-admin-item"
                         type="button"
                         onClick={() => { setMenuOpen(false); onNavigate('adminCars'); }}
                       >
                         Admin Panel
-                      </button>
-                      <button
+                      </button>}
+                      {isManager && <button
                         className="hamburger-dropdown-item hamburger-admin-item"
                         type="button"
                         onClick={() => { setMenuOpen(false); onNavigate('manager'); }}
                       >
                         Manager Dashboard
-                      </button>
+                      </button>}
+                      <button className="hamburger-dropdown-item" type="button" onClick={() => { setMenuOpen(false); onNavigate('chats'); }}>Chats</button>
                     </>
                   )}
                   <button

@@ -214,6 +214,8 @@ const SellCar: React.FC<SellCarProps> = ({ onNavigate }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [photoWarning, setPhotoWarning] = useState('');
+  const [vinCheck, setVinCheck] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [checkingVin, setCheckingVin] = useState(false);
   const [createdCarId, setCreatedCarId] = useState<string | null>(null);
   const trackRef = useRef<HTMLDivElement>(null);
 
@@ -265,6 +267,30 @@ const SellCar: React.FC<SellCarProps> = ({ onNavigate }) => {
 
   const update = <K extends keyof ListingForm>(key: K, value: ListingForm[K]) =>
     setForm((current) => ({ ...current, [key]: value }));
+
+  const checkVin = async () => {
+    const vin = form.vin.trim().toUpperCase();
+    if (vin.length !== 17) {
+      setVinCheck({ type: 'error', text: 'Enter the complete 17-character VIN first.' });
+      return;
+    }
+    setCheckingVin(true);
+    setVinCheck(null);
+    try {
+      const response = await apiCall(`/cars/by-vin/${encodeURIComponent(vin)}`);
+      if (response.ok) {
+        setVinCheck({ type: 'error', text: 'This VIN is already registered in VEYO.' });
+      } else if (response.status === 404) {
+        setVinCheck({ type: 'success', text: 'VIN is available for a new listing.' });
+      } else {
+        setVinCheck({ type: 'error', text: 'We could not verify this VIN. Please try again.' });
+      }
+    } catch {
+      setVinCheck({ type: 'error', text: 'We could not verify this VIN. Please try again.' });
+    } finally {
+      setCheckingVin(false);
+    }
+  };
 
   const begin = () => (isAuthenticated ? setStage('form') : onNavigate('login'));
 
@@ -727,15 +753,21 @@ const SellCar: React.FC<SellCarProps> = ({ onNavigate }) => {
           <div className="sell-form-grid-3">
             <label className="sell-input-group sell-col-span-full">
               <span>Car VIN Number</span>
-              <input
-                required
-                minLength={3}
-                maxLength={17}
-                placeholder="17-character VIN"
-                autoCapitalize="characters"
-                value={form.vin}
-                onChange={(e) => update('vin', e.target.value.toUpperCase())}
-              />
+              <div className="sell-vin-input-row">
+                <input
+                  required
+                  minLength={17}
+                  maxLength={17}
+                  placeholder="17-character VIN"
+                  autoCapitalize="characters"
+                  value={form.vin}
+                  onChange={(e) => { update('vin', e.target.value.toUpperCase()); setVinCheck(null); }}
+                />
+                <button type="button" className="sell-vin-check-btn" onClick={() => void checkVin()} disabled={checkingVin}>
+                  {checkingVin ? 'Checking…' : 'Check VIN'}
+                </button>
+              </div>
+              {vinCheck && <small className={`sell-vin-check-result ${vinCheck.type}`}>{vinCheck.text}</small>}
             </label>
 
             <label className="sell-input-group">

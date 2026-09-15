@@ -7,7 +7,7 @@
 SET QUOTED_IDENTIFIER ON;
 SET ANSI_NULLS ON;
 
-DECLARE @TargetUserId UNIQUEIDENTIFIER = (SELECT Id FROM AspNetUsers WHERE Email = 'ad1379125@gmail.com');
+DECLARE @TargetUserId UNIQUEIDENTIFIER = (SELECT Id FROM AspNetUsers WHERE Email = 'vova0110gordienko@gmail.com');
 IF @TargetUserId IS NULL
 BEGIN
     RAISERROR('Target user ad1379125@gmail.com not found.', 16, 1);
