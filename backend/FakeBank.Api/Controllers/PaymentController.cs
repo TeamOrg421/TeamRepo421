@@ -20,11 +20,11 @@ namespace FakeBank.Api.Controllers
         [HttpGet("GetCards")]
         [ProducesResponseType(typeof(IList<BankCardDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> GetCards([FromQuery] int page)
+        public async Task<IActionResult> GetCards([FromQuery] int page, [FromQuery] string? search = null, [FromQuery] string? status = null, [FromQuery] string? sort = null)
         {
             try
             {
-                var cards = await paymentService.GetCardsAsync(page);
+                var cards = await paymentService.GetCardsAsync(page, search, status, sort);
                 return Ok(cards);
             }
             catch (ArgumentException ex)
@@ -67,11 +67,11 @@ namespace FakeBank.Api.Controllers
         [HttpGet("login")]
         [ProducesResponseType(typeof(IList<BankCardDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> Login([FromQuery] string name)
+        public async Task<IActionResult> Login([FromQuery] string email)
         {
             try
             {
-                var cards = await paymentService.Login(name);
+            var cards = await paymentService.Login(email);
                 return Ok(cards);
             }
             catch (ArgumentException ex)
@@ -243,9 +243,9 @@ namespace FakeBank.Api.Controllers
 
         [HttpGet]
         [ProducesResponseType(typeof(IEnumerable<BankTransactionDto>), StatusCodes.Status200OK)]
-        public async Task<IActionResult> GetAll([FromQuery] int? page)
+        public async Task<IActionResult> GetAll([FromQuery] int? page, [FromQuery] string? search = null, [FromQuery] string? type = null, [FromQuery] string? status = null, [FromQuery] string? sort = null)
         {
-            var transactions = await paymentService.GetAllPaymentsAsync(page);
+            var transactions = await paymentService.GetAllPaymentsAsync(page, search, type, status, sort);
             return Ok(transactions);
         }
 

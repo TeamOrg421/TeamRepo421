@@ -82,38 +82,39 @@ a {
 }
 
 .settings-page {
-  max-width: 860px;
+  max-width: none;
   margin: 0 auto;
-  padding: 2rem 1rem 4rem;
+  padding: 10px 0 48px;
 }
 
 .settings-card {
-  border: 1px solid var(--border-color);
-  border-radius: 24px;
-  padding: 2rem;
-  background: var(--surface-card);
-  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  padding: 24px;
+  background: #222;
+  box-shadow: none;
 }
 
 .settings-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
+  gap: 16px;
+  margin-bottom: 24px;
 }
 
 .settings-eyebrow {
   font-size: 0.8rem;
   text-transform: uppercase;
-  letter-spacing: 0.24em;
-  color: var(--accent-indigo);
+  letter-spacing: 0.12em;
+  color: #b7e52a;
   margin-bottom: 0.35rem;
 }
 
 .settings-section {
-  border-top: 1px solid var(--border-color);
-  padding-top: 1.25rem;
-  margin-top: 1.25rem;
+  border-top: 1px solid #3b3b3b;
+  padding-top: 20px;
+  margin-top: 20px;
 }
 
 .settings-section h2 {
@@ -128,22 +129,22 @@ a {
 
 .settings-theme-switcher {
   display: flex;
-  gap: 0.75rem;
+  gap: 8px;
 }
 
 .settings-option-btn {
-  border: 1px solid var(--border-color);
-  background: var(--bg-secondary);
-  color: var(--text-primary);
-  padding: 0.7rem 1rem;
-  border-radius: 999px;
+  border: 1px solid #717171;
+  background: transparent;
+  color: #e7e7e7;
+  padding: 8px 14px;
+  border-radius: 4px;
   cursor: pointer;
 }
 
 .settings-option-btn.active {
-  background: var(--accent-indigo);
-  color: white;
-  border-color: transparent;
+  background: #f3f3f3;
+  color: #191919;
+  border-color: #f3f3f3;
 }
 
 .settings-field {
@@ -160,11 +161,11 @@ a {
 
 .settings-input {
   width: 100%;
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  padding: 0.8rem 0.95rem;
-  background: var(--bg-secondary);
-  color: var(--text-primary);
+  border: 1px solid #414141;
+  border-radius: 4px;
+  padding: 10px 12px;
+  background: #1a1a1a;
+  color: #f3f3f3;
 }
 
 .settings-actions {
@@ -174,19 +175,53 @@ a {
   margin-top: 0.5rem;
 }
 
+.settings-page .btn-primary,
+.settings-page .btn-secondary {
+  border-radius: 4px;
+  box-shadow: none;
+  font-size: 12px;
+  padding: 9px 14px;
+  transform: none;
+}
+
+.settings-page .btn-primary {
+  background: #f3f3f3;
+  border-color: #f3f3f3;
+  color: #191919;
+}
+
+.settings-page .btn-primary:hover {
+  background: #ffffff;
+  box-shadow: none;
+  filter: none;
+  transform: none;
+}
+
+.settings-page .btn-secondary {
+  background: transparent;
+  border-color: #717171;
+  color: #e7e7e7;
+}
+
+.settings-page .btn-secondary:hover {
+  background: #272727;
+  border-color: #a0a0a0;
+  transform: none;
+}
+
 .settings-success {
   background: rgba(29, 185, 84, 0.14);
   color: #4ade80;
-  padding: 0.8rem 1rem;
-  border-radius: 12px;
+  padding: 10px 12px;
+  border-radius: 4px;
   margin-bottom: 1rem;
 }
 
 .settings-error {
   background: var(--danger-bg);
   color: var(--danger-text);
-  padding: 0.8rem 1rem;
-  border-radius: 12px;
+  padding: 10px 12px;
+  border-radius: 4px;
   margin-bottom: 1rem;
 }
 
@@ -207,10 +242,10 @@ a {
 
 .settings-verification-badge,
 .settings-status-dot {
-  border-radius: 999px;
+  border-radius: 4px;
   font-size: 12px;
   font-weight: 700;
-  padding: 7px 11px;
+  padding: 5px 8px;
   white-space: nowrap;
 }
 
@@ -251,10 +286,10 @@ a {
 }
 
 .settings-development-code {
-  background: rgba(99, 102, 241, 0.12);
-  border: 1px solid rgba(129, 140, 248, 0.28);
-  border-radius: 10px;
-  color: #c7d2fe;
+  background: #1a1a1a;
+  border: 1px solid #414141;
+  border-radius: 4px;
+  color: #d1d1d1;
   font-size: 13px;
   margin-top: 1rem;
   padding: 10px 12px;

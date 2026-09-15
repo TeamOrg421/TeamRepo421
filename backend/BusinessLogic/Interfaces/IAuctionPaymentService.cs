@@ -12,6 +12,6 @@ namespace BusinessLogic.Interfaces
         /// <param name="userId">ID користувача, який виграв</param>
         /// <param name="amount">Сума платежу</param>
         /// <returns>True якщо платіж успішний, False інакше</returns>
-        Task<bool> ProcessAuctionPaymentAsync(Guid winnerId, Guid sellerId, decimal amount);
+        Task<bool> ProcessAuctionPaymentAsync(Guid winnerId, Guid sellerId, decimal amount, Guid listingId);
     }
 }

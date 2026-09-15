@@ -445,59 +445,6 @@ const UserProfile: React.FC<UserProfileProps> = ({ onNavigate }) => {
         style={{ display: 'none' }}
       />
 
-      {/* ─── Left Sidebar ─────────────────────────────────────────────────── */}
-      <aside className="profile-sidebar">
-        <button
-          type="button"
-          className="profile-nav-link active"
-          onClick={() => onNavigate('profile')}
-        >
-          Profile
-        </button>
-        <button
-          type="button"
-          className="profile-nav-link"
-          onClick={() => onNavigate('adminCars')}
-        >
-          Admin Panel
-        </button>
-        <button
-          type="button"
-          className="profile-nav-link"
-          onClick={() => onNavigate('manager')}
-        >
-          Manager Dashboard
-        </button>
-        <button
-          type="button"
-          className="profile-nav-link"
-          onClick={() => onNavigate('leaderboard')}
-        >
-          Leaderboard
-        </button>
-        <button
-          type="button"
-          className="profile-nav-link"
-          onClick={() => onNavigate('watchlist')}
-        >
-          Watch List
-        </button>
-        <button
-          type="button"
-          className="profile-nav-link"
-          onClick={() => onNavigate('seller')}
-        >
-          Seller Dashboard
-        </button>
-        <button
-          type="button"
-          className="profile-nav-link"
-          onClick={() => onNavigate('settings')}
-        >
-          Settings
-        </button>
-      </aside>
-
       {/* ─── Main Content ─────────────────────────────────────────────────── */}
       <main className="profile-main-content">
         {/* ── Header Card ─────────────────────────────────────────────────── */}

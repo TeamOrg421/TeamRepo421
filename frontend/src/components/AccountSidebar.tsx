@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 export type AccountPage = 'profile' | 'adminCars' | 'manager' | 'leaderboard' | 'watchlist' | 'seller' | 'settings';
 
 interface AccountSidebarProps {
-  currentPage: Exclude<AccountPage, 'profile'>;
+  currentPage: AccountPage;
   onNavigate: (page: AccountPage) => void;
 }
 

@@ -78,6 +78,7 @@ const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ onNavigate }) => {
   const [activeAuctions, setActiveAuctions] = useState<AuctionListItem[]>([]);
   const [activeLoading, setActiveLoading] = useState(true);
   const [activeMessage, setActiveMessage] = useState('');
+  const [approvingId, setApprovingId] = useState<string | null>(null);
   const [activeLoaded, setActiveLoaded] = useState(false);
 
   const loadAuctions = useCallback(async () => {
@@ -146,6 +147,20 @@ const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ onNavigate }) => {
   const refresh = () => {
     if (activeTab === 'progress') void loadActiveAuctions();
     else void loadAuctions();
+  };
+
+  const handleApprove = async (auctionId: string) => {
+    setApprovingId(auctionId);
+    setMessage('');
+    try {
+      const response = await apiCall(`/AuctionModeration/${auctionId}/approve`, { method: 'POST' });
+      if (!response.ok) throw new Error('The auction could not be approved.');
+      await loadAuctions();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'The auction could not be approved.');
+    } finally {
+      setApprovingId(null);
+    }
   };
 
   if (!isAuthenticated || !isAuthorized) {
@@ -231,13 +246,23 @@ const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ onNavigate }) => {
                       <p className="manager-card-desc">{auction.description}</p>
                     </div>
 
-                    <button
-                      type="button"
-                      className="manager-btn-view-detail"
-                      onClick={() => auctionId && onNavigate('auction-review', { carId: auction.car?.id ?? auction.carId, auctionId })}
-                    >
-                      View Detail information
-                    </button>
+                    <div className="manager-card-actions">
+                      <button
+                        type="button"
+                        className="manager-btn-view-detail"
+                        onClick={() => onNavigate('car', { carId: auction.car?.id ?? auction.carId })}
+                      >
+                        View Detail information
+                      </button>
+                      <button
+                        type="button"
+                        className="manager-btn-approve"
+                        disabled={!auctionId || approvingId === auctionId}
+                        onClick={() => auctionId && void handleApprove(auctionId)}
+                      >
+                        {approvingId === auctionId ? 'Approving…' : 'Approve'}
+                      </button>
+                    </div>
                   </div>
                 </article>
               );

@@ -3,11 +3,10 @@
    ========================================================================== */
 
 .profile-container {
-  display: flex;
-  gap: 32px;
+  display: block;
   max-width: none;
   margin: 0;
-  padding: 24px 16px 80px;
+  padding: 10px 0 48px;
   color: #ffffff;
   font-family: inherit;
 }
@@ -60,7 +59,7 @@
 }
 
 .profile-payment-shell {
-  background: #0d1117;
+  background: var(--bg-secondary);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
   padding: 20px 20px 8px;
@@ -142,12 +141,12 @@
 
 /* ─── Profile Header Card ─────────────────────────────────────────────────── */
 .profile-header-card-v2 {
-  background: #0d1117;
+  background: var(--bg-secondary);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
-  padding: 32px;
+  padding: 40px;
   display: flex;
-  gap: 32px;
+  gap: 40px;
   align-items: flex-start;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
   position: relative;
@@ -159,8 +158,8 @@
 }
 
 .profile-avatar-circle {
-  width: 150px;
-  height: 150px;
+  width: 170px;
+  height: 170px;
   border-radius: 50%;
   overflow: hidden;
   background: #1f2937;

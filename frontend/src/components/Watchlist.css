@@ -89,7 +89,7 @@
 .watchlist-car-card {
   display: flex;
   flex-direction: row;
-  background: #0d1117;
+  background: var(--bg-secondary);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
   overflow: hidden;
@@ -112,7 +112,7 @@
   min-width: 170px;
   max-width: 250px;
   flex-shrink: 0;
-  background: #161b22;
+  background: var(--bg-tertiary);
   overflow: hidden;
 }
 
@@ -305,7 +305,7 @@
 
 /* ─── Empty & Loading States ────────────────────────────────────────────── */
 .watchlist-empty-state {
-  background: #0d1117;
+  background: var(--bg-secondary);
   border: 1px dashed rgba(255, 255, 255, 0.15);
   border-radius: 12px;
   padding: 48px 24px;

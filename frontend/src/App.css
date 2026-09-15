@@ -3721,7 +3721,7 @@ select.form-input option {
 /* ===== SELLER DASHBOARD ===== */
 .seller-dashboard-page {
   margin: 0 auto;
-  max-width: 1120px;
+  max-width: none;
   padding: 28px 0 48px;
   width: 100%;
 }
@@ -4300,12 +4300,12 @@ select.form-input option {
 
 /* ===== SHARED ACCOUNT NAVIGATION ===== */
 .account-shell { display: grid; gap: 28px; grid-template-columns: 204px minmax(0, 1fr); padding: 24px 0 72px; width: 100%; }
-.account-sidebar { align-self: start; display: flex; flex-direction: column; gap: 4px; position: sticky; top: 92px; }
-.account-sidebar-link { align-items: center; background: transparent; border: 0; border-left: 3px solid transparent; border-radius: 8px; color: #9ca3af; cursor: pointer; display: flex; font-family: inherit; font-size: 15px; font-weight: 500; min-height: 40px; padding: 10px 14px; text-align: left; transition: background .2s ease, color .2s ease, border-color .2s ease; }
+.account-sidebar { align-self: start; display: flex; flex-direction: column; gap: 4px; min-width: 204px; position: sticky; top: 92px; width: 204px; }
+.account-sidebar-link { align-items: center; background: transparent; border: 0; border-left: 3px solid transparent; border-radius: 8px; color: #9ca3af; cursor: pointer; display: flex; font-family: inherit; font-size: 15px; font-weight: 500; min-height: 40px; padding: 10px 14px; text-align: left; transition: background .2s ease, color .2s ease, border-color .2s ease; width: 100%; }
 .account-sidebar-link:hover { background: rgba(255, 255, 255, .05); color: #fff; }
 .account-sidebar-link.active { background: #27272a; border-left-color: #3b82f6; color: #ffffff; font-weight: 600; }
 .account-page-content { min-width: 0; width: 100%; }
-@media (max-width: 768px) { .account-shell { display: flex; flex-direction: column; gap: 20px; padding-top: 16px; } .account-sidebar { flex-direction: row; max-width: 100%; overflow-x: auto; padding-bottom: 8px; position: static; } .account-sidebar-link { border-bottom: 2px solid transparent; border-left: 0; flex: 0 0 auto; white-space: nowrap; } .account-sidebar-link.active { background: rgba(255, 255, 255, .08); border-bottom-color: #3b82f6; border-left-color: transparent; color: #ffffff; } }
+@media (max-width: 768px) { .account-shell { display: flex; flex-direction: column; gap: 20px; padding-top: 16px; } .account-sidebar { flex-direction: row; max-width: 100%; min-width: 0; overflow-x: auto; padding-bottom: 8px; position: static; width: 100%; } .account-sidebar-link { border-bottom: 2px solid transparent; border-left: 0; flex: 0 0 auto; white-space: nowrap; width: auto; } .account-sidebar-link.active { background: rgba(255, 255, 255, .08); border-bottom-color: #3b82f6; border-left-color: transparent; color: #ffffff; } }
 
 /* ===== SELL YOUR CAR STYLES IN SellCar.css ===== */
 
