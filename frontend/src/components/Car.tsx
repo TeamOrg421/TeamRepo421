@@ -422,7 +422,13 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
           setLocalBids((prev) => [incoming, ...prev]);
           setCurrentBidPrice(payload.currentPrice);
           setCarData((prev) =>
-            prev ? { ...prev, currentBid: payload.currentPrice, bidCount: prev.bidCount + 1 } : prev
+            prev ? {
+              ...prev,
+              currentBid: payload.currentPrice,
+              bidCount: prev.bidCount + 1,
+              highestBidderId: payload.userId,
+              highestBidderName: payload.bidder,
+            } : prev
           );
         });
 
@@ -1114,6 +1120,21 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
 
         {/* Right Column: Other Auctions Sidebar (Real Data) */}
         <aside className="other-auctions-sidebar">
+          <section className="auction-bid-summary">
+            <span>Current highest bid</span>
+            <strong>${currentBidPrice.toLocaleString()}</strong>
+            <p>
+              {localBids[0]
+                ? <>by <UserProfileLink userId={localBids[0].userId} name={localBids[0].bidder} onNavigate={onNavigate} className="seller-link-badge" /></>
+                : 'No bids have been placed yet.'}
+            </p>
+          </section>
+          <section className="auction-bid-history" aria-label="Bid history">
+            <div className="auction-bid-history-header"><h2>Bid history</h2><span>{localBids.length} {localBids.length === 1 ? 'bid' : 'bids'}</span></div>
+            {localBids.length ? <ol>{localBids.map((bid, index) => <li key={`${bid.userId ?? bid.bidder}-${bid.amount}-${bid.time}-${index}`} className={index === 0 ? 'highest' : ''}>
+              <div><UserProfileLink userId={bid.userId} name={bid.bidder} onNavigate={onNavigate} className="seller-link-badge" /><time>{bid.time}</time></div><strong>${bid.amount.toLocaleString()}</strong>
+            </li>)}</ol> : <p>No bids yet. Be the first to place one.</p>}
+          </section>
           <h2 className="other-auctions-title">Other auctions</h2>
           {otherAuctions.length > 0 ? (
             <div className="other-auctions-list">

@@ -46,3 +46,41 @@ export async function destroyAuctionConnection(
     await connection.stop();
   }
 }
+
+export async function createConversationConnection(listingId: string): Promise<HubConnection> {
+  const token = localStorage.getItem('token');
+  const connection = new HubConnectionBuilder()
+    .withUrl(SIGNALR_URL, { accessTokenFactory: () => token ?? '' })
+    .withAutomaticReconnect()
+    .configureLogging(LogLevel.Warning)
+    .build();
+  await connection.start();
+  await connection.invoke('JoinConversation', listingId);
+  return connection;
+}
+
+export async function destroyConversationConnection(connection: HubConnection, listingId: string): Promise<void> {
+  if (connection.state === HubConnectionState.Connected) {
+    try { await connection.invoke('LeaveConversation', listingId); } catch { /* already disconnected */ }
+    await connection.stop();
+  }
+}
+
+export async function createConversationInboxConnection(): Promise<HubConnection> {
+  const token = localStorage.getItem('token');
+  const connection = new HubConnectionBuilder()
+    .withUrl(SIGNALR_URL, { accessTokenFactory: () => token ?? '' })
+    .withAutomaticReconnect()
+    .configureLogging(LogLevel.Warning)
+    .build();
+  await connection.start();
+  await connection.invoke('JoinConversationInbox');
+  return connection;
+}
+
+export async function destroyConversationInboxConnection(connection: HubConnection): Promise<void> {
+  if (connection.state === HubConnectionState.Connected) {
+    try { await connection.invoke('LeaveConversationInbox'); } catch { /* already disconnected */ }
+    await connection.stop();
+  }
+}

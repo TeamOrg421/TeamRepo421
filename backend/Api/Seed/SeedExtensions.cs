@@ -70,6 +70,28 @@ public static class SeedExtensions
 
         try
         {
+            await dbContext.Database.ExecuteSqlRawAsync(@"
+IF OBJECT_ID('dbo.ConversationMessages', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.ConversationMessages (
+        Id uniqueidentifier NOT NULL PRIMARY KEY,
+        ListingId uniqueidentifier NOT NULL,
+        SenderId uniqueidentifier NOT NULL,
+        RecipientId uniqueidentifier NOT NULL,
+        Text nvarchar(2000) NOT NULL,
+        CreatedAt datetime2 NOT NULL,
+        ReadAt datetime2 NULL,
+        CONSTRAINT FK_ConversationMessages_CarListings_ListingId FOREIGN KEY (ListingId) REFERENCES dbo.CarListings(Id) ON DELETE CASCADE,
+        CONSTRAINT FK_ConversationMessages_AspNetUsers_SenderId FOREIGN KEY (SenderId) REFERENCES dbo.AspNetUsers(Id),
+        CONSTRAINT FK_ConversationMessages_AspNetUsers_RecipientId FOREIGN KEY (RecipientId) REFERENCES dbo.AspNetUsers(Id)
+    );
+    CREATE INDEX IX_ConversationMessages_ListingId_CreatedAt ON dbo.ConversationMessages(ListingId, CreatedAt);
+END");
+        }
+        catch { /* ignore: e.g. permissions */ }
+
+        try
+        {
             await dbContext.Database.ExecuteSqlRawAsync(
                 "IF COL_LENGTH('dbo.AspNetUsers','Bio') IS NULL BEGIN ALTER TABLE dbo.AspNetUsers ADD Bio nvarchar(max) NULL END");
             await dbContext.Database.ExecuteSqlRawAsync(

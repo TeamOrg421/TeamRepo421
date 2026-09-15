@@ -861,6 +861,15 @@
   flex-wrap: wrap;
 }
 
+.sell-vin-input-row { display: flex; gap: 10px; }
+.sell-vin-input-row input { min-width: 0; flex: 1; }
+.sell-vin-check-btn { border: 1px solid #3b82f6; border-radius: 6px; background: rgba(59,130,246,.12); color: #bfdbfe; cursor: pointer; font: inherit; font-size: 13px; font-weight: 700; padding: 0 16px; white-space: nowrap; }
+.sell-vin-check-btn:hover:not(:disabled) { background: rgba(59,130,246,.24); }
+.sell-vin-check-btn:disabled { cursor: wait; opacity: .7; }
+.sell-vin-check-result { display: block; margin-top: 7px; font-size: 12px; }
+.sell-vin-check-result.success { color: #86efac; }
+.sell-vin-check-result.error { color: #fca5a5; }
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 1024px) {
   .sell-hero {
@@ -910,4 +919,6 @@
   .sell-form-grid-3 {
     grid-template-columns: 1fr;
   }
+  .sell-vin-input-row { flex-direction: column; }
+  .sell-vin-check-btn { min-height: 40px; }
 }

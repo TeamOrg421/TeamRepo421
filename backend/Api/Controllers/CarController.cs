@@ -436,7 +436,8 @@ namespace Api.Controllers
                 return Unauthorized("Invalid or missing user ID claim");
 
             var isSeller = await dbContext.CarListings.AnyAsync(listing => listing.CarId == carId && listing.SellerId == userId);
-            if (!isSeller && !User.IsInRole("Admin"))
+            var isManager = User.IsInRole("Admin") || User.IsInRole("Moderator");
+            if (!isSeller && !isManager)
                 return Forbid();
 
             var car = await carService.GetCarAsync(carId);
@@ -460,16 +461,41 @@ namespace Api.Controllers
         }
 
         [HttpDelete("images/{imageId:guid}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize]
         public async Task<IActionResult> DeleteCarImage(Guid imageId)
         {
             var image = await carService.GetCarImageByIdAsync(imageId);
             if (image == null)
                 return NotFound("Image not found");
 
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!Guid.TryParse(userIdClaim, out var userId)) return Unauthorized("Invalid or missing user ID claim");
+            var isSeller = await dbContext.CarListings.AnyAsync(listing => listing.CarId == image.CarId && listing.SellerId == userId);
+            var isManager = User.IsInRole("Admin") || User.IsInRole("Moderator");
+            if (!isSeller && !isManager) return Forbid();
+
             await fileService.DeleteFile(image.ImageUrl);
             await carService.DeleteCarImageAsync(imageId);
 
+            return NoContent();
+        }
+
+        [HttpPut("images/{imageId:guid}/main")]
+        [Authorize]
+        public async Task<IActionResult> SetMainCarImage(Guid imageId)
+        {
+            var image = await dbContext.CarImages.FirstOrDefaultAsync(item => item.Id == imageId);
+            if (image == null) return NotFound("Image not found");
+
+            var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!Guid.TryParse(userIdClaim, out var userId)) return Unauthorized("Invalid or missing user ID claim");
+            var isSeller = await dbContext.CarListings.AnyAsync(listing => listing.CarId == image.CarId && listing.SellerId == userId);
+            var isManager = User.IsInRole("Admin") || User.IsInRole("Moderator");
+            if (!isSeller && !isManager) return Forbid();
+
+            var carImages = await dbContext.CarImages.Where(item => item.CarId == image.CarId).ToListAsync();
+            foreach (var carImage in carImages) carImage.IsMain = carImage.Id == imageId;
+            await dbContext.SaveChangesAsync();
             return NoContent();
         }
 

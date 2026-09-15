@@ -204,6 +204,8 @@
   color: #6b7280;
   cursor: default;
 }
+.manager-btn-chat { background: transparent; border: 0; color: #93c5fd; cursor: pointer; font-size: 11px; font-weight: 600; padding: 0; white-space: nowrap; }.manager-btn-chat:hover:not(:disabled) { color: #dbeafe; }.manager-btn-chat:disabled { color: #6b7280; cursor: default; }
+.manager-btn-edit { background: transparent; border: 0; color: #fcd34d; cursor: pointer; font-size: 11px; font-weight: 600; padding: 0; white-space: nowrap; }.manager-btn-edit:hover:not(:disabled) { color: #fef3c7; }.manager-btn-edit:disabled { color: #6b7280; cursor: default; }
 
 /* ==========================================================================
    Tab 2: In Progress (row list, matching .seller-dashboard-row)
