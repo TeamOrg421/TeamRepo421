@@ -41,16 +41,24 @@
 
 ---
 
-## 💻 Запуск проєкту локально
-
 ### 1. Бекенд (`backend`):
+
+Спочатку в окремому терміналі запустіть FakeBank — основний API звертається до нього за адресою `http://localhost:5027`.
+
+```bash
+cd backend/FakeBank.Api
+dotnet restore
+dotnet run --launch-profile http
+```
+
+Потім у другому терміналі запустіть основний API:
+
 ```bash
 cd backend/Api
 dotnet restore
-dotnet run
+dotnet run --launch-profile http
 ```
-*API буде доступне за адресою:* `http://localhost:5254` (або `https://localhost:7008` для Swagger).
-
+*Основний API буде доступний за адресою:* `http://localhost:5254`.
 ### 2. Фронтенд (`frontend`):
 ```bash
 cd frontend

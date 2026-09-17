@@ -39,6 +39,7 @@ namespace DataAccess.Data
         public DbSet<Comment> Comments { get; set; } = null!;
         public DbSet<Favorite> Favorites { get; set; } = null!;
         public DbSet<Notification> Notifications { get; set; } = null!;
+        public DbSet<ConversationMessage> ConversationMessages { get; set; } = null!;
         public DbSet<ModerationLog> ModerationLogs { get; set; } = null!;
         public DbSet<BankCard> BankCards { get; set; } = null!;
 
@@ -140,6 +141,32 @@ namespace DataAccess.Data
                 .WithMany(u => u.Comments)
                 .HasForeignKey(c => c.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ConversationMessage>()
+                .Property(message => message.Text)
+                .HasMaxLength(2000)
+                .IsRequired();
+
+            modelBuilder.Entity<ConversationMessage>()
+                .HasOne(message => message.Listing)
+                .WithMany()
+                .HasForeignKey(message => message.ListingId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ConversationMessage>()
+                .HasOne(message => message.Sender)
+                .WithMany()
+                .HasForeignKey(message => message.SenderId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ConversationMessage>()
+                .HasOne(message => message.Recipient)
+                .WithMany()
+                .HasForeignKey(message => message.RecipientId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ConversationMessage>()
+                .HasIndex(message => new { message.ListingId, message.CreatedAt });
 
             modelBuilder.Entity<BankCard>()
                 .Property(b => b.BankCardToken)

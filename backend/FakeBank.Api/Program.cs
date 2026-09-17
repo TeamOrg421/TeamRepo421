@@ -99,7 +99,15 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("AllowAll");
 
-app.UseHttpsRedirection();
+
+// The local development profile intentionally exposes FakeBank over HTTP on port 5027.
+// Redirecting that profile to HTTPS makes the main API lose the configured upstream.
+if (!app.Environment.IsDevelopment())
+{
+
+    app.UseHttpsRedirection();
+}
+
 
 app.UseAuthorization();
 

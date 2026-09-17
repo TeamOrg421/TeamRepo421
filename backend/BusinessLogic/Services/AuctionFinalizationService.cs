@@ -52,6 +52,15 @@ namespace BusinessLogic.Services
                 auction.Status = ListingStatus.Completed;
                 auction.CurrentPrice = auction.StartingPrice;
                 await _lotRepo.UpdateAsync(auction);
+                _dbContext.Notifications.Add(new Notification
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = auction.SellerId,
+                    Title = "Your auction ended",
+                    Message = $"{auction.Title} ended without bids.",
+                    CreatedAt = DateTime.UtcNow
+                });
+                await _dbContext.SaveChangesAsync();
                 return;
             }
 
@@ -101,6 +110,24 @@ namespace BusinessLogic.Services
                 auction.Car.IsAvailable = false;
                 _dbContext.Cars.Update(auction.Car);
             }
+
+            _dbContext.Notifications.AddRange(
+                new Notification
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = auction.SellerId,
+                    Title = "Your auction ended",
+                    Message = $"{auction.Title} sold for ${highestBid.Amount:N0}.",
+                    CreatedAt = DateTime.UtcNow
+                },
+                new Notification
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = highestBid.UserId,
+                    Title = "You won an auction",
+                    Message = $"You placed the highest bid on {auction.Title}.",
+                    CreatedAt = DateTime.UtcNow
+                });
 
             await _dbContext.SaveChangesAsync();
             Console.WriteLine($"[AuctionFinalization] Auction {listingId} successfully finalized. Winner: {highestBid.UserId}, Amount: ${highestBid.Amount}");

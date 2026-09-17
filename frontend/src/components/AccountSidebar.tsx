@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
-export type AccountPage = 'profile' | 'adminCars' | 'manager' | 'leaderboard' | 'watchlist' | 'seller' | 'settings';
+export type AccountPage = 'profile' | 'adminCars' | 'manager' | 'leaderboard' | 'watchlist' | 'seller' | 'settings' | 'chats';
 
 interface AccountSidebarProps {
   currentPage: AccountPage;
@@ -15,6 +15,7 @@ const links: Array<{ page: AccountPage; label: string; roles?: string[] }> = [
   { page: 'leaderboard', label: 'Leaderboard' },
   { page: 'watchlist', label: 'Watch List' },
   { page: 'seller', label: 'Seller Dashboard' },
+  { page: 'chats', label: 'Chats' },
   { page: 'settings', label: 'Settings' },
 ];
 

@@ -24,6 +24,7 @@ interface AuctionCar {
   mileage?: number;
   auctionStart?: string;
   auctionEnd?: string;
+  listingStatus?: string | number;
 }
 
 const SORT_OPTIONS = ['Ending soon', 'Newly listed', 'Lowest mileage', 'Highest bid'];
@@ -174,6 +175,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate, searchQuery }) => {
               mileage: Number(specification.mileage ?? car.mileage) || undefined,
               auctionStart: car.auctionStart,
               auctionEnd: car.auctionEnd,
+              listingStatus: car.listingStatus ?? car.auctionStatus,
             };
           })
         );
@@ -238,7 +240,13 @@ const Home: React.FC<HomeProps> = ({ onNavigate, searchQuery }) => {
           )) &&
         (!selectedYear || String(car.year) === selectedYear) &&
         (!selectedTransmission || car.transmission === selectedTransmission) &&
-        (!selectedBodyStyle || car.bodyStyle === selectedBodyStyle)
+        (!selectedBodyStyle || car.bodyStyle === selectedBodyStyle) &&
+        // "Newly listed" is intended for live, newly opened auctions. A completed
+        // listing must never reappear there just because it has a recent start date.
+        (activeSort !== 'Newly listed' ||
+          (String(car.listingStatus).toLowerCase() !== 'completed' &&
+            String(car.listingStatus) !== '4' &&
+            (!car.auctionEnd || new Date(car.auctionEnd).getTime() > Date.now())))
     );
     return result.sort((left, right) => {
       if (activeSort === 'Newly listed') {
