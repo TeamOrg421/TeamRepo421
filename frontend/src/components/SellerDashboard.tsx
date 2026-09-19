@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { apiCall } from '../services/config';
 import Pagination from './Pagination';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface SellerDashboardProps {
   onNavigate: (page: string, params?: { carId?: number | string }) => void;
@@ -93,6 +94,7 @@ const ListingTags: React.FC<{ listing: SellerListing; includeInspection?: boolea
 
 const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate }) => {
   const { isAuthenticated } = useAuth();
+  const { t } = useLanguage();
   const [listings, setListings] = useState<SellerListing[]>([]);
   const [comments, setComments] = useState<SellerComment[]>([]);
   const [activeTab, setActiveTab] = useState<DashboardTab>('progress');
@@ -127,7 +129,7 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate }) => {
 
   const tabListings = useMemo(() => listings.filter((listing) => getListingState(listing) === activeTab), [activeTab, listings]);
 
-  if (!isAuthenticated) return <section className="seller-dashboard-page"><div className="seller-dashboard-empty"><h1>Dashboard</h1><p>Sign in to manage your listings.</p><button type="button" onClick={() => onNavigate('login')}>Sign In</button></div></section>;
+  if (!isAuthenticated) return <section className="seller-dashboard-page"><div className="seller-dashboard-empty"><h1>{t('dashboard')}</h1><p>{t('signInManageListings')}</p><button type="button" onClick={() => onNavigate('login')}>{t('signIn')}</button></div></section>;
 
   const renderListing = (listing: SellerListing) => {
     const state = getListingState(listing);
@@ -137,20 +139,20 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate }) => {
       <ListingImage listing={listing} />
       <div className="seller-dashboard-copy"><h2>{listing.title || listing.vehicle}</h2>{listing.vehicle && listing.title !== listing.vehicle && <p>{listing.vehicle}</p>}<ListingTags listing={listing} includeInspection={!isPast} /></div>
       <div className="seller-dashboard-summary">
-        {isLive ? <><span>Time left</span><strong className="seller-dashboard-time">{getTimeRemaining(listing.auctionEnd, now)}</strong><span>Current bid</span><strong className="seller-dashboard-bid">{formatPrice(listing.currentPrice)}</strong></> : isPast ? <><span>{listing.status === 'Canceled' ? 'Ended' : 'Sold for'}</span><strong>{formatPrice(listing.currentPrice)}</strong></> : <><strong>Will be published on {formatDate(listing.auctionStart)}</strong><small>{listing.status === 'Rejected' ? 'Listing needs changes' : 'No additional information needed.'}</small></>}
+        {isLive ? <><span>{t('timeLeft')}</span><strong className="seller-dashboard-time">{getTimeRemaining(listing.auctionEnd, now)}</strong><span>{t('currentBid')}</span><strong className="seller-dashboard-bid">{formatPrice(listing.currentPrice)}</strong></> : isPast ? <><span>{listing.status === 'Canceled' ? t('ended') : t('soldFor')}</span><strong>{formatPrice(listing.currentPrice)}</strong></> : <><strong>{t('willBePublishedOn')} {formatDate(listing.auctionStart)}</strong><small>{listing.status === 'Rejected' ? t('listingNeedsChanges') : t('noAdditionalInfo')}</small></>}
       </div>
       <div className="seller-dashboard-actions">{!isPast && !isLive && <button type="button" onClick={() => onNavigate('car', { carId: listing.carId })}>Open chat</button>}<button type="button" onClick={() => onNavigate('car', { carId: listing.carId })}>See details <span aria-hidden="true">›</span></button></div>
     </article>;
   };
 
   return <section className="seller-dashboard-page" aria-label="Seller dashboard">
-    <h1>Dashboard</h1>
+    <h1>{t('dashboard')}</h1>
     <div className="seller-dashboard-tabs" role="tablist" aria-label="Seller dashboard sections">
       {tabItems.map((tab) => <button key={tab.id} type="button" role="tab" aria-selected={activeTab === tab.id} className={activeTab === tab.id ? 'active' : ''} onClick={() => { setActiveTab(tab.id); setPage(1); }}><i>{tab.icon}</i><span>{tab.label}</span></button>)}
     </div>
-    {loading ? <div className="seller-dashboard-empty">Loading your listings...</div> : error ? <div className="seller-dashboard-empty seller-dashboard-error">{error}</div> : activeTab === 'comments' ? (
-      comments.length ? <><div className="seller-dashboard-list seller-dashboard-comments">{comments.slice((page - 1) * 12, page * 12).map((comment) => <article className="seller-dashboard-row" key={comment.id}><div className="seller-dashboard-image seller-dashboard-image-empty">{comment.imageUrl ? <img src={comment.imageUrl} alt="" /> : 'No photo'}</div><div className="seller-dashboard-copy"><h2>{comment.carTitle}</h2><p>{comment.text}</p></div><div className="seller-dashboard-actions"><button type="button" onClick={() => onNavigate('car', { carId: comment.carId })}>See comment <span aria-hidden="true">›</span></button></div></article>)}</div><Pagination page={page} pageCount={Math.ceil(comments.length / 12)} onPageChange={setPage} /></> : <div className="seller-dashboard-empty">No comments yet.</div>
-    ) : tabListings.length ? <><div className="seller-dashboard-list">{tabListings.slice((page - 1) * 12, page * 12).map(renderListing)}</div><Pagination page={page} pageCount={Math.ceil(tabListings.length / 12)} onPageChange={setPage} /></> : <div className="seller-dashboard-empty"><p>{activeTab === 'live' ? 'No live auctions right now.' : activeTab === 'past' ? 'No past listings yet.' : 'No listings in progress.'}</p><button type="button" onClick={() => onNavigate('sellCar')}>Sell a car</button></div>}
+    {loading ? <div className="seller-dashboard-empty">{t('loadingListings')}</div> : error ? <div className="seller-dashboard-empty seller-dashboard-error">{error}</div> : activeTab === 'comments' ? (
+      comments.length ? <><div className="seller-dashboard-list seller-dashboard-comments">{comments.slice((page - 1) * 12, page * 12).map((comment) => <article className="seller-dashboard-row" key={comment.id}><div className="seller-dashboard-image seller-dashboard-image-empty">{comment.imageUrl ? <img src={comment.imageUrl} alt="" /> : t('noPhoto')}</div><div className="seller-dashboard-copy"><h2>{comment.carTitle}</h2><p>{comment.text}</p></div><div className="seller-dashboard-actions"><button type="button" onClick={() => onNavigate('car', { carId: comment.carId })}>{t('seeComment')} <span aria-hidden="true">›</span></button></div></article>)}</div><Pagination page={page} pageCount={Math.ceil(comments.length / 12)} onPageChange={setPage} /></> : <div className="seller-dashboard-empty">{t('noCommentsYet')}</div>
+    ) : tabListings.length ? <><div className="seller-dashboard-list">{tabListings.slice((page - 1) * 12, page * 12).map(renderListing)}</div><Pagination page={page} pageCount={Math.ceil(tabListings.length / 12)} onPageChange={setPage} /></> : <div className="seller-dashboard-empty"><p>{activeTab === 'live' ? t('noLiveAuctions') : activeTab === 'past' ? t('noPastListings') : t('noListingsProgress')}</p><button type="button" onClick={() => onNavigate('sellCar')}>{t('sellCar')}</button></div>}
   </section>;
 };
 

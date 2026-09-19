@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { apiCall } from '../services/config';
 import Pagination from './Pagination';
 import { showToast } from '../services/toast';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface HomeProps {
   onNavigate: (page: string, params?: { carId?: number | string }) => void;
@@ -80,6 +81,7 @@ const isActiveAuction = (car: AuctionCar) => {
 
 const Home: React.FC<HomeProps> = ({ onNavigate, searchQuery }) => {
   const { isAuthenticated } = useAuth();
+  const { t } = useLanguage();
   const [selectedYear, setSelectedYear] = useState('');
   const [selectedTransmission, setSelectedTransmission] = useState('');
   const [selectedBodyStyle, setSelectedBodyStyle] = useState('');
@@ -303,10 +305,10 @@ const Home: React.FC<HomeProps> = ({ onNavigate, searchQuery }) => {
               : undefined
           }
         >
-          <span className="catalog-featured-label">FEATURED AUCTION</span>
+          <span className="catalog-featured-label">{t('featuredAuction')}</span>
           <div className="catalog-featured-copy">
-            <h1>{featuredCar?.title || 'Discover your next car'}</h1>
-            <p>{featuredCar?.description || 'Browse live vehicle auctions from verified sellers.'}</p>
+            <h1>{featuredCar?.title || t('discoverCar')}</h1>
+            <p>{featuredCar?.description || t('browseLive')}</p>
           </div>
         </div>
       </section>
@@ -314,8 +316,8 @@ const Home: React.FC<HomeProps> = ({ onNavigate, searchQuery }) => {
       <section className="auctions-section">
         <div className="auctions-header">
           <div>
-            <h2 className="auctions-title">Auctions</h2>
-            {searchQuery && <p className="catalog-result-copy">Results for “{searchQuery}”</p>}
+            <h2 className="auctions-title">{t('auctionsTitle')}</h2>
+            {searchQuery && <p className="catalog-result-copy">{t('resultsFor')} “{searchQuery}”</p>}
           </div>
           <div className="sort-links">
             {SORT_OPTIONS.map((item) => (
@@ -325,7 +327,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate, searchQuery }) => {
                 className={`sort-link ${activeSort === item ? 'sort-link-active' : ''}`}
                 onClick={() => setActiveSort(item)}
               >
-                {item}
+                {item === 'Ending soon' ? t('endingSoon') : item === 'Newly listed' ? t('newlyListed') : item === 'Lowest mileage' ? t('lowestMileage') : t('highestBid')}
               </button>
             ))}
           </div>
@@ -337,7 +339,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate, searchQuery }) => {
             value={selectedYear}
             onChange={(event) => setSelectedYear(event.target.value)}
           >
-            <option value="">Year</option>
+            <option value="">{t('year')}</option>
             {years.map((year) => (
               <option key={year} value={year}>
                 {year}
@@ -349,7 +351,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate, searchQuery }) => {
             value={selectedTransmission}
             onChange={(event) => setSelectedTransmission(event.target.value)}
           >
-            <option value="">Transmission</option>
+            <option value="">{t('transmission')}</option>
             <option>Manual</option>
             <option>Automatic</option>
             <option>Automated manual</option>
@@ -360,14 +362,14 @@ const Home: React.FC<HomeProps> = ({ onNavigate, searchQuery }) => {
             value={selectedBodyStyle}
             onChange={(event) => setSelectedBodyStyle(event.target.value)}
           >
-            <option value="">Body type</option>
+            <option value="">{t('bodyType')}</option>
             {bodyStyles.map((bodyStyle) => (
               <option key={bodyStyle}>{bodyStyle}</option>
             ))}
           </select>
           {(selectedYear || selectedTransmission || selectedBodyStyle) && (
             <button type="button" className="clear-filters" onClick={resetFilters}>
-              Clear filters
+              {t('clearFilters')}
             </button>
           )}
         </div>
@@ -457,8 +459,8 @@ const Home: React.FC<HomeProps> = ({ onNavigate, searchQuery }) => {
           </div>
         ) : (
           <div className="catalog-empty">
-            <h3>No auctions found</h3>
-            <p>Try another search or clear the selected filters.</p>
+            <h3>{t('noAuctions')}</h3>
+            <p>{t('tryAnother')}</p>
           </div>
         )}
         <Pagination page={auctionPage} pageCount={auctionPageCount} onPageChange={setAuctionPage} />

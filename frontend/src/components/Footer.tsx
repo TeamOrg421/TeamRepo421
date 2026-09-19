@@ -1,11 +1,13 @@
 import React from 'react';
 import VeyoLogo from './VeyoLogo';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface FooterProps {
   onNavigate: (page: string) => void;
 }
 
 const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
+  const { t } = useLanguage();
   const navigateToSection = (sectionId: string) => {
     onNavigate('mainpage');
     setTimeout(() => {
@@ -26,30 +28,30 @@ const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
         </div>
 
         <div className="footer-column">
-          <h2>HOW IT WORKS</h2>
-          <button type="button" onClick={() => navigateToSection('finalizing-the-sale')}>SafePay</button>
-          <button type="button" onClick={() => navigateToSection('buying-a-car')}>Buying a Car</button>
-          <button type="button" onClick={() => navigateToSection('selling-a-car')}>Selling a Car</button>
-          <button type="button" onClick={() => navigateToSection('finalizing-the-sale')}>Finalizing the Sale</button>
-          <button type="button" onClick={() => navigateToSection('faq')}>FAQs</button>
+          <h2>{t('howItWorks')}</h2>
+          <button type="button" onClick={() => navigateToSection('finalizing-the-sale')}>{t('safePay')}</button>
+          <button type="button" onClick={() => navigateToSection('buying-a-car')}>{t('buyingCar')}</button>
+          <button type="button" onClick={() => navigateToSection('selling-a-car')}>{t('sellingCar')}</button>
+          <button type="button" onClick={() => navigateToSection('finalizing-the-sale')}>{t('finalizingSale')}</button>
+          <button type="button" onClick={() => navigateToSection('faq')}>{t('faqs')}</button>
         </div>
 
         <div className="footer-column">
-          <h2>SELLERS</h2>
-          <button type="button" onClick={() => onNavigate('sellCar')}>Submit Your Car</button>
-          <button type="button" onClick={() => onNavigate('seller')}>Dashboard</button>
-          <button type="button" onClick={() => navigateToSection('about-us')}>Certified Sellers</button>
-          <button type="button" onClick={() => navigateToSection('selling-a-car')}>Photo Guide</button>
-          <button type="button" onClick={() => navigateToSection('selling-a-car')}>Book a Photo Shoot</button>
-          <button type="button" onClick={() => navigateToSection('buying-a-car')}>Inspections</button>
+          <h2>{t('sellers')}</h2>
+          <button type="button" onClick={() => onNavigate('sellCar')}>{t('submitCar')}</button>
+          <button type="button" onClick={() => onNavigate('seller')}>{t('dashboard')}</button>
+          <button type="button" onClick={() => navigateToSection('about-us')}>{t('certifiedSellers')}</button>
+          <button type="button" onClick={() => navigateToSection('selling-a-car')}>{t('photoGuide')}</button>
+          <button type="button" onClick={() => navigateToSection('selling-a-car')}>{t('bookPhotoShoot')}</button>
+          <button type="button" onClick={() => navigateToSection('buying-a-car')}>{t('inspections')}</button>
         </div>
 
         <div className="footer-column">
-          <h2>HELPFUL LINKS</h2>
-          <button type="button" onClick={() => onNavigate('home')}>Auctions</button>
-          <button type="button" onClick={() => onNavigate('watchlist')}>Watch list</button>
-          <button type="button" onClick={() => onNavigate('leaderboard')}>Leaderboard</button>
-          <button type="button" onClick={() => onNavigate('settings')}>Settings</button>
+          <h2>{t('helpfulLinks')}</h2>
+          <button type="button" onClick={() => onNavigate('home')}>{t('auctions')}</button>
+          <button type="button" onClick={() => onNavigate('watchlist')}>{t('watchList')}</button>
+          <button type="button" onClick={() => onNavigate('leaderboard')}>{t('leaderboard')}</button>
+          <button type="button" onClick={() => onNavigate('settings')}>{t('settings')}</button>
         </div>
 
         <div className="footer-meta">

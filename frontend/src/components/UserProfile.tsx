@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { apiCall } from '../services/config';
 import { addBankCard, getBankCards, topUpBankCard, withdrawFromBankCard } from '../services/bankCards';
 import type { BankCardDto, CreateBankCardDto } from '../services/bankCards';
+import { useLanguage } from '../contexts/LanguageContext';
 import './UserProfile.css';
 
 interface UserProfileProps {
@@ -50,6 +51,7 @@ interface CommentItem {
 
 const UserProfile: React.FC<UserProfileProps> = ({ onNavigate }) => {
   const { user: authUser, isAuthenticated, updateUser } = useAuth();
+  const { language, t } = useLanguage();
   const [profile, setProfile] = useState<UserProfileData | null>(null);
   const [bids, setBids] = useState<BidItem[]>([]);
   const [comments, setComments] = useState<CommentItem[]>([]);
@@ -413,8 +415,8 @@ const UserProfile: React.FC<UserProfileProps> = ({ onNavigate }) => {
   const displayName = profile?.name || authUser?.name || authUser?.email?.split('@')[0] || 'User';
   const displayAvatar = sanitizeImageUrl(profile?.profileImageUrl || (authUser as any)?.profileImageUrl);
   const joinDate = profile?.createdAt
-    ? new Date(profile.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-    : 'Recently';
+    ? new Date(profile.createdAt).toLocaleDateString(language === 'UA' ? 'uk-UA' : 'en-US', { month: 'long', year: 'numeric' })
+    : t('recently');
 
   const userBio = profile?.bio || `Hi, I'm ${displayName}.`;
 
@@ -425,7 +427,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ onNavigate }) => {
   const formatDate = (isoString: string) => {
     try {
       if (!isoString) return '';
-      return new Date(isoString).toLocaleDateString('en-US', {
+      return new Date(isoString).toLocaleDateString(language === 'UA' ? 'uk-UA' : 'en-US', {
         month: 'long',
         day: 'numeric',
         year: 'numeric',
@@ -481,7 +483,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ onNavigate }) => {
                   <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                   <circle cx="12" cy="13" r="4" />
                 </svg>
-                <span>Edit</span>
+                <span>{t('edit')}</span>
               </div>
             </div>
           </div>
@@ -498,14 +500,14 @@ const UserProfile: React.FC<UserProfileProps> = ({ onNavigate }) => {
                     <polyline points="16 6 12 2 8 6" />
                     <line x1="12" y1="2" x2="12" y2="15" />
                   </svg>
-                  {copied ? 'Copied!' : 'Share'}
+                  {copied ? t('copied') : t('share')}
                 </button>
                 <button type="button" className="profile-toolbar-btn" onClick={() => setShowEditBioModal(true)}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M12 20h9" />
                     <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
                   </svg>
-                  Edit bio
+                  {t('editBio')}
                 </button>
                 <button
                   type="button"
@@ -519,7 +521,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ onNavigate }) => {
                     <path d="M2 10h20" />
                     <path d="M7 15h3" />
                   </svg>
-                  Cards
+                  {t('cards')}
                 </button>
               </div>
             </div>
@@ -531,9 +533,9 @@ const UserProfile: React.FC<UserProfileProps> = ({ onNavigate }) => {
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                     <polyline points="9 12 11 14 15 10" />
                   </svg>
-                  Registered Bidder
+                  {t('registeredBidder')}
                 </span>
-                <span className="profile-join-date-v2">Joined {joinDate}</span>
+                <span className="profile-join-date-v2">{t('joined')} {joinDate}</span>
               </div>
 
             </div>
@@ -544,10 +546,10 @@ const UserProfile: React.FC<UserProfileProps> = ({ onNavigate }) => {
             {/* Followers / Following */}
             <div className="profile-stats-row-v2">
               <span className="profile-stat-item">
-                <strong>0</strong> Followers
+                <strong>0</strong> {t('followers')}
               </span>
               <span className="profile-stat-item">
-                <strong>0</strong> Following
+                <strong>0</strong> {t('following')}
               </span>
             </div>
           </div>
@@ -556,9 +558,9 @@ const UserProfile: React.FC<UserProfileProps> = ({ onNavigate }) => {
         {/* ─── Bid History Section ─────────────────────────────────────────── */}
         <section className="profile-section-block">
           <div className="profile-section-header">
-            <h2 className="profile-section-title">Bid History</h2>
+            <h2 className="profile-section-title">{t('bidHistory')}</h2>
             <span className="profile-section-subtitle">
-              (Bid on {totalBidsCount} {totalBidsCount === 1 ? 'car' : 'cars'}, {totalWinsCount} {totalWinsCount === 1 ? 'win' : 'wins'})
+              ({t('bidOn')} {totalBidsCount} {totalBidsCount === 1 ? t('car') : t('cars')}, {totalWinsCount} {totalWinsCount === 1 ? t('win') : t('wins')})
             </span>
           </div>
 
@@ -585,7 +587,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ onNavigate }) => {
                         className="profile-bid-img"
                       />
                       <div className="profile-bid-tag">
-                        <span>{bid.bidCount || 1} bid to</span>
+                        <span>{bid.bidCount || 1} {t('bidTo')}</span>
                         <span className="tag-bid-amount">
                           ${bid.amount.toLocaleString()}
                         </span>
@@ -610,7 +612,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ onNavigate }) => {
                     className="profile-show-more-btn"
                     onClick={() => setVisibleBidsCount(prev => prev + 8)}
                   >
-                    Show more
+                    {t('showMore')}
                   </button>
                 </div>
               )}
@@ -622,8 +624,8 @@ const UserProfile: React.FC<UserProfileProps> = ({ onNavigate }) => {
                   <path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <div className="profile-empty-title">No bids placed yet</div>
-              <div className="profile-empty-sub">When you bid on live auctions, your bidding history will appear here.</div>
+              <div className="profile-empty-title">{t('noBidsPlaced')}</div>
+              <div className="profile-empty-sub">{t('biddingHistoryEmpty')}</div>
             </div>
           )}
         </section>
@@ -631,9 +633,9 @@ const UserProfile: React.FC<UserProfileProps> = ({ onNavigate }) => {
         {/* ─── Auction Comments Section ────────────────────────────────────── */}
         <section className="profile-section-block">
           <div className="profile-section-header">
-            <h2 className="profile-section-title">Auction Comments</h2>
+            <h2 className="profile-section-title">{t('auctionComments')}</h2>
             <span className="profile-section-subtitle">
-              ({comments.length} comment{comments.length === 1 ? '' : 's'})
+              ({comments.length} {comments.length === 1 ? t('comment') : t('commentsLower')})
             </span>
           </div>
 
@@ -675,8 +677,8 @@ const UserProfile: React.FC<UserProfileProps> = ({ onNavigate }) => {
                   <path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                 </svg>
               </div>
-              <div className="profile-empty-title">No comments yet</div>
-              <div className="profile-empty-sub">Comments you post on vehicle listings will be displayed here.</div>
+              <div className="profile-empty-title">{t('noCommentsYet')}</div>
+              <div className="profile-empty-sub">{t('commentsHistoryEmpty')}</div>
             </div>
           )}
         </section>
@@ -686,7 +688,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ onNavigate }) => {
         <div className="crop-modal-overlay">
           <div className="wallet-modal-dialog">
             <div className="crop-modal-header">
-              <h2 className="crop-modal-title">Payment cards</h2>
+              <h2 className="crop-modal-title">{t('paymentCards')}</h2>
               <button type="button" className="crop-modal-close-btn" onClick={() => setShowWalletModal(false)}>✕</button>
             </div>
 

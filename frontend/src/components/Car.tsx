@@ -5,6 +5,7 @@ import { createAuctionConnection, destroyAuctionConnection } from '../services/a
 import type { BidPayload } from '../services/auctionHub';
 import UserProfileLink from './UserProfileLink';
 import { showToast } from '../services/toast';
+import { useLanguage } from '../contexts/LanguageContext';
 import './Car.css';
 
 interface CarProps {
@@ -174,6 +175,7 @@ const formatTimeRemaining = (value: unknown) => {
 };
 
 const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
+  const { t } = useLanguage();
   const { isAuthenticated, user } = useAuth();
   const activeId = carId ?? '';
 
@@ -202,24 +204,8 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
   const [localBids, setLocalBids] = useState<Bid[]>([]);
   const [localComments, setLocalComments] = useState<Comment[]>([]);
   const [currentBidPrice, setCurrentBidPrice] = useState(0);
-  const [totalActiveHighestBids, setTotalActiveHighestBids] = useState(0);
   const [likedCommentIds, setLikedCommentIds] = useState<string[]>([]);
   const [otherAuctions, setOtherAuctions] = useState<OtherAuctionCar[]>([]);
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      setTotalActiveHighestBids(0);
-      return;
-    }
-
-    apiCall('/users/me/bids/summary')
-      .then(async (response) => {
-        if (!response.ok) return;
-        const data = await response.json();
-        setTotalActiveHighestBids(Number(data.totalActiveHighestBids ?? 0));
-      })
-      .catch(() => setTotalActiveHighestBids(0));
-  }, [isAuthenticated]);
 
   // SignalR connection ref
   const connectionRef = useRef<import('@microsoft/signalr').HubConnection | null>(null);
@@ -717,8 +703,8 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
     return (
       <div className="car-detail-page">
         <div style={{ textAlign: 'center', padding: '100px 20px', color: '#94a3b8' }}>
-          <h2 style={{ color: '#fff', fontSize: '24px' }}>Loading vehicle...</h2>
-          <p>Please wait while we load the auction details.</p>
+          <h2 style={{ color: '#fff', fontSize: '24px' }}>{t('loadingVehicle')}</h2>
+          <p>{t('loadingAuctionDetails')}</p>
         </div>
       </div>
     );
@@ -728,15 +714,15 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
     return (
       <div className="car-detail-page">
         <div style={{ textAlign: 'center', padding: '100px 20px', color: '#94a3b8' }}>
-          <h2 style={{ color: '#fff', fontSize: '24px' }}>Vehicle Not Found</h2>
-          <p>{loadError || 'The requested car could not be located in our auctions database.'}</p>
+          <h2 style={{ color: '#fff', fontSize: '24px' }}>{t('vehicleNotFound')}</h2>
+          <p>{loadError || t('carNotFoundDetails')}</p>
           <button
             type="button"
             className="hero-place-bid-btn"
             style={{ marginTop: '20px', display: 'inline-block' }}
             onClick={() => onNavigate('home')}
           >
-            Back to Home
+            {t('backToHome')}
           </button>
         </div>
       </div>
@@ -784,7 +770,7 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
             <svg viewBox="0 0 24 24" fill={isWatched ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
               <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
             </svg>
-            <span>{isWatched ? 'Watching' : 'Watch'}</span>
+            <span>{isWatched ? t('watching') : t('watch')}</span>
           </button>
 
           <button type="button" className="car-action-btn" onClick={handleShareClick}>
@@ -793,10 +779,10 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
               <polyline points="16 6 12 2 8 6" />
               <line x1="12" y1="2" x2="12" y2="15" />
             </svg>
-            <span>Share</span>
+            <span>{t('share')}</span>
           </button>
 
-          {shareToast && <div className="share-toast-notification">Link copied to clipboard!</div>}
+          {shareToast && <div className="share-toast-notification">{t('linkCopied')}</div>}
         </div>
       </header>
 
@@ -816,7 +802,7 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
           <div className="hero-stat-card">
             <span className="hero-stat-number">{carData.watchCount}</span>
             <div className="hero-stat-label">
-              <span>Watching</span>
+              <span>{t('watching')}</span>
               <span>☆</span>
             </div>
           </div>
@@ -824,7 +810,7 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
           <div className="hero-stat-card">
             <span className="hero-stat-number">{carData.viewsCount}</span>
             <div className="hero-stat-label">
-              <span>Views</span>
+              <span>{t('views')}</span>
               <span>👁</span>
             </div>
           </div>
@@ -832,7 +818,7 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
           <div className="hero-stat-card">
             <span className="hero-stat-number">{carData.bidCount}</span>
             <div className="hero-stat-label">
-              <span>Bids count</span>
+              <span>{t('bidsCount')}</span>
               <span>⏱</span>
             </div>
           </div>
@@ -845,7 +831,7 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
               type="button"
               className="hero-nav-arrow prev"
               onClick={() => setSelectedImageIndex((prev) => (prev > 0 ? prev - 1 : carData.images.length - 1))}
-              aria-label="Previous photo"
+              aria-label={t('previousPhoto')}
             >
               ‹
             </button>
@@ -853,7 +839,7 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
               type="button"
               className="hero-nav-arrow next"
               onClick={() => setSelectedImageIndex((prev) => (prev < carData.images.length - 1 ? prev + 1 : 0))}
-              aria-label="Next photo"
+              aria-label={t('nextPhoto')}
             >
               ›
             </button>
@@ -869,7 +855,7 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
               disabled
               style={{ background: '#334155', cursor: 'default', boxShadow: 'none', color: '#cbd5e1' }}
             >
-              Auction not started yet · awaiting admin approval
+              {t('auctionAwaitingApproval')}
             </button>
           ) : carData.auctionStatus === 'rejected' || carData.auctionStatus === 'canceled' ? (
             <button
@@ -878,7 +864,7 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
               disabled
               style={{ background: '#334155', cursor: 'default', boxShadow: 'none', color: '#cbd5e1' }}
             >
-              {carData.auctionStatus === 'rejected' ? 'Listing rejected' : 'Auction canceled'}
+              {carData.auctionStatus === 'rejected' ? t('listingRejected') : t('auctionCanceled')}
             </button>
           ) : liveTimeRemaining === 'Ended' ? (
             isCurrentUserHighestBidder ? (
@@ -888,7 +874,7 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
                 disabled
                 style={{ background: 'rgba(34, 197, 94, 0.25)', borderColor: '#22c55e', color: '#4ade80' }}
               >
-                <span className="highest-bid-check">🏆</span> You Won this Auction! (${currentBidPrice.toLocaleString()})
+                <span className="highest-bid-check">🏆</span> {t('youWonAuction')} (${currentBidPrice.toLocaleString()})
               </button>
             ) : (
               <button
@@ -897,7 +883,7 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
                 disabled
                 style={{ background: '#334155', cursor: 'default', boxShadow: 'none', color: '#cbd5e1' }}
               >
-                Auction Ended · {currentBidPrice > 0 ? `Sold for $${currentBidPrice.toLocaleString()}` : 'No Bids'}
+                {t('auctionEnded')} · {currentBidPrice > 0 ? `${t('soldFor')} $${currentBidPrice.toLocaleString()}` : t('noBids')}
               </button>
             )
           ) : isCurrentUserHighestBidder ? (
@@ -906,7 +892,7 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
               className="hero-place-bid-btn outbid-disabled"
               disabled
             >
-              <span className="highest-bid-check">✓</span> You hold highest bid (${currentBidPrice.toLocaleString()})
+                <span className="highest-bid-check">✓</span> {t('youHoldHighestBid')} (${currentBidPrice.toLocaleString()})
             </button>
           ) : (
             <button
@@ -914,7 +900,7 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
               className="hero-place-bid-btn"
               onClick={handleOpenBidModal}
             >
-              Place Bid
+              {t('placeBid')}
             </button>
           )}
         </div>
@@ -928,15 +914,15 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
           <section className="specs-table-wrapper">
             <div className="specs-table-col">
               <div className="specs-row">
-                <span className="specs-cell-label">Brand</span>
+                <span className="specs-cell-label">{t('brand')}</span>
                 <span className="specs-cell-value">{carData.make}</span>
               </div>
               <div className="specs-row">
-                <span className="specs-cell-label">Model</span>
+                <span className="specs-cell-label">{t('model')}</span>
                 <span className="specs-cell-value">{carData.model}</span>
               </div>
               <div className="specs-row">
-                <span className="specs-cell-label">Mileage</span>
+                <span className="specs-cell-label">{t('mileage')}</span>
                 <span className="specs-cell-value">{carData.mileage}</span>
               </div>
               <div className="specs-row">
@@ -944,15 +930,15 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
                 <span className="specs-cell-value">{carData.vin}</span>
               </div>
               <div className="specs-row">
-                <span className="specs-cell-label">Title Status</span>
-                <span className="specs-cell-value">Clean</span>
+                <span className="specs-cell-label">{t('titleStatus')}</span>
+                <span className="specs-cell-value">{t('clean')}</span>
               </div>
               <div className="specs-row">
-                <span className="specs-cell-label">Location</span>
+                <span className="specs-cell-label">{t('location')}</span>
                 <span className="specs-cell-value">{carData.location}</span>
               </div>
               <div className="specs-row">
-                <span className="specs-cell-label">Seller</span>
+                <span className="specs-cell-label">{t('seller')}</span>
                 <span className="specs-cell-value">
                   <UserProfileLink
                     userId={carData.sellerId}
@@ -966,31 +952,31 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
 
             <div className="specs-table-col">
               <div className="specs-row">
-                <span className="specs-cell-label">Engine</span>
+                <span className="specs-cell-label">{t('engine')}</span>
                 <span className="specs-cell-value">{carData.engine}</span>
               </div>
               <div className="specs-row">
-                <span className="specs-cell-label">Drivetrain</span>
+                <span className="specs-cell-label">{t('drivetrain')}</span>
                 <span className="specs-cell-value">{carData.drivetrain}</span>
               </div>
               <div className="specs-row">
-                <span className="specs-cell-label">Transmission</span>
+                <span className="specs-cell-label">{t('transmissionLabel')}</span>
                 <span className="specs-cell-value">{carData.transmission}</span>
               </div>
               <div className="specs-row">
-                <span className="specs-cell-label">Body Style</span>
+                <span className="specs-cell-label">{t('bodyStyle')}</span>
                 <span className="specs-cell-value">{carData.bodyStyle}</span>
               </div>
               <div className="specs-row">
-                <span className="specs-cell-label">Exterior Color</span>
+                <span className="specs-cell-label">{t('exteriorColor')}</span>
                 <span className="specs-cell-value">{carData.exteriorColor}</span>
               </div>
               <div className="specs-row">
-                <span className="specs-cell-label">Interior Color</span>
+                <span className="specs-cell-label">{t('interiorColor')}</span>
                 <span className="specs-cell-value">{carData.interiorColor}</span>
               </div>
               <div className="specs-row">
-                <span className="specs-cell-label">Seller Type</span>
+                <span className="specs-cell-label">{t('sellerType')}</span>
                 <span className="specs-cell-value">{carData.sellerType}</span>
               </div>
             </div>
@@ -1140,7 +1126,7 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
             <strong>${currentBidPrice.toLocaleString()}</strong>
             <p>
               {localBids[0]
-                ? <>by <UserProfileLink userId={localBids[0].userId} name={localBids[0].bidder} onNavigate={onNavigate} className="seller-link-badge" /></>
+                ? <><span>{t('by')} </span><UserProfileLink userId={localBids[0].userId} name={localBids[0].bidder} onNavigate={onNavigate} className="seller-link-badge" /></>
                 : 'No bids have been placed yet.'}
             </p>
           </section>

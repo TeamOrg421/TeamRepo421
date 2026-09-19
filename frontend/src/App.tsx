@@ -23,6 +23,7 @@ import ManagerListingEditor from './components/ManagerListingEditor'
 import ToastHost from './components/ToastHost'
 
 import { AuthProvider } from './contexts/AuthContext'
+import { LanguageProvider } from './contexts/LanguageContext'
 
 type Page = 'home' | 'about' | 'leaderboard' | 'login' | 'register' | 'mainpage' | 'car' | 'profile' | 'user-profile' | 'adminCars' | 'watchlist' | 'settings' | 'sellCar' | 'seller' | 'manager' | 'manager-edit-listing' | 'chats' | '404' | 'not-found'
 type AuthView = 'login' | 'register-step1' | 'register-step2' | 'forgot' | 'check-email' | 'reset-password' | 'reset-success';
@@ -86,7 +87,8 @@ function App() {
   }
 
   return (
-    <AuthProvider>
+    <LanguageProvider>
+      <AuthProvider>
       <div className="app-container">
         <Navbar onNavigate={navigate} searchValue={catalogSearch} onSearchChange={setCatalogSearch} currentPage={currentPage} />
         <main className="main-content">
@@ -117,7 +119,8 @@ function App() {
         <Footer onNavigate={navigate} />
         <ToastHost />
       </div>
-    </AuthProvider>
+      </AuthProvider>
+    </LanguageProvider>
   )
 }
 
