@@ -39,9 +39,6 @@ builder.Services.AddHostedService<AuctionFinalizationHostedService>();
 builder.Services.AddHttpClient<IBankApiClient, BankApiClient>(client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["FakeBank:BaseUrl"] ?? "https://localhost:7008");
-}).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
-{
-    ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
 });
 
 builder.Services

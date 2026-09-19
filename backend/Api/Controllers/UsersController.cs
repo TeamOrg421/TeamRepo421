@@ -9,12 +9,14 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Net.Mail;
 using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace Api.Controllers
 {
     [ApiController]
     [Route("api/users")]
-    //[Authorize]
+    [Authorize]
     public class UsersController : ControllerBase
     {
         private readonly UserManager<ApplicationUser> _userManager;
@@ -25,6 +27,7 @@ namespace Api.Controllers
         private readonly ILogger<UsersController> _logger;
         private readonly IEmailSender _emailSender;
         private readonly IFileService _fileService;
+        private readonly IConfiguration _configuration;
         private const string EmailConfirmationPurpose = "confirm-email";
 
         public UsersController(
@@ -35,7 +38,8 @@ namespace Api.Controllers
             IWebHostEnvironment environment,
             ILogger<UsersController> logger,
             IEmailSender emailSender,
-            IFileService fileService)
+            IFileService fileService,
+            IConfiguration configuration)
         {
             _userManager = userManager;
             _bidRepo = bidRepo;
@@ -45,9 +49,9 @@ namespace Api.Controllers
             _logger = logger;
             _emailSender = emailSender;
             _fileService = fileService;
+            _configuration = configuration;
         }
 
-        // ─── GET /api/users/me ──────────────────────────────────────────────
         [HttpGet("me")]
         public async Task<IActionResult> GetMe()
         {
@@ -73,6 +77,7 @@ namespace Api.Controllers
         }
 
         [HttpGet("{userId:guid}")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetPublicProfile(Guid userId)
         {
             var user = await _userManager.FindByIdAsync(userId.ToString());
@@ -87,12 +92,20 @@ namespace Api.Controllers
                 profileImageUrl = user.ProfileImageUrl ?? string.Empty,
                 createdAt = user.CreatedAt,
                 listingsCount = await _db.CarListings.CountAsync(listing => listing.SellerId == userId),
+                activeListingsCount = await _db.CarListings.CountAsync(listing => listing.SellerId == userId
+                    && listing.Status == DataAccess.Entities.Enums.ListingStatus.Active
+                    && (listing.AuctionEnd == null || listing.AuctionEnd > DateTime.UtcNow)),
+                completedListingsCount = await _db.CarListings.CountAsync(listing => listing.SellerId == userId
+                    && (listing.Status == DataAccess.Entities.Enums.ListingStatus.Completed
+                        || (listing.AuctionEnd != null && listing.AuctionEnd <= DateTime.UtcNow))),
                 bidsCount = await _db.Bids.CountAsync(bid => bid.UserId == userId),
-                commentsCount = await _db.Comments.CountAsync(comment => comment.UserId == userId)
+                commentsCount = await _db.Comments.CountAsync(comment => comment.UserId == userId),
+                winsCount = await _db.AuctionWinners.CountAsync(winner => winner.WinnerId == userId)
             });
         }
 
         [HttpGet("{userId:guid}/email")]
+        [Authorize(Roles = "Admin,Moderator")]
         public async Task<IActionResult> GetEmail(Guid userId)
         {
             var user = await _userManager.FindByIdAsync(userId.ToString());
@@ -104,6 +117,13 @@ namespace Api.Controllers
         [HttpGet("email-by-card-token/{token:guid}")]
         public async Task<IActionResult> GetEmailByCardToken(Guid token)
         {
+            var configuredKey = _configuration["InternalApiKey"];
+            var providedKey = Request.Headers["X-Internal-Api-Key"].ToString();
+            if (string.IsNullOrWhiteSpace(configuredKey) || !CryptographicOperations.FixedTimeEquals(
+                Encoding.UTF8.GetBytes(configuredKey),
+                Encoding.UTF8.GetBytes(providedKey)))
+            return Unauthorized();
+
             var card = await _db.BankCards
                 .Include(item => item.User)
                 .FirstOrDefaultAsync(item => item.BankCardToken == token);
@@ -113,7 +133,6 @@ namespace Api.Controllers
             return Ok(new { email = card.User.Email ?? string.Empty });
         }
 
-        // ─── PUT /api/users/me ──────────────────────────────────────────────
         [HttpPut("me")]
         public async Task<IActionResult> UpdateMe([FromBody] UpdateProfileDto dto)
         {
@@ -165,7 +184,6 @@ namespace Api.Controllers
             });
         }
 
-        // ─── POST /api/users/me/avatar ──────────────────────────────────────
         [HttpPost("me/avatar")]
         public async Task<IActionResult> UploadAvatar(IFormFile? file)
         {
@@ -185,7 +203,6 @@ namespace Api.Controllers
             var user = await _userManager.FindByIdAsync(userId.ToString()!);
             if (user == null) return NotFound();
 
-            // Delete old avatar if existing in Azure
             if (!string.IsNullOrWhiteSpace(user.ProfileImageUrl))
             {
                 try
@@ -212,7 +229,6 @@ namespace Api.Controllers
             });
         }
 
-        // ─── DELETE /api/users/me/avatar ────────────────────────────────────
         [HttpDelete("me/avatar")]
         public async Task<IActionResult> DeleteAvatar()
         {
@@ -351,7 +367,6 @@ namespace Api.Controllers
             return Ok(new { emailConfirmed = true, message = "Email confirmed successfully." });
         }
 
-        // ─── DELETE /api/users/me ──────────────────────────────────────────
         [HttpDelete("me")]
         public async Task<IActionResult> DeleteMe()
         {
@@ -385,9 +400,6 @@ namespace Api.Controllers
                 .Include(listing => listing.Bids)
                 .Include(listing => listing.Favorites)
                 .OrderByDescending(listing => listing.AuctionStart)
-                // Images, bids, and favorites are all collections.  Splitting this
-                // query prevents their join from multiplying rows for a listing and
-                // keeps the dashboard reliable when a seller has active auctions.
                 .AsSplitQuery()
                 .ToListAsync();
 
@@ -429,7 +441,6 @@ namespace Api.Controllers
             });
         }
 
-        // ─── GET /api/users/me/bids ─────────────────────────────────────────
         [HttpGet("me/bids")]
         public async Task<IActionResult> GetMyBids()
         {
@@ -483,7 +494,23 @@ namespace Api.Controllers
             return Ok(result);
         }
 
-        // ─── GET /api/users/me/watchlist ────────────────────────────────────
+        [HttpGet("me/bids/summary")]
+        public async Task<IActionResult> GetMyBidsSummary()
+        {
+            var userId = GetUserId();
+            if (userId == null) return Unauthorized();
+
+            var totalActiveHighestBids = await _db.Bids
+                .Where(bid => bid.UserId == userId
+                    && bid.Listing.Status == DataAccess.Entities.Enums.ListingStatus.Active
+                    && (bid.Listing.AuctionEnd == null || bid.Listing.AuctionEnd > DateTime.UtcNow)
+                    && bid.Listing.Bids != null
+                    && bid.Amount == bid.Listing.Bids.Max(existingBid => existingBid.Amount))
+                .SumAsync(bid => (decimal?)bid.Amount) ?? 0m;
+
+            return Ok(new { totalActiveHighestBids });
+        }
+
         [HttpGet("me/watchlist")]
         public async Task<IActionResult> GetMyWatchlist()
         {
@@ -534,7 +561,6 @@ namespace Api.Controllers
             return Ok(result);
         }
 
-        // ─── POST /api/users/me/watchlist ───────────────────────────────────
         [HttpPost("me/watchlist")]
         public async Task<IActionResult> AddToWatchlist([FromBody] WatchlistDto dto)
         {
@@ -559,7 +585,6 @@ namespace Api.Controllers
             return Ok(new { message = "Added to watchlist." });
         }
 
-        // ─── DELETE /api/users/me/watchlist/{listingId} ─────────────────────
         [HttpDelete("me/watchlist/{listingId:guid}")]
         public async Task<IActionResult> RemoveFromWatchlist(Guid listingId)
         {
@@ -578,7 +603,6 @@ namespace Api.Controllers
             return NoContent();
         }
 
-        // ─── GET /api/users/me/comments ─────────────────────────────────────
         [HttpGet("me/comments")]
         public async Task<IActionResult> GetMyComments()
         {
@@ -616,10 +640,8 @@ namespace Api.Controllers
             return Ok(result);
         }
 
-        // ─── POST /api/users/set-role ───────────────────────────────────────
-        // Admin-only utility to grant a user the Moderator or Admin role by username.
         [HttpPost("set-role")]
-        //[Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> SetRole([FromBody] SetRoleDto dto)
         {
             if (string.IsNullOrWhiteSpace(dto.UserName) || string.IsNullOrWhiteSpace(dto.Role))
@@ -638,7 +660,6 @@ namespace Api.Controllers
             return Ok(new { message = $"{user.UserName} is now in the {dto.Role} role.", roles = await _userManager.GetRolesAsync(user) });
         }
 
-        // ─── Helper ─────────────────────────────────────────────────────────
         private Guid? GetUserId()
         {
             var claim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value

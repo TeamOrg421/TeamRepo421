@@ -90,9 +90,17 @@ namespace Api.Controllers
             var defoultCard = await _bankCardService.GetTokenDefoultBankCard(userId);
             Console.WriteLine($"TOKEN = {defoultCard}");
             var cardBalance = await fakeBankApi.GetBalanceAsync(defoultCard);
-            Console.WriteLine($"\n Balance ---------> {cardBalance}");
-            if (cardBalance < model.Amount)
-                return BadRequest(new { message = "Insufficient funds on the bank card." });
+
+            var currentHighestCommitment = await _dbContext.Bids
+                .Where(bid => bid.UserId == userId
+                    && bid.Listing.Status == DataAccess.Entities.Enums.ListingStatus.Active
+                    && (bid.Listing.AuctionEnd == null || bid.Listing.AuctionEnd > DateTime.UtcNow)
+                    && bid.Listing.Bids != null
+                    && bid.Amount == bid.Listing.Bids.Max(existingBid => existingBid.Amount))
+                .SumAsync(bid => (decimal?)bid.Amount) ?? 0m;
+
+            if (currentHighestCommitment + model.Amount > cardBalance)
+                return BadRequest(new { message = "Your active highest bids plus this bid exceed the balance of your bank card." });
 
             var lastBids = await _bidRepoAdd.GetLastBidAsync(model.ListingId);
             if (lastBids != null && lastBids.UserId == userId)
@@ -109,8 +117,6 @@ namespace Api.Controllers
 
             await _bidRepo.AddAsync(bid);
 
-            // Alert the previous leader only. The current bidder obviously does not
-            // need an "outbid" notification for their own bid.
             if (lastBids != null && lastBids.UserId != userId)
             {
                 _dbContext.Notifications.Add(new Notification

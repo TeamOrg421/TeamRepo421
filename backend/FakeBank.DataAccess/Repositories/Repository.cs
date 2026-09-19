@@ -47,14 +47,12 @@ namespace FakeBank.DataAccess.Repositories
 
             if (pageNumber != null)
             {
-                // Захист: якщо DefaultPageSize не заданий у конфізі, беремо 10
                 int size = (pageSize.HasValue && pageSize.Value > 0)
                     ? pageSize.Value
                     : (DefaultPageSize > 0 ? DefaultPageSize : 10);
 
                 int page = pageNumber.Value > 0 ? pageNumber.Value : 1;
 
-                // Формула пагінації для 1-based index (page 1 -> Skip 0)
                 query = query.Skip((page - 1) * size).Take(size);
             }
 

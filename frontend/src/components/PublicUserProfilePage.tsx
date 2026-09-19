@@ -15,8 +15,11 @@ interface PublicUserProfile {
   profileImageUrl: string;
   createdAt: string;
   listingsCount: number;
+  activeListingsCount: number;
+  completedListingsCount: number;
   bidsCount: number;
   commentsCount: number;
+  winsCount: number;
 }
 
 const PublicUserProfilePage: React.FC<PublicUserProfilePageProps> = ({ userId, onBack }) => {
@@ -45,7 +48,7 @@ const PublicUserProfilePage: React.FC<PublicUserProfilePageProps> = ({ userId, o
 
   return (
     <section className="public-profile-page">
-      <button className="public-profile-back" type="button" onClick={onBack}>← Back</button>
+      <button className="public-profile-back" type="button" onClick={onBack}>← Back to leaderboard</button>
       <div className="public-profile-card">
         <div className="public-profile-heading">
           {profile.profileImageUrl ? (
@@ -64,7 +67,10 @@ const PublicUserProfilePage: React.FC<PublicUserProfilePageProps> = ({ userId, o
 
         <div className="public-profile-stats">
           <div><strong>{profile.listingsCount}</strong><span>Listings</span></div>
+          <div><strong>{profile.activeListingsCount}</strong><span>Active now</span></div>
+          <div><strong>{profile.completedListingsCount}</strong><span>Completed</span></div>
           <div><strong>{profile.bidsCount}</strong><span>Bids</span></div>
+          <div><strong>{profile.winsCount}</strong><span>Auction wins</span></div>
           <div><strong>{profile.commentsCount}</strong><span>Comments</span></div>
         </div>
 

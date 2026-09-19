@@ -20,11 +20,13 @@ import AccountSidebar from './components/AccountSidebar'
 import NotFoundPage from './components/NotFoundPage'
 import ChatsPage from './components/ChatsPage'
 import ManagerListingEditor from './components/ManagerListingEditor'
+import ToastHost from './components/ToastHost'
 
 import { AuthProvider } from './contexts/AuthContext'
 
 type Page = 'home' | 'about' | 'leaderboard' | 'login' | 'register' | 'mainpage' | 'car' | 'profile' | 'user-profile' | 'adminCars' | 'watchlist' | 'settings' | 'sellCar' | 'seller' | 'manager' | 'manager-edit-listing' | 'chats' | '404' | 'not-found'
 type AuthView = 'login' | 'register-step1' | 'register-step2' | 'forgot' | 'check-email' | 'reset-password' | 'reset-success';
+const pageValues = new Set<Page>(['home', 'about', 'leaderboard', 'login', 'register', 'mainpage', 'car', 'profile', 'user-profile', 'adminCars', 'watchlist', 'settings', 'sellCar', 'seller', 'manager', 'manager-edit-listing', 'chats', '404', 'not-found']);
 
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>('home')
@@ -36,23 +38,29 @@ function App() {
   const [selectedManagerListingId, setSelectedManagerListingId] = useState<string | null>(null)
 
   useEffect(() => {
-    // Handle password reset token from URL
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get('token');
-    const email = params.get('email');
+    const restoreLocation = () => {
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get('token');
+      const email = params.get('email');
+      if (token && email) {
+        setCurrentPage('login');
+        setAuthView('reset-password');
+        return;
+      }
 
-    if (token && email) {
-      setCurrentPage('login');
-      setAuthView('reset-password');
-      return;
-    }
+      const pageParam = params.get('page');
+      const path = window.location.pathname.replace(/^\/+|\/+$/g, '');
+      const candidate = pageParam || path;
+      if (pageValues.has(candidate as Page)) setCurrentPage(candidate as Page);
+      const carId = params.get('carId');
+      const userId = params.get('userId');
+      if (carId) setSelectedCarId(carId);
+      if (userId) setSelectedUserId(userId);
+    };
 
-    const pageParam = params.get('page');
-    const path = window.location.pathname.replace(/^\/+|\/+$/g, '');
-
-    if (pageParam === '404' || pageParam === 'not-found' || path === '404' || path === 'not-found') {
-      setCurrentPage('404');
-    }
+    restoreLocation();
+    window.addEventListener('popstate', restoreLocation);
+    return () => window.removeEventListener('popstate', restoreLocation);
   }, []);
 
   const navigate = (page: string, params?: { carId?: number | string; userId?: string; auctionId?: string; listingId?: string; authView?: AuthView }) => {
@@ -70,6 +78,10 @@ function App() {
     }
     if (params?.auctionId !== undefined) setSelectedChatListingId(params.auctionId)
     if (params?.listingId !== undefined) setSelectedManagerListingId(params.listingId)
+    const query = new URLSearchParams({ page });
+    if (params?.carId !== undefined) query.set('carId', String(params.carId));
+    if (params?.userId !== undefined) query.set('userId', params.userId);
+    window.history.pushState(null, '', `?${query.toString()}`);
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -88,7 +100,7 @@ function App() {
           {currentPage === 'car' && <Car onNavigate={navigate} carId={selectedCarId} />}
           {currentPage === 'profile' && <section className="account-shell"><AccountSidebar currentPage="profile" onNavigate={navigate} /><div className="account-page-content"><UserProfile onNavigate={navigate} /></div></section>}
           {currentPage === 'user-profile' && selectedUserId && (
-            <PublicUserProfilePage userId={selectedUserId} onBack={() => navigate('home')} />
+            <PublicUserProfilePage userId={selectedUserId} onBack={() => navigate('leaderboard')} />
           )}
           {currentPage === 'adminCars' && <section className="account-shell"><AccountSidebar currentPage="adminCars" onNavigate={navigate} /><div className="account-page-content"><AdminCars onNavigate={navigate} /></div></section>}
           {currentPage === 'watchlist' && <section className="account-shell"><AccountSidebar currentPage="watchlist" onNavigate={navigate} /><div className="account-page-content"><WatchlistPage onNavigate={navigate} /></div></section>}
@@ -103,6 +115,7 @@ function App() {
           )}
         </main>
         <Footer onNavigate={navigate} />
+        <ToastHost />
       </div>
     </AuthProvider>
   )

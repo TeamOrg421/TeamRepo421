@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { apiCall } from '../services/config';
+import Pagination from './Pagination';
+import { showToast } from '../services/toast';
 
 interface HomeProps {
   onNavigate: (page: string, params?: { carId?: number | string }) => void;
@@ -28,6 +30,7 @@ interface AuctionCar {
 }
 
 const SORT_OPTIONS = ['Ending soon', 'Newly listed', 'Lowest mileage', 'Highest bid'];
+const AUCTIONS_PER_PAGE = 12;
 
 const enumLabel = (value: unknown, labels: string[]) => {
   if (typeof value === 'number') return labels[value] ?? labels[0];
@@ -68,6 +71,13 @@ const formatTimer = (auctionEnd?: string) => {
   return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 };
 
+const isActiveAuction = (car: AuctionCar) => {
+  const status = String(car.listingStatus ?? '').toLowerCase();
+  const hasActiveStatus = status === 'active' || status === '2';
+  const hasNotEnded = !car.auctionEnd || new Date(car.auctionEnd).getTime() > Date.now();
+  return hasActiveStatus && hasNotEnded;
+};
+
 const Home: React.FC<HomeProps> = ({ onNavigate, searchQuery }) => {
   const { isAuthenticated } = useAuth();
   const [selectedYear, setSelectedYear] = useState('');
@@ -77,6 +87,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate, searchQuery }) => {
   const [auctionCars, setAuctionCars] = useState<AuctionCar[]>([]);
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
   const [carToListingMap, setCarToListingMap] = useState<Record<string, string>>({});
+  const [auctionPage, setAuctionPage] = useState(1);
   const [, setTimerTick] = useState(0);
 
   useEffect(() => {
@@ -177,7 +188,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate, searchQuery }) => {
               auctionEnd: car.auctionEnd,
               listingStatus: car.listingStatus ?? car.auctionStatus,
             };
-          })
+          }).filter(isActiveAuction)
         );
       } catch {
         setAuctionCars([]);
@@ -189,7 +200,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate, searchQuery }) => {
   const toggleFavorite = async (car: AuctionCar, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!isAuthenticated) {
-      alert('Please sign in to save this auction to your watchlist.');
+      showToast('Please sign in to save this auction to your watchlist.', 'info');
       onNavigate('login');
       return;
     }
@@ -241,12 +252,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate, searchQuery }) => {
         (!selectedYear || String(car.year) === selectedYear) &&
         (!selectedTransmission || car.transmission === selectedTransmission) &&
         (!selectedBodyStyle || car.bodyStyle === selectedBodyStyle) &&
-        // "Newly listed" is intended for live, newly opened auctions. A completed
-        // listing must never reappear there just because it has a recent start date.
-        (activeSort !== 'Newly listed' ||
-          (String(car.listingStatus).toLowerCase() !== 'completed' &&
-            String(car.listingStatus) !== '4' &&
-            (!car.auctionEnd || new Date(car.auctionEnd).getTime() > Date.now())))
+        isActiveAuction(car)
     );
     return result.sort((left, right) => {
       if (activeSort === 'Newly listed') {
@@ -262,7 +268,9 @@ const Home: React.FC<HomeProps> = ({ onNavigate, searchQuery }) => {
     });
   }, [activeSort, auctionCars, searchQuery, selectedBodyStyle, selectedTransmission, selectedYear]);
 
-  const featuredCar = filteredCars[0] ?? auctionCars[0];
+  const featuredCar = filteredCars[0];
+  const auctionPageCount = Math.ceil(filteredCars.length / AUCTIONS_PER_PAGE);
+  const visibleCars = filteredCars.slice((auctionPage - 1) * AUCTIONS_PER_PAGE, auctionPage * AUCTIONS_PER_PAGE);
   const years = Array.from(new Set(auctionCars.map((car) => car.year).filter(Boolean))).sort(
     (a, b) => Number(b) - Number(a)
   );
@@ -274,6 +282,10 @@ const Home: React.FC<HomeProps> = ({ onNavigate, searchQuery }) => {
     setSelectedTransmission('');
     setSelectedBodyStyle('');
   };
+
+  useEffect(() => {
+    setAuctionPage(1);
+  }, [activeSort, searchQuery, selectedBodyStyle, selectedTransmission, selectedYear]);
 
   return (
     <div className="home catalog-home">
@@ -362,7 +374,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate, searchQuery }) => {
 
         {filteredCars.length ? (
           <div className="auction-grid">
-            {filteredCars.map((car) => {
+            {visibleCars.map((car) => {
               const isFav = Boolean(
                 favorites[String(car.id)] || (car.listingId && favorites[String(car.listingId)])
               );
@@ -449,6 +461,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate, searchQuery }) => {
             <p>Try another search or clear the selected filters.</p>
           </div>
         )}
+        <Pagination page={auctionPage} pageCount={auctionPageCount} onPageChange={setAuctionPage} />
       </section>
     </div>
   );

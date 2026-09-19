@@ -122,13 +122,8 @@ export const AuthContainer: React.FC<AuthContainerProps> = ({
       if (!res.ok) {
         setError(data.message || 'Не вдалося увійти через Google');
       } else {
-        const token = data.token || data.Token;
-        if (token) {
-          login(token);
-          onNavigate('mainpage');
-        } else {
-          setError('Сервер не повернув токен авторизації');
-        }
+        login('session');
+        onNavigate('mainpage');
       }
     } catch {
       setError('Не вдалося з’єднатися із сервером');
@@ -151,8 +146,7 @@ export const AuthContainer: React.FC<AuthContainerProps> = ({
       if (!res.ok) {
         setError(data.message || 'Invalid email or password');
       } else {
-        const token = data.token || data.Token;
-        if (token) login(token);
+        login('session');
         if (rememberMe) localStorage.setItem('rememberMe', 'true');
         onNavigate('mainpage');
       }
@@ -188,13 +182,8 @@ export const AuthContainer: React.FC<AuthContainerProps> = ({
       if (!res.ok) {
         setError(data.message || 'Registration failed');
       } else {
-        const token = data.token || data.Token;
-        if (token) {
-          login(token);
-          onNavigate('mainpage');
-        } else {
-          goTo('login');
-        }
+        login('session');
+        onNavigate('mainpage');
       }
     } catch {
       setError('Unable to connect to server');

@@ -420,6 +420,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ onNavigate }) => {
 
   const totalBidsCount = bids.length;
   const totalWinsCount = bids.filter(b => b.isWin).length;
+  const totalBidsAmount = bids.reduce((sum, bid) => sum + Number(bid.amount || 0), 0);
 
   const formatDate = (isoString: string) => {
     try {
@@ -489,18 +490,38 @@ const UserProfile: React.FC<UserProfileProps> = ({ onNavigate }) => {
           <div className="profile-info-section">
             <div className="profile-info-top">
               <h1 className="profile-user-name">{displayName}</h1>
-              <button
-                type="button"
-                className="profile-share-btn-v2"
-                onClick={handleShare}
-              >
-                {copied ? 'Copied!' : 'Share'}
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-                  <polyline points="16 6 12 2 8 6" />
-                  <line x1="12" y1="2" x2="12" y2="15" />
-                </svg>
-              </button>
+              <div className="profile-header-toolbar">
+                <span className="profile-total-bids">Total bids: ${totalBidsAmount.toLocaleString()}</span>
+                <button type="button" className="profile-toolbar-btn" onClick={handleShare}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                    <polyline points="16 6 12 2 8 6" />
+                    <line x1="12" y1="2" x2="12" y2="15" />
+                  </svg>
+                  {copied ? 'Copied!' : 'Share'}
+                </button>
+                <button type="button" className="profile-toolbar-btn" onClick={() => setShowEditBioModal(true)}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 20h9" />
+                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                  </svg>
+                  Edit bio
+                </button>
+                <button
+                  type="button"
+                  className="profile-toolbar-btn"
+                  onClick={() => setShowWalletModal(true)}
+                  aria-label="Manage payment cards"
+                  title="Manage payment cards"
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                    <rect x="2" y="5" width="20" height="14" rx="3" />
+                    <path d="M2 10h20" />
+                    <path d="M7 15h3" />
+                  </svg>
+                  Cards
+                </button>
+              </div>
             </div>
 
             <div className="profile-sub-row">
@@ -515,32 +536,6 @@ const UserProfile: React.FC<UserProfileProps> = ({ onNavigate }) => {
                 <span className="profile-join-date-v2">Joined {joinDate}</span>
               </div>
 
-              <div className="profile-header-actions">
-                <button
-                  type="button"
-                  className="profile-edit-bio-btn"
-                  onClick={() => setShowEditBioModal(true)}
-                >
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M12 20h9" />
-                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-                  </svg>
-                  Edit bio
-                </button>
-                <button
-                  type="button"
-                  className="profile-card-fab"
-                  onClick={() => setShowWalletModal(true)}
-                  aria-label="Manage payment cards"
-                  title="Manage payment cards"
-                >
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                    <rect x="2" y="5" width="20" height="14" rx="3" />
-                    <path d="M2 10h20" />
-                    <path d="M7 15h3" />
-                  </svg>
-                </button>
-              </div>
             </div>
 
             {/* Bio Text */}

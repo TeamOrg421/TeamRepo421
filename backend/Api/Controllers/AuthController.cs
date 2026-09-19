@@ -24,22 +24,18 @@ namespace YourProject.Controllers
         public async Task<IActionResult> Register(RegisterDto model)
         {
             var token = await _authService.RegisterAsync(model);
+            SetAuthCookie(token);
 
-            return Ok(new
-            {
-                Token = token
-            });
+            return Ok(new { authenticated = true });
         }
 
         [HttpPost("login")]
         public async Task<IActionResult> Login(LoginDto model)
         {
             var token = await _authService.LoginAsync(model);
+            SetAuthCookie(token);
 
-            return Ok(new
-            {
-                Token = token
-            });
+            return Ok(new { authenticated = true });
         }
 
         [HttpPost("google")]
@@ -47,11 +43,17 @@ namespace YourProject.Controllers
         public async Task<IActionResult> GoogleLogin(GoogleAuthDto model)
         {
             var token = await _authService.GoogleLoginAsync(model);
+            SetAuthCookie(token);
 
-            return Ok(new
-            {
-                Token = token
-            });
+            return Ok(new { authenticated = true });
+        }
+
+        [HttpPost("logout")]
+        [AllowAnonymous]
+        public IActionResult Logout()
+        {
+            Response.Cookies.Delete("auth_token");
+            return Ok(new { authenticated = false });
         }
 
         [HttpGet("test")]
@@ -108,6 +110,18 @@ namespace YourProject.Controllers
             {
                 return BadRequest(new { message = ex.Message });
             }
+        }
+
+        private void SetAuthCookie(string token)
+        {
+            Response.Cookies.Append("auth_token", token, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = Request.IsHttps,
+                SameSite = SameSiteMode.Lax,
+                Expires = DateTimeOffset.UtcNow.AddHours(1),
+                Path = "/"
+            });
         }
     }
 }

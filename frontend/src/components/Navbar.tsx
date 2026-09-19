@@ -19,6 +19,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, searchValue, onSearchChange
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Array<{ id: string; title: string; message: string; isRead: boolean; createdAt: string }>>([]);
   const menuRef = useRef<HTMLDivElement>(null);
+  const notificationsRef = useRef<HTMLDivElement>(null);
 
   const navLinks = [
     { label: 'Auctions', page: 'home' },
@@ -47,6 +48,9 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, searchValue, onSearchChange
     const handleClickOutside = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setMenuOpen(false);
+      }
+      if (notificationsRef.current && !notificationsRef.current.contains(e.target as Node)) {
+        setNotificationsOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -133,7 +137,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, searchValue, onSearchChange
 
           <div className="navbar-actions">
             {/* Notification Icon with Red Dot */}
-            <div className="navbar-notifications-wrapper">
+            <div className="navbar-notifications-wrapper" ref={notificationsRef}>
             <button className="navbar-icon-btn navbar-notification-btn" type="button" aria-label="Notifications" onClick={toggleNotifications}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />

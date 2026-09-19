@@ -20,8 +20,11 @@ public static class AuthenticationExtensions
                     // header-based.
                     OnMessageReceived = context =>
                     {
+                        if (context.Request.Cookies.TryGetValue("auth_token", out var cookieToken))
+                            context.Token = cookieToken;
+
                         var token = context.Request.Query["access_token"];
-                        if (!string.IsNullOrEmpty(token) && context.HttpContext.Request.Path.StartsWithSegments("/hubs/auction"))
+                        if (string.IsNullOrEmpty(context.Token) && !string.IsNullOrEmpty(token) && context.HttpContext.Request.Path.StartsWithSegments("/hubs/auction"))
                             context.Token = token;
                         return Task.CompletedTask;
                     }

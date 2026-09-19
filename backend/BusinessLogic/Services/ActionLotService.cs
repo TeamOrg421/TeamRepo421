@@ -17,7 +17,7 @@ namespace BusinessLogic.Services
             var lot = await repo.GetByIdAsync(lotId, "Bids");
             if (lot == null)
                 throw new Exception("Lot not found");
-            return (lot.CurrentPrice, lot.Bids.Count);
+            return (lot.CurrentPrice, lot.Bids?.Count ?? 0);
         }
         public async Task CreateLotAsync(AuctionLot lot)
         {
@@ -60,7 +60,7 @@ namespace BusinessLogic.Services
             return;
         }
 
-        Task<AuctionLot> IActionLotService.GetLotAsync(Guid lotId)
+        Task<AuctionLot?> IActionLotService.GetLotAsync(Guid lotId)
         {
             var lot = repo.GetByIdAsync(lotId);
 

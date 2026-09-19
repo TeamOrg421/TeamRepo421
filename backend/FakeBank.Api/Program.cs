@@ -22,6 +22,9 @@ builder.Services.AddDbContext<FakeBankDb>(options =>
 builder.Services.AddHttpClient("MainApi", client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["MainApi:BaseUrl"] ?? "http://localhost:5254/");
+    var internalApiKey = builder.Configuration["InternalApiKey"];
+    if (!string.IsNullOrWhiteSpace(internalApiKey))
+        client.DefaultRequestHeaders.Add("X-Internal-Api-Key", internalApiKey);
 });
 
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
@@ -100,8 +103,6 @@ if (app.Environment.IsDevelopment())
 app.UseCors("AllowAll");
 
 
-// The local development profile intentionally exposes FakeBank over HTTP on port 5027.
-// Redirecting that profile to HTTPS makes the main API lose the configured upstream.
 if (!app.Environment.IsDevelopment())
 {
 

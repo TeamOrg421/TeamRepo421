@@ -10,6 +10,8 @@
   --social-bg: rgba(244, 243, 236, 0.5);
   --shadow:
     rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  --block-radius: 5px;
+  --radius: var(--block-radius);
 
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
   --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
@@ -109,4 +111,17 @@ code {
   line-height: 135%;
   padding: 4px 8px;
   background: var(--code-bg);
+}
+
+:where(
+  .fb-panel,
+  .fb-card-item,
+  .fb-modal,
+  .fb-table-container,
+  .fb-input,
+  .fb-select,
+  .fb-btn,
+  .counter
+) {
+  border-radius: var(--block-radius);
 }

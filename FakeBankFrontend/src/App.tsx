@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 
-const API_URL = '/api';
+const API_URL = import.meta.env.VITE_BANK_API_BASE_URL ?? '/api';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -144,7 +144,7 @@ const AdminBank: React.FC = () => {
 
   // ---- Data loading ----------------------------------------------------
 
-  const fetchLedger = useCallback(async (targetPage: number) => {
+  const fetchLedger = useCallback(async (targetPage: number): Promise<boolean> => {
     setLedgerLoading(true);
     try {
       const params = new URLSearchParams({ page: String(targetPage), sort: ledgerSort });
@@ -154,19 +154,27 @@ const AdminBank: React.FC = () => {
       const res = await fetch(`${API_URL}/payment?${params.toString()}`);
       if (res.ok) {
         const data = await res.json();
-        setTransactions(Array.isArray(data) ? data : []);
+        const nextTransactions = Array.isArray(data) ? data : [];
+        if (nextTransactions.length === 0 && targetPage > 1) {
+          return false;
+        } else {
+          setTransactions(nextTransactions);
+          return true;
+        }
       } else {
         showToast('❌ Не вдалося завантажити транзакції');
+        return false;
       }
     } catch (error) {
       console.error('Ledger load error:', error);
       showToast('❌ Помилка зєднання з сервером');
+      return false;
     } finally {
       setLedgerLoading(false);
     }
   }, [ledgerSearch, ledgerSort, statusFilter, typeFilter]);
 
-  const fetchAllCards = useCallback(async (targetPage: number) => {
+  const fetchAllCards = useCallback(async (targetPage: number): Promise<boolean> => {
     setCardsLoading(true);
     try {
       const params = new URLSearchParams({ page: String(targetPage), sort: cardSort });
@@ -175,28 +183,46 @@ const AdminBank: React.FC = () => {
       const res = await fetch(`${API_URL}/payment/GetCards?${params.toString()}`);
       if (res.ok) {
         const data = await res.json();
-        setAllCards(Array.isArray(data) ? data : []);
+        const nextCards = Array.isArray(data) ? data : [];
+        if (nextCards.length === 0 && targetPage > 1) {
+          return false;
+        } else {
+          setAllCards(nextCards);
+          return true;
+        }
       } else {
         showToast('❌ Не вдалося завантажити список карток');
+        return false;
       }
     } catch (error) {
       console.error('Cards load error:', error);
       showToast('❌ Помилка зєднання з сервером');
+      return false;
     } finally {
       setCardsLoading(false);
     }
   }, [cardSearch, cardSort, cardStatus]);
 
   useEffect(() => {
-    fetchLedger(page);
-  }, [page, fetchLedger]);
+    void fetchLedger(1);
+  }, [fetchLedger]);
 
   useEffect(() => {
-    fetchAllCards(cardsPage);
-  }, [cardsPage, fetchAllCards]);
+    void fetchAllCards(1);
+  }, [fetchAllCards]);
 
   useEffect(() => { setPage(1); }, [ledgerSearch, ledgerSort, statusFilter, typeFilter]);
   useEffect(() => { setCardsPage(1); }, [cardSearch, cardSort, cardStatus]);
+
+  const changeLedgerPage = async (targetPage: number) => {
+    if (targetPage < 1 || ledgerLoading) return;
+    if (await fetchLedger(targetPage)) setPage(targetPage);
+  };
+
+  const changeCardsPage = async (targetPage: number) => {
+    if (targetPage < 1 || cardsLoading) return;
+    if (await fetchAllCards(targetPage)) setCardsPage(targetPage);
+  };
 
   const refreshCustomerCards = async (email: string) => {
     try {
@@ -472,7 +498,7 @@ const AdminBank: React.FC = () => {
           border: 1px solid var(--accent-primary);
           color: #fff;
           padding: 12px 24px;
-          border-radius: 12px;
+          border-radius: var(--block-radius);
           box-shadow: 0 10px 25px rgba(0,0,0,0.5);
           z-index: 1000;
         }
@@ -503,7 +529,7 @@ const AdminBank: React.FC = () => {
         .fb-stat-card {
           background: #222222;
           border: 1px solid rgba(255, 255, 255, 0.08);
-          border-radius: 12px;
+          border-radius: var(--block-radius);
           padding: 1rem;
           display: flex;
           align-items: center;
@@ -513,7 +539,7 @@ const AdminBank: React.FC = () => {
         .fb-stat-icon {
           width: 48px;
           height: 48px;
-          border-radius: 12px;
+          border-radius: var(--block-radius);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -542,7 +568,7 @@ const AdminBank: React.FC = () => {
         .fb-panel {
           background: #222;
           border: 1px solid rgba(255, 255, 255, 0.08);
-          border-radius: 12px;
+          border-radius: var(--block-radius);
           padding: 1.25rem;
           margin-bottom: 1.5rem;
         }
@@ -606,7 +632,7 @@ const AdminBank: React.FC = () => {
         .fb-card-item {
           background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
           border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 14px;
+          border-radius: var(--block-radius);
           padding: 1.25rem;
           margin-top: 0.75rem;
           display: flex;
@@ -627,7 +653,7 @@ const AdminBank: React.FC = () => {
 
         .fb-badge {
           padding: 4px 10px;
-          border-radius: 20px;
+          border-radius: var(--block-radius);
           font-size: 0.75rem;
           font-weight: 600;
         }
@@ -644,7 +670,7 @@ const AdminBank: React.FC = () => {
         .fb-btn-sm {
           padding: 0.4rem 0.8rem;
           font-size: 0.8rem;
-          border-radius: 8px;
+          border-radius: var(--block-radius);
         }
 
         .fb-table-container {
@@ -942,8 +968,8 @@ const AdminBank: React.FC = () => {
           <div className="fb-ledger-pagination">
             <button
               className="fb-btn fb-btn-secondary fb-btn-sm"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => p - 1)}
+              disabled={page <= 1 || ledgerLoading}
+              onClick={() => void changeLedgerPage(page - 1)}
             >
               ← Назад
             </button>
@@ -952,7 +978,8 @@ const AdminBank: React.FC = () => {
             </span>
             <button
               className="fb-btn fb-btn-secondary fb-btn-sm"
-              onClick={() => setPage((p) => p + 1)}
+              disabled={ledgerLoading}
+              onClick={() => void changeLedgerPage(page + 1)}
             >
               Вперед →
             </button>
@@ -1085,8 +1112,8 @@ const AdminBank: React.FC = () => {
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             <button
               className="fb-btn fb-btn-secondary fb-btn-sm"
-              disabled={cardsPage <= 1}
-              onClick={() => setCardsPage((p) => p - 1)}
+              disabled={cardsPage <= 1 || cardsLoading}
+              onClick={() => void changeCardsPage(cardsPage - 1)}
             >
               ← Назад
             </button>
@@ -1095,7 +1122,8 @@ const AdminBank: React.FC = () => {
             </span>
             <button
               className="fb-btn fb-btn-secondary fb-btn-sm"
-              onClick={() => setCardsPage((p) => p + 1)}
+              disabled={cardsLoading}
+              onClick={() => void changeCardsPage(cardsPage + 1)}
             >
               Вперед →
             </button>

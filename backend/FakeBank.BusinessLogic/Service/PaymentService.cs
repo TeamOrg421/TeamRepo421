@@ -30,7 +30,6 @@ namespace FakeBank.BusinessLogic.Service
             this.db = db;
         }
 
-        // ---- Mapping helpers ----
 
         private static BankCardDto ToDto(BankCard card)
         {
@@ -268,7 +267,6 @@ namespace FakeBank.BusinessLogic.Service
 
             return ToResultDto(transaction, resultingBalance);
         }
-        //GetCardsAsync
         public async Task<IList<BankCardDto>> GetCardsAsync(int? page, string? search = null, string? status = null, string? sort = null)
         {
             var query = db.BankCards.AsNoTracking();
@@ -295,7 +293,6 @@ namespace FakeBank.BusinessLogic.Service
         {
             if (dto.Amount <= 0)
                 throw new ArgumentException("Amount must be greater than zero.");
-            Console.WriteLine($"CardId = {dto.CardId}");
             var card = await bankCardService.GetBankCardByIdAsync(dto.CardId)
                        ?? await bankCardService.GetBankCardByTokenAsync(dto.CardId)
                        ?? throw new KeyNotFoundException("Bank card not found");

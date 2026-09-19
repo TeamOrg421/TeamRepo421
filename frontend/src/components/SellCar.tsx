@@ -304,11 +304,10 @@ const SellCar: React.FC<SellCarProps> = ({ onNavigate }) => {
   const uploadPhoto = async (carId: string, photo: File, isMain: boolean) => {
     const data = new FormData();
     data.append('file', photo);
-    const token = localStorage.getItem('token');
     const response = await fetch(`/api/cars/${carId}/images?isMain=${isMain}`, {
       method: 'POST',
       body: data,
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      credentials: 'include',
     });
     return response.ok;
   };

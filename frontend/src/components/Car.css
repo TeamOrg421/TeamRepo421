@@ -1147,6 +1147,14 @@
   font-weight: 600;
 }
 
+.bid-modal-total-bids {
+  margin-left: auto;
+  color: #64748b;
+  font-size: 11px;
+  text-align: right;
+  white-space: nowrap;
+}
+
 .bid-modal-time-left {
   color: #818cf8;
   font-weight: 500;

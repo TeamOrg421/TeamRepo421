@@ -26,10 +26,6 @@ public class ConversationsController : ControllerBase
         if (!TryGetUserId(out var userId)) return Unauthorized();
         var isModerator = User.IsInRole("Admin") || User.IsInRole("Moderator");
         var messages = _db.ConversationMessages.AsNoTracking().Include(message => message.Listing).Include(message => message.Sender).Include(message => message.Recipient)
-            // The listing owner is the authoritative participant for a seller
-            // conversation. Checking it as well as RecipientId makes existing
-            // conversations visible to the seller even if a legacy message was
-            // saved with an incorrect recipient.
             .Where(message => isModerator || message.Listing.SellerId == userId || message.SenderId == userId || message.RecipientId == userId);
         var result = await messages.GroupBy(message => new { message.ListingId, message.Listing.Title, message.Listing.SellerId })
             .Select(group => new {

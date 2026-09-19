@@ -4,6 +4,7 @@ import { apiCall } from '../services/config';
 import { createAuctionConnection, destroyAuctionConnection } from '../services/auctionHub';
 import type { BidPayload } from '../services/auctionHub';
 import UserProfileLink from './UserProfileLink';
+import { showToast } from '../services/toast';
 import './Car.css';
 
 interface CarProps {
@@ -201,8 +202,24 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
   const [localBids, setLocalBids] = useState<Bid[]>([]);
   const [localComments, setLocalComments] = useState<Comment[]>([]);
   const [currentBidPrice, setCurrentBidPrice] = useState(0);
+  const [totalActiveHighestBids, setTotalActiveHighestBids] = useState(0);
   const [likedCommentIds, setLikedCommentIds] = useState<string[]>([]);
   const [otherAuctions, setOtherAuctions] = useState<OtherAuctionCar[]>([]);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setTotalActiveHighestBids(0);
+      return;
+    }
+
+    apiCall('/users/me/bids/summary')
+      .then(async (response) => {
+        if (!response.ok) return;
+        const data = await response.json();
+        setTotalActiveHighestBids(Number(data.totalActiveHighestBids ?? 0));
+      })
+      .catch(() => setTotalActiveHighestBids(0));
+  }, [isAuthenticated]);
 
   // SignalR connection ref
   const connectionRef = useRef<import('@microsoft/signalr').HubConnection | null>(null);
@@ -482,13 +499,13 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
   // ── Actions ───────────────────────────────────────────────────
   const handleWatchToggle = async () => {
     if (!isAuthenticated) {
-      alert('Please sign in to save this auction to your watch list.');
+      showToast('Please sign in to save this auction to your watch list.', 'info');
       onNavigate('login');
       return;
     }
 
     if (!carData?.listingId) {
-      alert('This auction does not have a listing reference yet.');
+      showToast('This auction does not have a listing reference yet.', 'error');
       return;
     }
 
@@ -512,7 +529,7 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
       setCarData(prev => prev ? { ...prev, watchCount: Math.max(0, prev.watchCount + (nextWatchedState ? 1 : -1)) } : prev);
     } catch (error) {
       console.error(error);
-      alert(error instanceof Error ? error.message : 'Unable to update watchlist.');
+      showToast(error instanceof Error ? error.message : 'Unable to update watchlist.', 'error');
     } finally {
       setWatchLoading(false);
     }
@@ -524,7 +541,7 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
       setShareToast(true);
       setTimeout(() => setShareToast(false), 2500);
     } else {
-      alert('Link copied to clipboard!');
+      showToast('Link copied to clipboard!', 'success');
     }
   };
 
@@ -546,7 +563,6 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
     }
 
     if (isCurrentUserHighestBidder) {
-      setBidError('You already hold the highest bid on this auction. You cannot outbid yourself.');
       return;
     }
 
@@ -624,7 +640,7 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
     if (!commentInput.trim()) return;
 
     if (!isAuthenticated) {
-      alert('Please sign in to post comments.');
+      showToast('Please sign in to post comments.', 'info');
       onNavigate('login');
       return;
     }
@@ -889,7 +905,6 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
               type="button"
               className="hero-place-bid-btn outbid-disabled"
               disabled
-              title="You currently hold the highest bid on this vehicle"
             >
               <span className="highest-bid-check">✓</span> You hold highest bid (${currentBidPrice.toLocaleString()})
             </button>
@@ -1252,12 +1267,6 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
                 <span>{liveTimeRemaining}</span>
               </div>
             </div>
-
-            {isCurrentUserHighestBidder && (
-              <div className="bid-modal-status-msg warning">
-                ✓ You currently hold the highest bid (${currentBidPrice.toLocaleString()}). You cannot outbid yourself.
-              </div>
-            )}
 
             <form className="bid-modal-form" onSubmit={handlePlaceBidSubmit}>
               <input

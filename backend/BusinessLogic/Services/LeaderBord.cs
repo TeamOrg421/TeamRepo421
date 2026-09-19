@@ -24,7 +24,6 @@ namespace BusinessLogic.Services
                 .Where(x => x != null && x.WinnerId != Guid.Empty)
                 .GroupBy(x => x.WinnerId)
                 .Select(g => {
-                    // Get the most recent winner record to ensure current user name
                     var mostRecentWinner = g.OrderByDescending(x => x.FinishedAt).FirstOrDefault();
                     var userName = mostRecentWinner?.Winner?.Name
                         ?? mostRecentWinner?.Winner?.UserName

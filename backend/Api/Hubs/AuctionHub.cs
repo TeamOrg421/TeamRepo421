@@ -5,34 +5,20 @@ using System.Security.Claims;
 
 namespace Api.Hubs
 {
-    /// <summary>
-    /// SignalR Hub for real-time auction updates.
-    /// Clients join/leave a group named "auction_{listingId}" to receive
-    /// live bid notifications only for the auctions they are viewing.
-    /// </summary>
     public class AuctionHub : Hub
     {
         private readonly ApplicationDbContext _db;
         public AuctionHub(ApplicationDbContext db) => _db = db;
-        /// <summary>
-        /// Called by the client when they open an auction listing page.
-        /// Adds the connection to the corresponding group so it receives bid broadcasts.
-        /// </summary>
         public async Task JoinAuction(string listingId)
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, $"auction_{listingId}");
         }
 
-        /// <summary>
-        /// Called by the client when they leave the auction listing page.
-        /// Removes the connection from the group to stop receiving updates.
-        /// </summary>
         public async Task LeaveAuction(string listingId)
         {
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"auction_{listingId}");
         }
 
-        /// <summary>Joins the private seller/manager conversation for a listing.</summary>
         public async Task JoinConversation(string listingId)
         {
             if (!Guid.TryParse(listingId, out var parsedListingId) ||
@@ -53,11 +39,6 @@ namespace Api.Hubs
         public Task LeaveConversation(string listingId) =>
             Groups.RemoveFromGroupAsync(Context.ConnectionId, $"conversation_{listingId}");
 
-        /// <summary>
-        /// Joins the authenticated account's private conversation inbox. This is
-        /// separate from a listing thread so a seller can discover a manager's
-        /// first message before opening that specific conversation.
-        /// </summary>
         public async Task JoinConversationInbox()
         {
             if (!Guid.TryParse(Context.User?.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))

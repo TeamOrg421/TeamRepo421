@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { apiCall } from '../services/config';
+import Pagination from './Pagination';
 
 interface SellerDashboardProps {
   onNavigate: (page: string, params?: { carId?: number | string }) => void;
@@ -98,6 +99,7 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [now, setNow] = useState(Date.now());
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
@@ -144,11 +146,11 @@ const SellerDashboard: React.FC<SellerDashboardProps> = ({ onNavigate }) => {
   return <section className="seller-dashboard-page" aria-label="Seller dashboard">
     <h1>Dashboard</h1>
     <div className="seller-dashboard-tabs" role="tablist" aria-label="Seller dashboard sections">
-      {tabItems.map((tab) => <button key={tab.id} type="button" role="tab" aria-selected={activeTab === tab.id} className={activeTab === tab.id ? 'active' : ''} onClick={() => setActiveTab(tab.id)}><i>{tab.icon}</i><span>{tab.label}</span></button>)}
+      {tabItems.map((tab) => <button key={tab.id} type="button" role="tab" aria-selected={activeTab === tab.id} className={activeTab === tab.id ? 'active' : ''} onClick={() => { setActiveTab(tab.id); setPage(1); }}><i>{tab.icon}</i><span>{tab.label}</span></button>)}
     </div>
     {loading ? <div className="seller-dashboard-empty">Loading your listings...</div> : error ? <div className="seller-dashboard-empty seller-dashboard-error">{error}</div> : activeTab === 'comments' ? (
-      comments.length ? <div className="seller-dashboard-list seller-dashboard-comments">{comments.map((comment) => <article className="seller-dashboard-row" key={comment.id}><div className="seller-dashboard-image seller-dashboard-image-empty">{comment.imageUrl ? <img src={comment.imageUrl} alt="" /> : 'No photo'}</div><div className="seller-dashboard-copy"><h2>{comment.carTitle}</h2><p>{comment.text}</p></div><div className="seller-dashboard-actions"><button type="button" onClick={() => onNavigate('car', { carId: comment.carId })}>See comment <span aria-hidden="true">›</span></button></div></article>)}</div> : <div className="seller-dashboard-empty">No comments yet.</div>
-    ) : tabListings.length ? <div className="seller-dashboard-list">{tabListings.map(renderListing)}</div> : <div className="seller-dashboard-empty"><p>{activeTab === 'live' ? 'No live auctions right now.' : activeTab === 'past' ? 'No past listings yet.' : 'No listings in progress.'}</p><button type="button" onClick={() => onNavigate('sellCar')}>Sell a car</button></div>}
+      comments.length ? <><div className="seller-dashboard-list seller-dashboard-comments">{comments.slice((page - 1) * 12, page * 12).map((comment) => <article className="seller-dashboard-row" key={comment.id}><div className="seller-dashboard-image seller-dashboard-image-empty">{comment.imageUrl ? <img src={comment.imageUrl} alt="" /> : 'No photo'}</div><div className="seller-dashboard-copy"><h2>{comment.carTitle}</h2><p>{comment.text}</p></div><div className="seller-dashboard-actions"><button type="button" onClick={() => onNavigate('car', { carId: comment.carId })}>See comment <span aria-hidden="true">›</span></button></div></article>)}</div><Pagination page={page} pageCount={Math.ceil(comments.length / 12)} onPageChange={setPage} /></> : <div className="seller-dashboard-empty">No comments yet.</div>
+    ) : tabListings.length ? <><div className="seller-dashboard-list">{tabListings.slice((page - 1) * 12, page * 12).map(renderListing)}</div><Pagination page={page} pageCount={Math.ceil(tabListings.length / 12)} onPageChange={setPage} /></> : <div className="seller-dashboard-empty"><p>{activeTab === 'live' ? 'No live auctions right now.' : activeTab === 'past' ? 'No past listings yet.' : 'No listings in progress.'}</p><button type="button" onClick={() => onNavigate('sellCar')}>Sell a car</button></div>}
   </section>;
 };
 

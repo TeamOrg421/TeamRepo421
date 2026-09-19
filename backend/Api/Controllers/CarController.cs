@@ -37,7 +37,6 @@ namespace Api.Controllers
             this.mapper = mapper;
         }
 
-        // ============= CRUD for Car ===============
 
         [HttpPost]
         [Authorize]
@@ -94,8 +93,6 @@ namespace Api.Controllers
             if (await carService.GetCarByVinAsync(carDto.Vin.Trim()) != null)
                 return Conflict("A car with this VIN already exists.");
 
-            // Both repositories use the same DbContext. The explicit transaction prevents
-            // a partial listing if any part of the car, specifications or lot cannot be saved.
             await using var transaction = await dbContext.Database.BeginTransactionAsync();
             var model = await ResolveCarModelAsync(carDto.Make, carDto.Model);
 
@@ -135,8 +132,6 @@ namespace Api.Controllers
                 Location = lotDto.Location.Trim(),
                 StartingPrice = lotDto.StartingPrice,
                 CurrentPrice = lotDto.StartingPrice,
-                // AuctionStart/AuctionEnd stay null until a moderator approves the listing,
-                // unless a custom end date is explicitly provided.
                 Duration = lotDto.Duration,
                 AuctionEnd = lotDto.CustomEndDate,
                 Status = DataAccess.Entities.Enums.ListingStatus.Pending,

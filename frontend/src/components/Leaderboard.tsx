@@ -10,7 +10,7 @@ interface LeaderBordEntety {
 }
 
 interface LeaderboardProps {
-  onNavigate?: (page: string, params?: { carId?: number | string }) => void;
+  onNavigate?: (page: string, params?: { userId?: string }) => void;
 }
 
 const FALLBACK_LEADERBOARD: LeaderBordEntety[] = [
@@ -115,7 +115,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ onNavigate }) => {
               <div
                 key={String(entry.userId)}
                 className={`leaderboard-podium-card glass-panel glass-panel-hover podium-rank-${index + 1}`}
-                onClick={() => onNavigate?.('profile', undefined)}
+                onClick={() => onNavigate?.('user-profile', { userId: String(entry.userId) })}
               >
                 <span className="podium-rank-badge">#{index + 1}</span>
                 <div className="podium-medal">{RANK_MEDALS[index]}</div>
@@ -136,7 +136,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ onNavigate }) => {
                 <div
                   key={String(entry.userId)}
                   className="leaderboard-row"
-                  onClick={() => onNavigate?.('profile', undefined)}
+                  onClick={() => onNavigate?.('user-profile', { userId: String(entry.userId) })}
                 >
                   <div className="leaderboard-row-rank">{index + 4}</div>
                   <div className="leaderboard-row-avatar">{initialsOf(entry.userName)}</div>

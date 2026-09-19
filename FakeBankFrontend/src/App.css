@@ -17,6 +17,18 @@
   }
 }
 
+#root [class] {
+  border-radius: var(--block-radius) !important;
+}
+
+#root [class*='avatar'],
+#root [class*='dot'],
+#root [class*='spinner'],
+#root [class*='logo'],
+#root [class*='medal'] {
+  border-radius: 50% !important;
+}
+
 .hero {
   position: relative;
 
