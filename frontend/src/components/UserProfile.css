@@ -58,6 +58,38 @@
   gap: 32px;
 }
 
+.profile-owned-cars-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 12px;
+}
+
+.profile-owned-car {
+  appearance: none;
+  overflow: hidden;
+  padding: 0 0 12px;
+  color: #f8fafc;
+  background: var(--bg-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.profile-owned-car img,
+.profile-owned-car-placeholder {
+  display: block;
+  width: 100%;
+  height: 110px;
+  margin-bottom: 9px;
+  background: #1f2937;
+  object-fit: cover;
+}
+
+.profile-owned-car span,
+.profile-owned-car small { display: block; padding: 0 12px; }
+.profile-owned-car small { margin-top: 4px; color: #9ca3af; }
+
 .profile-payment-shell {
   background: var(--bg-secondary);
   border: 1px solid rgba(255, 255, 255, 0.08);

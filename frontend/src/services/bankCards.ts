@@ -68,6 +68,7 @@ export async function getBankCards(): Promise<BankCardDto[]> {
 export async function topUpBankCard(dto: DepositRequestDto): Promise<DepositResponseDto> {
   return readJson<DepositResponseDto>(await apiCall('/payments/deposit', {
     method: 'POST',
+    headers: { 'Idempotency-Key': crypto.randomUUID() },
     body: JSON.stringify(dto),
   }));
 }
@@ -75,6 +76,7 @@ export async function topUpBankCard(dto: DepositRequestDto): Promise<DepositResp
 export async function withdrawFromBankCard(dto: PaymentRequestDto): Promise<PaymentResponseDto> {
   return readJson<PaymentResponseDto>(await apiCall('/payments/withdraw', {
     method: 'POST',
+    headers: { 'Idempotency-Key': crypto.randomUUID() },
     body: JSON.stringify(dto),
   }));
 }

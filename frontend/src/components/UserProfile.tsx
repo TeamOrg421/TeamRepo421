@@ -49,12 +49,22 @@ interface CommentItem {
   imageUrl?: string;
 }
 
+interface OwnedCar {
+  id: string;
+  vin: string;
+  year: number;
+  brand: string;
+  model: string;
+  imageUrl?: string;
+}
+
 const UserProfile: React.FC<UserProfileProps> = ({ onNavigate }) => {
   const { user: authUser, isAuthenticated, updateUser } = useAuth();
   const { language, t } = useLanguage();
   const [profile, setProfile] = useState<UserProfileData | null>(null);
   const [bids, setBids] = useState<BidItem[]>([]);
   const [comments, setComments] = useState<CommentItem[]>([]);
+  const [ownedCars, setOwnedCars] = useState<OwnedCar[]>([]);
   const [visibleBidsCount, setVisibleBidsCount] = useState(8);
   const [copied, setCopied] = useState(false);
 
@@ -134,6 +144,13 @@ const UserProfile: React.FC<UserProfileProps> = ({ onNavigate }) => {
         }
       } catch {
         setComments([]);
+      }
+
+      try {
+        const carsResp = await apiCall('/users/me/cars');
+        setOwnedCars(carsResp.ok ? await carsResp.json() : []);
+      } catch {
+        setOwnedCars([]);
       }
     };
 
@@ -628,6 +645,24 @@ const UserProfile: React.FC<UserProfileProps> = ({ onNavigate }) => {
               <div className="profile-empty-sub">{t('biddingHistoryEmpty')}</div>
             </div>
           )}
+        </section>
+
+        <section className="profile-section-block">
+          <div className="profile-section-header">
+            <h2 className="profile-section-title">My vehicles</h2>
+            <span className="profile-section-subtitle">({ownedCars.length})</span>
+          </div>
+          {ownedCars.length > 0 ? (
+            <div className="profile-owned-cars-grid">
+              {ownedCars.map(car => (
+                <button key={car.id} type="button" className="profile-owned-car" onClick={() => onNavigate('car', { carId: car.id })}>
+                  {car.imageUrl ? <img src={car.imageUrl} alt={`${car.brand} ${car.model}`} /> : <div className="profile-owned-car-placeholder" />}
+                  <span>{car.year} {car.brand} {car.model}</span>
+                  <small>VIN: {car.vin}</small>
+                </button>
+              ))}
+            </div>
+          ) : <div className="profile-empty-state"><div className="profile-empty-title">No vehicles yet</div></div>}
         </section>
 
         {/* ─── Auction Comments Section ────────────────────────────────────── */}

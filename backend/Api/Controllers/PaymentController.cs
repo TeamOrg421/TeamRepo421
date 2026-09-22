@@ -21,7 +21,10 @@ namespace Api.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<PaymentResponseDto>> Pay([FromBody] PaymentRequestDto dto)
+        public async Task<ActionResult<PaymentResponseDto>> Pay(
+            [FromBody] PaymentRequestDto dto,
+            [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
+            CancellationToken cancellationToken)
         {
             if (!Guid.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId))
                 return Unauthorized(new { message = "Unable to determine user identity." });
@@ -32,11 +35,14 @@ namespace Api.Controllers
 
             try
             {
-                var result = await fakeBankApi.PayAsync(new Shared.Contracts.PaymentRequestDto
-                {
-                    CardToken = card.BankCardToken,
-                    Amount = dto.Amount
-                });
+                var result = await fakeBankApi.PayAsync(
+                    new Shared.Contracts.PaymentRequestDto
+                    {
+                        CardToken = card.BankCardToken,
+                        Amount = dto.Amount
+                    },
+                    idempotencyKey ?? string.Empty,
+                    cancellationToken);
 
                 return Ok(result);
             }
@@ -51,7 +57,10 @@ namespace Api.Controllers
         }
 
         [HttpPost("deposit")]
-        public async Task<ActionResult<DepositResponseDto>> Deposit([FromBody] DepositRequestDto dto)
+        public async Task<ActionResult<DepositResponseDto>> Deposit(
+            [FromBody] DepositRequestDto dto,
+            [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
+            CancellationToken cancellationToken)
         {
             if (!Guid.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId))
                 return Unauthorized(new { message = "Unable to determine user identity." });
@@ -68,7 +77,7 @@ namespace Api.Controllers
 
             try
             {
-                var newBalance = await fakeBankApi.DepositAsync(card.BankCardToken, dto.Amount);
+                var newBalance = await fakeBankApi.DepositAsync(card.BankCardToken, dto.Amount, idempotencyKey ?? string.Empty, cancellationToken);
                 return Ok(new DepositResponseDto
                 {
                     Success = true,
@@ -87,7 +96,10 @@ namespace Api.Controllers
         }
 
         [HttpPost("withdraw")]
-        public async Task<ActionResult<DepositResponseDto>> Withdraw([FromBody] DepositRequestDto dto)
+        public async Task<ActionResult<DepositResponseDto>> Withdraw(
+            [FromBody] DepositRequestDto dto,
+            [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
+            CancellationToken cancellationToken)
         {
             if (!Guid.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var userId))
                 return Unauthorized(new { message = "Unable to determine user identity." });
@@ -104,7 +116,7 @@ namespace Api.Controllers
 
             try
             {
-                var newBalance = await fakeBankApi.WithdrawAsync(card.BankCardToken, dto.Amount);
+                var newBalance = await fakeBankApi.WithdrawAsync(card.BankCardToken, dto.Amount, idempotencyKey ?? string.Empty, cancellationToken);
                 return Ok(new DepositResponseDto
                 {
                     Success = true,

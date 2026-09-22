@@ -60,6 +60,7 @@ namespace Api.Controllers
 
             var user = await _userManager.FindByIdAsync(userId.ToString()!);
             if (user == null) return NotFound();
+            var roles = await _userManager.GetRolesAsync(user);
 
             return Ok(new
             {
@@ -72,7 +73,8 @@ namespace Api.Controllers
                 bio = user.Bio ?? string.Empty,
                 garageItems = user.GarageItems ?? string.Empty,
                 profileImageUrl = user.ProfileImageUrl ?? string.Empty,
-                createdAt = user.CreatedAt
+                createdAt = user.CreatedAt,
+                roles
             });
         }
 
@@ -102,6 +104,41 @@ namespace Api.Controllers
                 commentsCount = await _db.Comments.CountAsync(comment => comment.UserId == userId),
                 winsCount = await _db.AuctionWinners.CountAsync(winner => winner.WinnerId == userId)
             });
+        }
+
+        [HttpGet("{userId:guid}/cars")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetOwnedCars(Guid userId)
+        {
+            var cars = await _db.Cars
+                .AsNoTracking()
+                .Where(car => car.OwnerId == userId)
+                .Include(car => car.Model)
+                    .ThenInclude(model => model.Brand)
+                .Include(car => car.Images)
+                .OrderByDescending(car => car.Id)
+                .ToListAsync();
+
+            return Ok(cars.Select(car => new
+            {
+                id = car.Id,
+                vin = car.Vin,
+                year = car.Year,
+                brand = car.Model?.Brand?.Name ?? string.Empty,
+                model = car.Model?.Name ?? string.Empty,
+                imageUrl = car.Images?.FirstOrDefault(image => image.IsMain)?.ImageUrl
+                           ?? car.Images?.FirstOrDefault()?.ImageUrl
+                           ?? string.Empty
+            }));
+        }
+
+        [HttpGet("me/cars")]
+        public async Task<IActionResult> GetMyOwnedCars()
+        {
+            var userId = GetUserId();
+            if (userId == null) return Unauthorized();
+
+            return await GetOwnedCars(userId.Value);
         }
 
         [HttpGet("{userId:guid}/email")]

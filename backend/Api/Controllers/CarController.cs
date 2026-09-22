@@ -90,39 +90,54 @@ namespace Api.Controllers
                 string.IsNullOrWhiteSpace(specificationDto.ExteriorColor))
                 return BadRequest("Complete the vehicle specifications.");
 
-            if (await carService.GetCarByVinAsync(carDto.Vin.Trim()) != null)
-                return Conflict("A car with this VIN already exists.");
+            var normalizedVin = carDto.Vin.Trim().ToUpperInvariant();
+            var existingCar = await dbContext.Cars
+                .Include(car => car.Listings)
+                .SingleOrDefaultAsync(car => car.Vin == normalizedVin);
+
+            if (existingCar != null && existingCar.OwnerId != userId)
+                return Conflict("This VIN belongs to another VEYO user.");
+
+            if (existingCar?.Listings?.Any(listing => listing.Status == ListingStatus.Pending || listing.Status == ListingStatus.Active) == true)
+                return Conflict("This vehicle already has an active listing.");
 
             await using var transaction = await dbContext.Database.BeginTransactionAsync();
-            var model = await ResolveCarModelAsync(carDto.Make, carDto.Model);
-
-            var car = new Car
+            var car = existingCar;
+            if (car == null)
             {
-                Id = Guid.NewGuid(),
-                ModelId = model.Id,
-                Year = carDto.Year,
-                IsAvailable = true,
-                Vin = carDto.Vin.Trim()
-            };
+                var model = await ResolveCarModelAsync(carDto.Make, carDto.Model);
+                car = new Car
+                {
+                    Id = Guid.NewGuid(),
+                    ModelId = model.Id,
+                    Year = carDto.Year,
+                    IsAvailable = true,
+                    Vin = normalizedVin,
+                    OwnerId = userId
+                };
 
-            var specification = new CarSpecification
-            {
-                Id = Guid.NewGuid(),
-                CarId = car.Id,
-                Mileage = specificationDto.Mileage,
-                HorsePower = specificationDto.HorsePower,
-                EngineVolume = specificationDto.EngineVolume,
-                FuelType = specificationDto.FuelType,
-                Transmission = specificationDto.Transmission,
-                DriveType = specificationDto.DriveType,
-                BodyType = specificationDto.BodyType,
-                Doors = specificationDto.Doors,
-                Seats = specificationDto.Seats,
-                Color = specificationDto.ExteriorColor.Trim(),
-                InteriorColor = string.IsNullOrWhiteSpace(specificationDto.InteriorColor) ? null : specificationDto.InteriorColor.Trim(),
-                IsAccidentFree = specificationDto.IsAccidentFree,
-                OwnersCount = specificationDto.OwnersCount
-            };
+                var specification = new CarSpecification
+                {
+                    Id = Guid.NewGuid(),
+                    CarId = car.Id,
+                    Mileage = specificationDto.Mileage,
+                    HorsePower = specificationDto.HorsePower,
+                    EngineVolume = specificationDto.EngineVolume,
+                    FuelType = specificationDto.FuelType,
+                    Transmission = specificationDto.Transmission,
+                    DriveType = specificationDto.DriveType,
+                    BodyType = specificationDto.BodyType,
+                    Doors = specificationDto.Doors,
+                    Seats = specificationDto.Seats,
+                    Color = specificationDto.ExteriorColor.Trim(),
+                    InteriorColor = string.IsNullOrWhiteSpace(specificationDto.InteriorColor) ? null : specificationDto.InteriorColor.Trim(),
+                    IsAccidentFree = specificationDto.IsAccidentFree,
+                    OwnersCount = specificationDto.OwnersCount
+                };
+
+                await carService.CreateCarAsync(car);
+                await carService.CreateCarSpecAsync(specification);
+            }
 
             var auctionLot = new AuctionLot
             {
@@ -140,8 +155,6 @@ namespace Api.Controllers
                 CarId = car.Id
             };
 
-            await carService.CreateCarAsync(car);
-            await carService.CreateCarSpecAsync(specification);
             await actionService.CreateLotAsync(auctionLot);
             await transaction.CommitAsync();
 

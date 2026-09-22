@@ -279,7 +279,7 @@ const SellCar: React.FC<SellCarProps> = ({ onNavigate }) => {
     try {
       const response = await apiCall(`/cars/by-vin/${encodeURIComponent(vin)}`);
       if (response.ok) {
-        setVinCheck({ type: 'error', text: 'This VIN is already registered in VEYO.' });
+        setVinCheck({ type: 'success', text: 'This VIN is already registered. Submit the form to relist it if it belongs to you.' });
       } else if (response.status === 404) {
         setVinCheck({ type: 'success', text: 'VIN is available for a new listing.' });
       } else {

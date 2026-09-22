@@ -22,6 +22,7 @@ namespace DataAccess.Entities
         public virtual ICollection<Notification>? Notifications { get; set; }
         public virtual ICollection<ModerationLog>? ModerationLogs { get; set; }
         public virtual ICollection<BankCard>? BankCards { get; set; }
+        public virtual ICollection<Car>? OwnedCars { get; set; }
     }
 }
 

@@ -7,6 +7,9 @@
         public bool IsAvailable { get; set; } = true;
         public string Vin { get; set; } = null!;
 
+        public Guid? OwnerId { get; set; }
+        public virtual ApplicationUser? Owner { get; set; }
+
         public Guid ModelId { get; set; }
         public virtual CarModel Model { get; set; } = null!;
 

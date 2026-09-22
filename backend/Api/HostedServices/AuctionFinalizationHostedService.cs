@@ -22,7 +22,7 @@ namespace Api.HostedServices
                 {
                     using var scope = _scopeFactory.CreateScope();
                     var finalizer = scope.ServiceProvider.GetRequiredService<IAuctionFinalizationService>();
-                    await finalizer.FinalizeExpiredAuctionsAsync();
+                    await finalizer.FinalizeExpiredAuctionsAsync(stoppingToken);
                 }
                 catch (Exception)
                 {

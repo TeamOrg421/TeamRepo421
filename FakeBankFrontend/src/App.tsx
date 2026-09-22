@@ -351,17 +351,24 @@ const AdminBank: React.FC = () => {
     }
 
     try {
+      const idempotencyKey = crypto.randomUUID();
       let res: Response;
       if (actionModal === 'deposit') {
         res = await fetch(`${API_URL}/payment/deposit`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Idempotency-Key': idempotencyKey,
+          },
           body: JSON.stringify({ cardId: selectedCard.id, amount: Number(actionAmount) }),
         });
       } else if (actionModal === 'withdraw') {
         res = await fetch(`${API_URL}/payment/withdraw`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Idempotency-Key': idempotencyKey,
+          },
           body: JSON.stringify({ cardId: selectedCard.id, amount: Number(actionAmount) }),
         });
       } else {
@@ -371,7 +378,10 @@ const AdminBank: React.FC = () => {
         }
         res = await fetch(`${API_URL}/payment/transfer`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Idempotency-Key': idempotencyKey,
+          },
           body: JSON.stringify({
             fromCardId: selectedCard.id,
             toCardId: transferToCardId.trim(),
@@ -403,6 +413,7 @@ const AdminBank: React.FC = () => {
     try {
       const res = await fetch(`${API_URL}/payment/${reversingTx.id}/reverse`, {
         method: 'POST',
+        headers: { 'Idempotency-Key': crypto.randomUUID() },
       });
       if (res.ok) {
         showToast('↩️ Транзакцію скасовано');

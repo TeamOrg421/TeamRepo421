@@ -114,6 +114,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             id: data.id || prev?.id || '',
             name: data.name || prev?.name,
             profileImageUrl: data.profileImageUrl || prev?.profileImageUrl,
+            roles: Array.isArray(data.roles) ? data.roles : prev?.roles ?? [],
           }
           localStorage.setItem('user', JSON.stringify(updated))
           return updated

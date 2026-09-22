@@ -26,12 +26,13 @@ namespace BusinessLogic.Services
             _paymentService = paymentService;
         }
 
-        public async Task FinalizeAuctionAsync(Guid listingId)
+        public async Task FinalizeAuctionAsync(Guid listingId, CancellationToken cancellationToken)
         {
             var auction = await _dbContext.CarListings
                 .Include(l => l.Bids)
                 .Include(l => l.Car)
-                .FirstOrDefaultAsync(l => l.Id == listingId);
+                .Include(l => l.Seller)
+            .FirstOrDefaultAsync(l => l.Id == listingId, cancellationToken);
 
             if (auction == null)
                 return;
@@ -60,7 +61,7 @@ namespace BusinessLogic.Services
                     Message = $"{auction.Title} ended without bids.",
                     CreatedAt = DateTime.UtcNow
                 });
-                await _dbContext.SaveChangesAsync();
+                await _dbContext.SaveChangesAsync(cancellationToken);
                 return;
             }
 
@@ -70,11 +71,13 @@ namespace BusinessLogic.Services
                     highestBid.UserId,
                     auction.SellerId,
                     highestBid.Amount,
-                    auction.Id);
+                    auction.Id,
+                    cancellationToken);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[AuctionFinalization] Payment processing skipped/failed for auction {listingId}: {ex.Message}");
+                Console.WriteLine($"[AuctionFinalization] Payment processing failed for auction {listingId}: {ex.Message}");
+                return;
             }
 
             auction.Status = ListingStatus.Completed;
@@ -108,6 +111,7 @@ namespace BusinessLogic.Services
             if (auction.Car != null)
             {
                 auction.Car.IsAvailable = false;
+                auction.Car.OwnerId = highestBid.UserId;
                 _dbContext.Cars.Update(auction.Car);
             }
 
@@ -125,24 +129,24 @@ namespace BusinessLogic.Services
                     Id = Guid.NewGuid(),
                     UserId = highestBid.UserId,
                     Title = "You won an auction",
-                    Message = $"You placed the highest bid on {auction.Title}.",
+                    Message = $"You placed the highest bid on {auction.Title}. Contact the seller at {auction.Seller.Email} to arrange handover.",
                     CreatedAt = DateTime.UtcNow
                 });
 
-            await _dbContext.SaveChangesAsync();
+            await _dbContext.SaveChangesAsync(cancellationToken);
             Console.WriteLine($"[AuctionFinalization] Auction {listingId} successfully finalized. Winner: {highestBid.UserId}, Amount: ${highestBid.Amount}");
         }
 
-        public async Task FinalizeExpiredAuctionsAsync()
+        public async Task FinalizeExpiredAuctionsAsync(CancellationToken cancellationToken)
         {
             var expiredAuctions = await _dbContext.CarListings
                 .Where(l => l.Status == ListingStatus.Active)
                 .Where(l => l.AuctionEnd != null && l.AuctionEnd <= DateTime.UtcNow)
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
             foreach (var auction in expiredAuctions)
             {
-                await FinalizeAuctionAsync(auction.Id);
+                await FinalizeAuctionAsync(auction.Id, cancellationToken);
             }
         }
     }

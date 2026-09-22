@@ -74,6 +74,15 @@ namespace DataAccess.Data
                 .HasIndex(c => c.Vin)
                 .IsUnique(); // VIN код не може повторюватись у системі
 
+            modelBuilder.Entity<Car>()
+                .HasOne(car => car.Owner)
+                .WithMany(user => user.OwnedCars)
+                .HasForeignKey(car => car.OwnerId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<Car>()
+                .HasIndex(car => car.OwnerId);
+
 
             // Car <-> CarSpecification (1:1)
             modelBuilder.Entity<CarSpecification>()

@@ -23,11 +23,21 @@ interface PublicUserProfile {
   winsCount: number;
 }
 
+interface OwnedCar {
+  id: string;
+  vin: string;
+  year: number;
+  brand: string;
+  model: string;
+  imageUrl?: string;
+}
+
 const PublicUserProfilePage: React.FC<PublicUserProfilePageProps> = ({ userId, onBack }) => {
   const { t } = useLanguage();
   const [profile, setProfile] = useState<PublicUserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
+  const [cars, setCars] = useState<OwnedCar[]>([]);
 
   const loadProfile = useCallback(async () => {
     setLoading(true);
@@ -36,6 +46,8 @@ const PublicUserProfilePage: React.FC<PublicUserProfilePageProps> = ({ userId, o
       const response = await apiCall(`/users/${userId}`);
       if (!response.ok) throw new Error('Unable to load this profile.');
       setProfile(await response.json());
+      const carsResponse = await apiCall(`/users/${userId}/cars`);
+      setCars(carsResponse.ok ? await carsResponse.json() : []);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Unable to load this profile.');
     } finally {
@@ -82,6 +94,19 @@ const PublicUserProfilePage: React.FC<PublicUserProfilePageProps> = ({ userId, o
             <p>{profile.garageItems}</p>
           </div>
         )}
+
+        <div className="public-profile-garage">
+          <h2>Vehicles</h2>
+          {cars.length > 0 ? (
+            <div className="public-profile-cars">
+              {cars.map(car => <article key={car.id} className="public-profile-car">
+                {car.imageUrl ? <img src={car.imageUrl} alt={`${car.brand} ${car.model}`} /> : null}
+                <strong>{car.year} {car.brand} {car.model}</strong>
+                <span>VIN: {car.vin}</span>
+              </article>)}
+            </div>
+          ) : <p>No vehicles listed.</p>}
+        </div>
       </div>
     </section>
   );

@@ -2,6 +2,7 @@ using BusinessLogic.DTOs;
 using BusinessLogic.Interfaces;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Threading;
 
 namespace BusinessLogic.Services
 {
@@ -44,9 +45,9 @@ namespace BusinessLogic.Services
             };
         }
 
-        public async Task<PaymentResponseDto> PayAsync(Shared.Contracts.PaymentRequestDto dto)
+        public async Task<PaymentResponseDto> PayAsync(Shared.Contracts.PaymentRequestDto dto, string idempotencyKey, CancellationToken cancellationToken)
         {
-            var response = await _httpClient.PostAsJsonAsync("api/payment/pay", dto);
+            var response = await PostWithIdempotencyKeyAsync("api/payment/pay", dto, idempotencyKey, cancellationToken);
 
             if (!response.IsSuccessStatusCode)
                 throw new InvalidOperationException(await ReadErrorAsync(response));
@@ -64,9 +65,9 @@ namespace BusinessLogic.Services
             };
         }
 
-        public async Task<Shared.Contracts.BankTransactionDto> TransferAsync(Shared.Contracts.TransferDto dto)
+        public async Task<Shared.Contracts.BankTransactionDto> TransferAsync(Shared.Contracts.TransferDto dto, string idempotencyKey, CancellationToken cancellationToken)
         {
-            var response = await _httpClient.PostAsJsonAsync("api/payment/transfer", dto);
+            var response = await PostWithIdempotencyKeyAsync("api/payment/transfer", dto, idempotencyKey, cancellationToken);
 
             if (!response.IsSuccessStatusCode)
                 throw new InvalidOperationException(await ReadErrorAsync(response));
@@ -109,7 +110,7 @@ namespace BusinessLogic.Services
             return balance.Balance;
         }
 
-        public async Task<decimal> DepositAsync(Guid token, decimal amount)
+        public async Task<decimal> DepositAsync(Guid token, decimal amount, string idempotencyKey, CancellationToken cancellationToken)
         {
             var request = new Shared.Contracts.DepositDto
             {
@@ -117,7 +118,7 @@ namespace BusinessLogic.Services
                 Amount = amount
             };
 
-            var response = await _httpClient.PostAsJsonAsync("api/payment/deposit", request);
+            var response = await PostWithIdempotencyKeyAsync("api/payment/deposit", request, idempotencyKey, cancellationToken);
 
             if (!response.IsSuccessStatusCode)
                 throw new InvalidOperationException(await ReadErrorAsync(response));
@@ -125,7 +126,7 @@ namespace BusinessLogic.Services
             return await GetBalanceAsync(token);
         }
 
-        public async Task<decimal> WithdrawAsync(Guid token, decimal amount)
+        public async Task<decimal> WithdrawAsync(Guid token, decimal amount, string idempotencyKey, CancellationToken cancellationToken)
         {
             var request = new Shared.Contracts.WithdrawDto
             {
@@ -133,12 +134,22 @@ namespace BusinessLogic.Services
                 Amount = amount
             };
 
-            var response = await _httpClient.PostAsJsonAsync("api/payment/withdraw", request);
+            var response = await PostWithIdempotencyKeyAsync("api/payment/withdraw", request, idempotencyKey, cancellationToken);
 
             if (!response.IsSuccessStatusCode)
                 throw new InvalidOperationException(await ReadErrorAsync(response));
 
             return await GetBalanceAsync(token);
+        }
+
+        private Task<HttpResponseMessage> PostWithIdempotencyKeyAsync<T>(string endpoint, T request, string idempotencyKey, CancellationToken cancellationToken)
+        {
+            var message = new HttpRequestMessage(HttpMethod.Post, endpoint)
+            {
+                Content = JsonContent.Create(request)
+            };
+            message.Headers.Add("Idempotency-Key", idempotencyKey);
+            return _httpClient.SendAsync(message, cancellationToken);
         }
 
         public class CardBalanceDto

@@ -1,5 +1,8 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using DataAccess.Entities;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
+using System.Security.Claims;
 using System.Text;
 
 namespace Api.Extensions;
@@ -27,6 +30,26 @@ public static class AuthenticationExtensions
                         if (string.IsNullOrEmpty(context.Token) && !string.IsNullOrEmpty(token) && context.HttpContext.Request.Path.StartsWithSegments("/hubs/auction"))
                             context.Token = token;
                         return Task.CompletedTask;
+                    },
+                    OnTokenValidated = async context =>
+                    {
+                        var userId = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
+                        if (!Guid.TryParse(userId, out var parsedUserId) || context.Principal?.Identity is not ClaimsIdentity identity)
+                            return;
+
+                        var userManager = context.HttpContext.RequestServices.GetRequiredService<UserManager<ApplicationUser>>();
+                        var user = await userManager.FindByIdAsync(parsedUserId.ToString());
+                        if (user == null)
+                        {
+                            context.Fail("User no longer exists.");
+                            return;
+                        }
+
+                        foreach (var roleClaim in identity.FindAll(ClaimTypes.Role).ToList())
+                            identity.RemoveClaim(roleClaim);
+
+                        foreach (var role in await userManager.GetRolesAsync(user))
+                            identity.AddClaim(new Claim(ClaimTypes.Role, role));
                     }
                 };
                 options.TokenValidationParameters = new TokenValidationParameters

@@ -4,9 +4,11 @@ using Microsoft.EntityFrameworkCore;
 using Shared.Contracts;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Net.Http.Json;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace FakeBank.BusinessLogic.Service
@@ -70,6 +72,25 @@ namespace FakeBank.BusinessLogic.Service
                 return "****";
 
             return $"**** **** **** {digits[^4..]}";
+        }
+
+        private static string ValidateIdempotencyKey(string idempotencyKey)
+        {
+            if (string.IsNullOrWhiteSpace(idempotencyKey))
+                throw new ArgumentException("Idempotency-Key header is required.");
+
+            var normalizedKey = idempotencyKey.Trim();
+            if (normalizedKey.Length > 128)
+                throw new ArgumentException("Idempotency-Key must not exceed 128 characters.");
+
+            return normalizedKey;
+        }
+
+        private Task<BankTransaction?> FindTransactionByIdempotencyKeyAsync(string idempotencyKey, CancellationToken cancellationToken)
+        {
+            return db.BankTransactions
+                .AsNoTracking()
+                .SingleOrDefaultAsync(transaction => transaction.IdempotencyKey == idempotencyKey, cancellationToken);
         }
 
         public async Task<EmailSyncResultDto> SyncCardEmailsAsync()
@@ -166,9 +187,19 @@ namespace FakeBank.BusinessLogic.Service
                 throw new ArgumentException("CVV must contain exactly 3 digits.");
         }
 
-        public async Task<PaymentResultDto> ReverseTransactionAsync(ReverseTransactionDto dto)
+        public async Task<PaymentResultDto> ReverseTransactionAsync(ReverseTransactionDto dto, string idempotencyKey, CancellationToken cancellationToken)
         {
-            var transaction = await transactionService.GetTransactionByIdAsync(dto.TransactionId);
+            idempotencyKey = ValidateIdempotencyKey(idempotencyKey);
+            await using var databaseTransaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+
+            var existingReversal = await FindTransactionByIdempotencyKeyAsync(idempotencyKey, cancellationToken);
+            if (existingReversal != null)
+            {
+                var existingCard = await db.BankCards.AsNoTracking().SingleAsync(card => card.Id == existingReversal.CardId, cancellationToken);
+                return ToResultDto(existingReversal, existingCard.Balance);
+            }
+
+            var transaction = await db.BankTransactions.SingleOrDefaultAsync(transaction => transaction.Id == dto.TransactionId, cancellationToken);
             if (transaction == null)
                 throw new KeyNotFoundException("Transaction not found");
             if (transaction.Status != TransactionStatus.Success)
@@ -184,8 +215,12 @@ namespace FakeBank.BusinessLogic.Service
 
             if (transaction.Type == TransactionType.Transfer)
             {
-                var senderCard = await bankCardService.GetBankCardByIdAsync(transaction.CardId);
-                var receiverCard = await bankCardService.GetBankCardByIdAsync(transaction.SecondCardId!.Value);
+                var cards = await db.BankCards
+                    .Where(card => card.Id == transaction.CardId || card.Id == transaction.SecondCardId!.Value)
+                    .OrderBy(card => card.Id)
+                    .ToListAsync(cancellationToken);
+                var senderCard = cards.SingleOrDefault(card => card.Id == transaction.CardId);
+                var receiverCard = cards.SingleOrDefault(card => card.Id == transaction.SecondCardId!.Value);
                 if (senderCard == null || receiverCard == null)
                     throw new KeyNotFoundException("One of the cards involved in the transaction was not found");
                 if (senderCard.Id == receiverCard.Id)
@@ -197,39 +232,12 @@ namespace FakeBank.BusinessLogic.Service
 
                 senderCard.Balance += transaction.Amount;
                 receiverCard.Balance -= transaction.Amount;
-                await bankCardService.UpdateBankCardAsync(senderCard);
-                await bankCardService.UpdateBankCardAsync(receiverCard);
 
-                var reverseTransactionReceiver = new BankTransaction
-                {
-                    Id = Guid.NewGuid(),
-                    CardId = transaction.SecondCardId.Value,
-                    SecondCardId = transaction.CardId,
-                    Amount = transaction.Amount,
-                    Type = TransactionType.TransferReversal,
-                    Status = TransactionStatus.Success,
-                    CreatedAt = DateTime.UtcNow,
-                    RelatedTransactionId = transaction.Id
-                };
-                await transactionService.CreateTransactionAsync(reverseTransactionReceiver);
                 resultingBalance = senderCard.Balance;
-
-                var reverseTransactionSender = new BankTransaction
-                {
-                    Id = Guid.NewGuid(),
-                    CardId = transaction.CardId,
-                    SecondCardId = transaction.SecondCardId,
-                    Amount = transaction.Amount,
-                    Type = TransactionType.TransferReversal,
-                    Status = TransactionStatus.Success,
-                    CreatedAt = DateTime.UtcNow,
-                    RelatedTransactionId = transaction.Id
-                };
-                await transactionService.CreateTransactionAsync(reverseTransactionSender);
             }
             else
             {
-                var card = await bankCardService.GetBankCardByIdAsync(transaction.CardId);
+                var card = await db.BankCards.SingleOrDefaultAsync(card => card.Id == transaction.CardId, cancellationToken);
                 if (card == null)
                     throw new KeyNotFoundException("Bank card not found");
 
@@ -244,28 +252,31 @@ namespace FakeBank.BusinessLogic.Service
                     card.Balance += transaction.Amount;
                 }
 
-                await bankCardService.UpdateBankCardAsync(card);
-
-                var reverseTransaction = new BankTransaction
-                {
-                    Id = Guid.NewGuid(),
-                    CardId = transaction.CardId,
-                    Amount = transaction.Amount,
-                    Type = transaction.Type == TransactionType.Deposit
-                        ? TransactionType.DepositReversal
-                        : TransactionType.WithdrawReversal,
-                    Status = TransactionStatus.Success,
-                    CreatedAt = DateTime.UtcNow,
-                    RelatedTransactionId = transaction.Id
-                };
-                await transactionService.CreateTransactionAsync(reverseTransaction);
                 resultingBalance = card.Balance;
             }
 
             transaction.Status = TransactionStatus.Failed;
-            await transactionService.UpdateTransactionAsync(transaction);
+            var reverseTransaction = new BankTransaction
+            {
+                Id = Guid.NewGuid(),
+                CardId = transaction.CardId,
+                SecondCardId = transaction.SecondCardId,
+                Amount = transaction.Amount,
+                Type = transaction.Type == TransactionType.Deposit
+                    ? TransactionType.DepositReversal
+                    : transaction.Type == TransactionType.Withdraw
+                        ? TransactionType.WithdrawReversal
+                        : TransactionType.TransferReversal,
+                Status = TransactionStatus.Success,
+                CreatedAt = DateTime.UtcNow,
+                IdempotencyKey = idempotencyKey,
+                RelatedTransactionId = transaction.Id
+            };
+            db.BankTransactions.Add(reverseTransaction);
+            await db.SaveChangesAsync(cancellationToken);
+            await databaseTransaction.CommitAsync(cancellationToken);
 
-            return ToResultDto(transaction, resultingBalance);
+            return ToResultDto(reverseTransaction, resultingBalance);
         }
         public async Task<IList<BankCardDto>> GetCardsAsync(int? page, string? search = null, string? status = null, string? sort = null)
         {
@@ -289,16 +300,21 @@ namespace FakeBank.BusinessLogic.Service
             var cards = await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync();
             return cards.Select(ToDto).ToList();
         }
-        public async Task<BankTransactionDto> DepositAsync(DepositDto dto)
+        public async Task<BankTransactionDto> DepositAsync(DepositDto dto, string idempotencyKey, CancellationToken cancellationToken)
         {
             if (dto.Amount <= 0)
                 throw new ArgumentException("Amount must be greater than zero.");
-            var card = await bankCardService.GetBankCardByIdAsync(dto.CardId)
-                       ?? await bankCardService.GetBankCardByTokenAsync(dto.CardId)
+
+            idempotencyKey = ValidateIdempotencyKey(idempotencyKey);
+            await using var databaseTransaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+            var existingTransaction = await FindTransactionByIdempotencyKeyAsync(idempotencyKey, cancellationToken);
+            if (existingTransaction != null)
+                return ToDto(existingTransaction);
+
+            var card = await db.BankCards.SingleOrDefaultAsync(card => card.Id == dto.CardId || card.BankCardToken == dto.CardId, cancellationToken)
                        ?? throw new KeyNotFoundException("Bank card not found");
 
             card.Balance += dto.Amount;
-            await bankCardService.UpdateBankCardAsync(card);
 
             var transaction = new BankTransaction
             {
@@ -307,9 +323,12 @@ namespace FakeBank.BusinessLogic.Service
                 Amount = dto.Amount,
                 Type = TransactionType.Deposit,
                 Status = TransactionStatus.Success,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                IdempotencyKey = idempotencyKey
             };
-            await transactionService.CreateTransactionAsync(transaction);
+            db.BankTransactions.Add(transaction);
+            await db.SaveChangesAsync(cancellationToken);
+            await databaseTransaction.CommitAsync(cancellationToken);
             return ToDto(transaction);
         }
 
@@ -356,17 +375,27 @@ namespace FakeBank.BusinessLogic.Service
             return (true, transaction.Status);
         }
 
-        public async Task<BankTransactionDto> TransferAsync(TransferDto dto)
+        public async Task<BankTransactionDto> TransferAsync(TransferDto dto, string idempotencyKey, CancellationToken cancellationToken)
         {
             if (dto.Amount <= 0)
                 throw new ArgumentException("Amount must be greater than zero.");
             if (dto.FromCardId == dto.ToCardId)
                 throw new InvalidOperationException("Cannot transfer to the same card");
 
-            var senderCard = await bankCardService.GetBankCardByIdAsync(dto.FromCardId)
-                    ?? throw new KeyNotFoundException("Sender card not found.");
-            var receiverCard = await bankCardService.GetBankCardByIdAsync(dto.ToCardId)
-                    ?? throw new KeyNotFoundException("Receiver card not found.");
+            idempotencyKey = ValidateIdempotencyKey(idempotencyKey);
+            await using var databaseTransaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+            var existingTransaction = await FindTransactionByIdempotencyKeyAsync(idempotencyKey, cancellationToken);
+            if (existingTransaction != null)
+                return ToDto(existingTransaction);
+
+            var cards = await db.BankCards
+                .Where(card => card.Id == dto.FromCardId || card.BankCardToken == dto.FromCardId || card.Id == dto.ToCardId || card.BankCardToken == dto.ToCardId)
+                .OrderBy(card => card.Id)
+                .ToListAsync(cancellationToken);
+            var senderCard = cards.SingleOrDefault(card => card.Id == dto.FromCardId || card.BankCardToken == dto.FromCardId)
+                ?? throw new KeyNotFoundException("Sender card not found.");
+            var receiverCard = cards.SingleOrDefault(card => card.Id == dto.ToCardId || card.BankCardToken == dto.ToCardId)
+                ?? throw new KeyNotFoundException("Receiver card not found.");
 
             if (senderCard.IsBlocked || receiverCard.IsBlocked)
                 throw new InvalidOperationException("One of the cards is blocked");
@@ -375,8 +404,6 @@ namespace FakeBank.BusinessLogic.Service
 
             senderCard.Balance -= dto.Amount;
             receiverCard.Balance += dto.Amount;
-            await bankCardService.UpdateBankCardAsync(senderCard);
-            await bankCardService.UpdateBankCardAsync(receiverCard);
 
             var transaction = new BankTransaction
             {
@@ -387,18 +414,27 @@ namespace FakeBank.BusinessLogic.Service
                 Type = TransactionType.Transfer,
                 Status = TransactionStatus.Success,
                 CreatedAt = DateTime.UtcNow,
+                IdempotencyKey = idempotencyKey,
                 Description = string.IsNullOrWhiteSpace(dto.Description) ? "Card transfer" : dto.Description.Trim()
             };
-            await transactionService.CreateTransactionAsync(transaction);
+            db.BankTransactions.Add(transaction);
+            await db.SaveChangesAsync(cancellationToken);
+            await databaseTransaction.CommitAsync(cancellationToken);
             return ToDto(transaction);
         }
 
-        public async Task<BankTransactionDto> WithdrawAsync(WithdrawDto dto)
+        public async Task<BankTransactionDto> WithdrawAsync(WithdrawDto dto, string idempotencyKey, CancellationToken cancellationToken)
         {
             if (dto.Amount <= 0)
                 throw new ArgumentException("Amount must be greater than zero.");
 
-            var card = await bankCardService.GetBankCardByIdAsync(dto.CardId)
+            idempotencyKey = ValidateIdempotencyKey(idempotencyKey);
+            await using var databaseTransaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+            var existingTransaction = await FindTransactionByIdempotencyKeyAsync(idempotencyKey, cancellationToken);
+            if (existingTransaction != null)
+                return ToDto(existingTransaction);
+
+            var card = await db.BankCards.SingleOrDefaultAsync(card => card.Id == dto.CardId || card.BankCardToken == dto.CardId, cancellationToken)
                        ?? throw new KeyNotFoundException("Bank card not found");
             if (card.IsBlocked)
                 throw new InvalidOperationException("Card is blocked");
@@ -406,7 +442,6 @@ namespace FakeBank.BusinessLogic.Service
                 throw new InvalidOperationException("Insufficient funds");
 
             card.Balance -= dto.Amount;
-            await bankCardService.UpdateBankCardAsync(card);
 
             var transaction = new BankTransaction
             {
@@ -415,18 +450,30 @@ namespace FakeBank.BusinessLogic.Service
                 Amount = dto.Amount,
                 Type = TransactionType.Withdraw,
                 Status = TransactionStatus.Success,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                IdempotencyKey = idempotencyKey
             };
-            await transactionService.CreateTransactionAsync(transaction);
+            db.BankTransactions.Add(transaction);
+            await db.SaveChangesAsync(cancellationToken);
+            await databaseTransaction.CommitAsync(cancellationToken);
             return ToDto(transaction);
         }
 
-        public async Task<PaymentResultDto> PayAsync(PaymentRequestDto dto)
+        public async Task<PaymentResultDto> PayAsync(PaymentRequestDto dto, string idempotencyKey, CancellationToken cancellationToken)
         {
             if (dto.Amount <= 0)
                 throw new ArgumentException("Amount must be greater than zero.");
 
-            var card = await bankCardService.GetBankCardByTokenAsync(dto.CardToken)
+            idempotencyKey = ValidateIdempotencyKey(idempotencyKey);
+            await using var databaseTransaction = await db.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+            var existingTransaction = await FindTransactionByIdempotencyKeyAsync(idempotencyKey, cancellationToken);
+            if (existingTransaction != null)
+            {
+                var existingCard = await db.BankCards.AsNoTracking().SingleAsync(card => card.Id == existingTransaction.CardId, cancellationToken);
+                return ToResultDto(existingTransaction, existingCard.Balance);
+            }
+
+            var card = await db.BankCards.SingleOrDefaultAsync(card => card.BankCardToken == dto.CardToken, cancellationToken)
                 ?? throw new KeyNotFoundException("Bank card not found");
             if (card.IsBlocked)
                 throw new InvalidOperationException("Card is blocked");
@@ -434,7 +481,6 @@ namespace FakeBank.BusinessLogic.Service
                 throw new InvalidOperationException("Insufficient funds");
 
             card.Balance -= dto.Amount;
-            await bankCardService.UpdateBankCardAsync(card);
 
             var transaction = new BankTransaction
             {
@@ -443,9 +489,12 @@ namespace FakeBank.BusinessLogic.Service
                 Amount = dto.Amount,
                 Type = TransactionType.Withdraw,
                 Status = TransactionStatus.Success,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                IdempotencyKey = idempotencyKey
             };
-            await transactionService.CreateTransactionAsync(transaction);
+            db.BankTransactions.Add(transaction);
+            await db.SaveChangesAsync(cancellationToken);
+            await databaseTransaction.CommitAsync(cancellationToken);
 
             return ToResultDto(transaction, card.Balance);
         }
