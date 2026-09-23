@@ -63,13 +63,13 @@ namespace BusinessLogic.Services
             var listing = await auctionLotRepository.GetByIdAsync(lisingId ,"Car", "Car.Model", 
                                                                 "Car.Model.Brand", "Car.Specification");
             if (listing == null)
-                throw new Exception("Listing not found");
+                throw new KeyNotFoundException("Listing not found.");
             if(listing.Status != ListingStatus.Pending)
-                throw new Exception("Only pending listings can be updated.");
+                throw new InvalidOperationException("Only pending listings can be updated.");
 
-            var normalizedVin = dto.Vin.ToUpperInvariant();
+            var normalizedVin = dto.Vin.Trim().ToUpperInvariant();
             if(await _db.Cars.AnyAsync(c => c.Vin == normalizedVin && c.Id != listing.CarId))
-                throw new Exception("A car with the same VIN already exists.");
+                throw new InvalidOperationException("A car with the same VIN already exists.");
 
             await using var transaction = await _db.Database.BeginTransactionAsync();
             var model = await ResolveCarModelAsync(dto.Make, dto.Model);
@@ -104,9 +104,9 @@ namespace BusinessLogic.Services
             listing.CurrentPrice = dto.StartingPrice;
             listing.Duration = dto.Duration;
             if (dto.Duration == AuctionDuration.Custom){
-                if (!dto.CustomEndDate.HasValue || dto.CustomEndDate.Value <= DateTime.UtcNow)
-                    throw new Exception("Custom auction end date must be in the future.");
-                listing.AuctionEnd = dto.CustomEndDate.Value;
+                if (!dto.CustomEndDate.HasValue || dto.CustomEndDate.Value < DateTime.UtcNow.AddDays(7))
+                    throw new InvalidOperationException("A custom auction must run for at least 7 days.");
+                listing.AuctionEnd = dto.CustomEndDate.Value.ToUniversalTime();
             }
             else
                 listing.AuctionEnd = null;
@@ -117,45 +117,43 @@ namespace BusinessLogic.Services
         public async Task ApproveAuctionAsync(Guid listingId, string moderatorId)
         {
             var auctionLot = await auctionLotRepository.GetByIdAsync(listingId);
-            if (auctionLot == null) {
-                throw new Exception("Auction lot not found");
-            }
+            if (auctionLot == null)
+                throw new Exception("Auction lot not found.");
             if (auctionLot.Status != ListingStatus.Pending)
                 throw new Exception("Only pending auctions can be approved.");
             var user = await userManager.FindByIdAsync(moderatorId);
-            if(user == null)
-            {
-                throw new Exception("Moderator not found");
-            }
-            var moderationLog = new ModerationLog
-            {
-                Id = Guid.NewGuid(),
-                Action = "Approved",
-                CreatedAt = DateTime.UtcNow,
-                ModeratorId = user.Id,
-                ListingId = auctionLot.Id
-            };
-            await moderationLogRepo.AddAsync(moderationLog);
+            if (user == null)
+                throw new Exception("Moderator not found.");
             var auctionStart = DateTime.UtcNow;
-            auctionLot.Status = ListingStatus.Active;
-            auctionLot.AuctionStart = auctionStart;
-            auctionLot.AuctionEnd = auctionLot.Duration switch
+            var auctionEnd = auctionLot.Duration switch
             {
                 AuctionDuration.OneHour => auctionStart.AddHours(1),
                 AuctionDuration.TwelveHours => auctionStart.AddHours(12),
                 AuctionDuration.OneDay => auctionStart.AddDays(1),
                 AuctionDuration.OneWeek => auctionStart.AddDays(7),
                 AuctionDuration.OneMonth => auctionStart.AddMonths(1),
-                AuctionDuration.Custom => auctionLot.AuctionEnd ?? auctionStart.AddDays(1),
+                AuctionDuration.Custom => auctionLot.AuctionEnd,
                 AuctionDuration.Forever => null,
                 _ => auctionStart.AddDays(7)
             };
-            if (auctionLot.Duration == AuctionDuration.Custom && auctionLot.AuctionEnd.HasValue && auctionLot.AuctionEnd.Value <= auctionStart)
+            if (auctionLot.Duration == AuctionDuration.Custom && (!auctionEnd.HasValue || auctionEnd.Value <= auctionStart))
                 throw new Exception("Custom auction end date must be in the future.");
+            auctionLot.Status = ListingStatus.Active;
+            auctionLot.AuctionStart = auctionStart;
+            auctionLot.AuctionEnd = auctionEnd;
             auctionLot.ReviewedById = user.Id;
-            auctionLot.ReviewedAt = DateTime.UtcNow;
+            auctionLot.ReviewedAt = auctionStart;
             auctionLot.RejectionReason = null;
             await auctionLotRepository.UpdateAsync(auctionLot);
+            var moderationLog = new ModerationLog
+            {
+                Id = Guid.NewGuid(),
+                Action = "Approved",
+                CreatedAt = auctionStart,
+                ModeratorId = user.Id,
+                ListingId = auctionLot.Id
+            };
+            await moderationLogRepo.AddAsync(moderationLog);
         }
 
         public async Task<IList<PendingAuctionDto>> GetPendingAuctionsAsync(int? pageNumber)

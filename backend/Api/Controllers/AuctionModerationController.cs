@@ -66,8 +66,19 @@ namespace WebApi.Controllers
             if (!TryValidateListing(dto, out var validationError))
                 return BadRequest(new { message = validationError });
 
-            await _moderationService.UpdatePendingListing(id, dto);
-            return NoContent();
+            try
+            {
+                await _moderationService.UpdatePendingListing(id, dto);
+                return NoContent();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound(new { message = "Auction not found." });
+            }
+            catch (InvalidOperationException exception)
+            {
+                return BadRequest(new { message = exception.Message });
+            }
         }
 
         
@@ -104,8 +115,8 @@ namespace WebApi.Controllers
             { error = "Vehicle or price values are invalid."; return false; }
             if (!Enum.IsDefined(dto.Duration) || !Enum.IsDefined(dto.FuelType) || !Enum.IsDefined(dto.Transmission) || !Enum.IsDefined(dto.DriveType) || !Enum.IsDefined(dto.BodyType))
             { error = "Choose valid vehicle and auction options."; return false; }
-            if (dto.Duration == AuctionDuration.Custom && (!dto.CustomEndDate.HasValue || dto.CustomEndDate.Value <= DateTime.UtcNow))
-            { error = "Choose a future custom end date."; return false; }
+            if (dto.Duration == AuctionDuration.Custom && (!dto.CustomEndDate.HasValue || dto.CustomEndDate.Value < DateTime.UtcNow.AddDays(7)))
+            { error = "A custom auction must run for at least 7 days."; return false; }
             if (string.IsNullOrWhiteSpace(dto.ExteriorColor)) { error = "Exterior color is required."; return false; }
             return true;
         }

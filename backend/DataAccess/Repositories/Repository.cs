@@ -82,7 +82,10 @@ namespace DataAccess.Repositories
         public async Task UpdateAsync(T entity)
         {
             context.Entry(entity).State = EntityState.Modified;
+            Console.WriteLine($"UPDATE {typeof(T).Name}: {entity.Id}");
+            Console.WriteLine($"State: {context.Entry(entity).State}");
             await context.SaveChangesAsync();
+            Console.WriteLine($"Saved: {context.Entry(entity).State}");
         }
 
         public async Task DeleteAsync(Guid id)

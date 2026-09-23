@@ -19,6 +19,7 @@ namespace Api.Controllers
         private readonly ICarService carService;
         private readonly ICommentService commentService;
         private readonly IFileService fileService;
+        private readonly IAuctionFinalizationService auctionFinalizationService;
         private readonly ApplicationDbContext dbContext;
         private readonly IMapper mapper;
 
@@ -26,12 +27,14 @@ namespace Api.Controllers
             ICarService carService,
             ICommentService commentService,
             IFileService fileService,
+            IAuctionFinalizationService auctionFinalizationService,
             ApplicationDbContext dbContext,
             IMapper mapper)
         {
             this.carService = carService;
             this.commentService = commentService;
             this.fileService = fileService;
+            this.auctionFinalizationService = auctionFinalizationService;
             this.dbContext = dbContext;
             this.mapper = mapper;
         }
@@ -63,6 +66,27 @@ namespace Api.Controllers
                 nameof(GetCar),
                 new { carId = result.CarId },
                 new { carId = result.CarId, auctionLotId = result.AuctionLotId });
+        }
+
+        [HttpPost("listings/{listingId:guid}/end")]
+        [Authorize]
+        public async Task<IActionResult> EndForeverAuction(Guid listingId, CancellationToken cancellationToken)
+        {
+            if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+                return Unauthorized();
+
+            var listing = await dbContext.CarListings.FirstOrDefaultAsync(item => item.Id == listingId, cancellationToken);
+            if (listing == null)
+                return NotFound(new { message = "Auction not found." });
+            if (listing.SellerId != userId)
+                return Forbid();
+            if (listing.Status != ListingStatus.Active || listing.Duration != AuctionDuration.Forever)
+                return BadRequest(new { message = "Only an active forever auction can be ended manually." });
+
+            listing.AuctionEnd = DateTime.UtcNow;
+            await dbContext.SaveChangesAsync(cancellationToken);
+            await auctionFinalizationService.FinalizeAuctionAsync(listingId, cancellationToken);
+            return NoContent();
         }
 
         private CarDto MapCarDto(Car car)

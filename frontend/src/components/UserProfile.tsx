@@ -117,9 +117,12 @@ const UserProfile: React.FC<UserProfileProps> = ({ onNavigate }) => {
           setProfile(data);
           setEditName(data.name || '');
           setEditBio(data.bio || '');
+        } else {
+          return;
         }
       } catch (err) {
         console.error('Failed to load profile', err);
+        return;
       }
 
       try {

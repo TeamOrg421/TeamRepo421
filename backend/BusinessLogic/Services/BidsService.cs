@@ -41,7 +41,7 @@ namespace BusinessLogic.Services
             if (model.Amount <= 0)
                 return PlaceBidResult.Fail(PlaceBidErrorType.InvalidAmount, "Invalid bid amount.");
 
-            var listing = await _lotRepo.GetByIdAsync(model.ListingId);
+            var listing = await _lotRepo.GetByIdAsync(model.ListingId, "Car");
             if (listing == null)
                 return PlaceBidResult.Fail(PlaceBidErrorType.ListingNotFound, "Listing not found.");
 
@@ -65,6 +65,10 @@ namespace BusinessLogic.Services
             var user = await _userManager.FindByIdAsync(userId.ToString());
             if (user == null)
                 return PlaceBidResult.Fail(PlaceBidErrorType.UserNotFound, "User not found.");
+
+            if (user.Id == listing.SellerId || user.Id == listing.Car?.OwnerId)
+                return PlaceBidResult.Fail(PlaceBidErrorType.SelfBiddingNotAllowed,
+                    "You cannot place a bid on your own listing.");
 
             var defaultCard = await _bankCardService.GetTokenDefoultBankCard(userId);
             var cardBalance = await _fakeBankApi.GetBalanceAsync(defaultCard);

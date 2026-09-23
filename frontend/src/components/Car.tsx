@@ -538,6 +538,21 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
     setIsBidModalOpen(true);
   };
 
+  const handleEndForeverAuction = async () => {
+    if (!carData?.listingId || !window.confirm('End this forever auction now? This cannot be undone.')) return;
+    try {
+      const response = await apiCall(`/cars/listings/${carData.listingId}/end`, { method: 'POST' });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ message: 'Unable to end the auction.' }));
+        throw new Error(error.message || 'Unable to end the auction.');
+      }
+      setCarData(current => current ? { ...current, auctionStatus: 'completed', rawAuctionEnd: new Date().toISOString(), timeRemaining: 'Ended' } : current);
+      showToast('Auction ended.', 'success');
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : 'Unable to end the auction.', 'error');
+    }
+  };
+
   const handlePlaceBidSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setBidError('');
@@ -848,7 +863,11 @@ const Car: React.FC<CarProps> = ({ onNavigate, carId }) => {
 
         {/* Centered Place Bid Action (Bottom Center) */}
         <div className="hero-action-container">
-          {carData.auctionStatus === 'pending' || carData.auctionStatus === 'draft' ? (
+          {isAuthenticated && user?.id && carData.sellerId === user.id && carData.auctionStatus === 'active' && !carData.rawAuctionEnd ? (
+            <button type="button" className="hero-place-bid-btn" onClick={() => void handleEndForeverAuction()}>
+              End auction
+            </button>
+          ) : carData.auctionStatus === 'pending' || carData.auctionStatus === 'draft' ? (
             <button
               type="button"
               className="hero-place-bid-btn"

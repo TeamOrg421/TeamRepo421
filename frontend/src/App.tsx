@@ -55,8 +55,10 @@ function App() {
       if (pageValues.has(candidate as Page)) setCurrentPage(candidate as Page);
       const carId = params.get('carId');
       const userId = params.get('userId');
+      const listingId = params.get('listingId');
       if (carId) setSelectedCarId(carId);
       if (userId) setSelectedUserId(userId);
+      if (listingId) setSelectedManagerListingId(listingId);
     };
 
     restoreLocation();
@@ -82,6 +84,7 @@ function App() {
     const query = new URLSearchParams({ page });
     if (params?.carId !== undefined) query.set('carId', String(params.carId));
     if (params?.userId !== undefined) query.set('userId', params.userId);
+    if (params?.listingId !== undefined) query.set('listingId', params.listingId);
     window.history.pushState(null, '', `?${query.toString()}`);
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }

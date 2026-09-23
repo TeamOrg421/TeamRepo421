@@ -228,8 +228,8 @@ namespace BusinessLogic.Services
 
             if (lotDto.Duration == AuctionDuration.Custom)
             {
-                if (!lotDto.CustomEndDate.HasValue || lotDto.CustomEndDate.Value <= DateTime.UtcNow)
-                    return CreateCarListingResult.Fail(CreateCarListingErrorType.ValidationError, "For a custom auction, choose a future end date.");
+                if (!lotDto.CustomEndDate.HasValue || lotDto.CustomEndDate.Value < DateTime.UtcNow.AddDays(7))
+                    return CreateCarListingResult.Fail(CreateCarListingErrorType.ValidationError, "A custom auction must run for at least 7 days.");
             }
 
             if (specificationDto.Mileage < 0 || specificationDto.HorsePower < 0 || specificationDto.EngineVolume < 0 ||

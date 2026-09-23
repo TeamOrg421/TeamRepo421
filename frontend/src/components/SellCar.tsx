@@ -45,7 +45,9 @@ interface ListingForm {
   location: string;
   startingPrice: string;
   auctionDuration: string;
-  customEndDate: string;
+  customDays: string;
+  customHours: string;
+  customMinutes: string;
 }
 
 const enumOptions = {
@@ -111,7 +113,9 @@ const initialForm = (): ListingForm => ({
   location: '',
   startingPrice: '',
   auctionDuration: '1',
-  customEndDate: '',
+  customDays: '7',
+  customHours: '0',
+  customMinutes: '0',
 });
 
 const parseLocalDateTime = (value: string) => {
@@ -329,13 +333,17 @@ const SellCar: React.FC<SellCarProps> = ({ onNavigate }) => {
 
     let customEndDate: Date | null = null;
     if (normalizedDuration === '6') {
-      customEndDate = parseLocalDateTime(form.customEndDate);
-      if (!customEndDate || Number.isNaN(customEndDate.getTime())) {
-        return setError('Choose a custom end date for the auction.');
+      const customDays = Number(form.customDays);
+      const customHours = Number(form.customHours);
+      const customMinutes = Number(form.customMinutes);
+      if (!Number.isInteger(customDays) || !Number.isInteger(customHours) || !Number.isInteger(customMinutes) || customDays < 0 || customHours < 0 || customHours > 23 || customMinutes < 0 || customMinutes > 59) {
+        return setError('Enter a valid custom duration.');
       }
-      if (customEndDate <= new Date()) {
-        return setError('The custom auction end date must be in the future.');
+      const durationMinutes = customDays * 24 * 60 + customHours * 60 + customMinutes;
+      if (durationMinutes < 7 * 24 * 60) {
+        return setError('A custom auction must run for at least 7 days.');
       }
+      customEndDate = new Date(Date.now() + durationMinutes * 60_000);
     }
 
     setIsSubmitting(true);
@@ -1056,16 +1064,11 @@ const SellCar: React.FC<SellCarProps> = ({ onNavigate }) => {
             </label>
 
             {form.auctionDuration === '6' && (
-              <label className="sell-input-group">
-                <span>Custom End Date</span>
-                <input
-                  required
-                  type="datetime-local"
-                  min={new Date().toISOString().slice(0, 16)}
-                  value={form.customEndDate}
-                  onChange={(e) => update('customEndDate', e.target.value)}
-                />
-              </label>
+              <>
+                <label className="sell-input-group"><span>Custom days</span><input required type="number" min="7" step="1" value={form.customDays} onChange={(e) => update('customDays', e.target.value)} /></label>
+                <label className="sell-input-group"><span>Hours</span><input required type="number" min="0" max="23" step="1" value={form.customHours} onChange={(e) => update('customHours', e.target.value)} /></label>
+                <label className="sell-input-group"><span>Minutes</span><input required type="number" min="0" max="59" step="1" value={form.customMinutes} onChange={(e) => update('customMinutes', e.target.value)} /></label>
+              </>
             )}
           </div>
 

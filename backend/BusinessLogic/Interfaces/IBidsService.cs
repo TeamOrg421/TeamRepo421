@@ -15,7 +15,8 @@ namespace BusinessLogic.Interfaces
         NoBankCard,
         UserNotFound,
         InsufficientBalance,
-        AlreadyHighestBidder
+        AlreadyHighestBidder,
+        SelfBiddingNotAllowed
     }
 
     public class PlaceBidResult
