@@ -1,4 +1,8 @@
-export async function apiCall(endpoint: string, options?: RequestInit) {
+type ApiCallOptions = RequestInit & {
+  suppressUnauthorizedEvent?: boolean;
+};
+
+export async function apiCall(endpoint: string, options?: ApiCallOptions) {
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5254';
   const url = `${apiBaseUrl}/api${endpoint}`;
   const headers: Record<string, string> = {};
@@ -19,7 +23,7 @@ export async function apiCall(endpoint: string, options?: RequestInit) {
     credentials: 'include',
   });
 
-  if (response.status === 401) {
+  if (response.status === 401 && !options?.suppressUnauthorizedEvent) {
     localStorage.removeItem('user');
     window.dispatchEvent(new Event('auth:unauthorized'));
   }

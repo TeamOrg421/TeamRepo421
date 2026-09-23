@@ -1,68 +1,25 @@
 ﻿using Api.Extensions;
-using Api.HostedServices;
-using Api.BackgroundServices;
 using Api.Hubs;
 using Api.Middleware;
-using Api.Services;
-using AutoMapper;
-using BusinessLogic.Interfaces;
-using BusinessLogic.Services;
-using DataAccess.Data;
-using DataAccess.Entities;
-using DataAccess.IRepositories;
-using DataAccess.Repositories;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-builder.Services.AddApplicationServices();
-
-builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
-builder.Services.AddScoped(typeof(IBidsRepositories<>), typeof(BidsRepositories<>));
-builder.Services.AddScoped(typeof(ICarRepositories<>), typeof(CarRepositories<>));
-builder.Services.AddScoped<IActionLotService, ActionLotService>();
-builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<ICarService, CarService>();
-builder.Services.AddScoped<ICatalogService, CatalogService>();
-builder.Services.AddScoped<IBankCardService, BankCardService>();
-builder.Services.AddScoped<IFileService, AzureFileService>();
-builder.Services.AddScoped<ILeaderBord, LeaderBord>();
-builder.Services.AddScoped<IAuctionModerationService, AuctionModerationService>();
-builder.Services.AddScoped<IAuctionFinalizationService, AuctionFinalizationService>();
-builder.Services.AddScoped<IAuctionPaymentService, AuctionPaymentService>();
-builder.Services.AddHostedService<AuctionFinalizationHostedService>();
-
-builder.Services.AddHttpClient<IBankApiClient, BankApiClient>(client =>
-{
-    client.BaseAddress = new Uri(builder.Configuration["FakeBank:BaseUrl"] ?? "https://localhost:7008");
-});
-
-builder.Services
-    .AddIdentityCore<ApplicationUser>()
-    .AddRoles<IdentityRole<Guid>>()
-    .AddEntityFrameworkStores<ApplicationDbContext>()
-    .AddDefaultTokenProviders();
-
-builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+// 1. Реєстрація сервісів (DI)
+builder.Services.AddDatabaseServices(builder.Configuration);
+builder.Services.AddIdentityServices();
+builder.Services.AddApplicationServices(builder.Configuration);
 
 builder.Services.AddControllers();
-builder.Services.AddSignalR();
-
 builder.Services.AddFrontendCors();
 builder.Services.AddJwtAuthentication(builder.Configuration);
 builder.Services.AddSwaggerDocumentation();
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
-{
-    await scope.ServiceProvider.SeedDatabaseAsync();
-}
+// 2. Ініціалізація та сідінг бази даних
+await app.SeedDatabaseAsync();
 
+// 3. Конфігурація HTTP Middleware Pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -81,4 +38,4 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHub<AuctionHub>("/hubs/auction");
 
-app.Run();
+app.Run(); 

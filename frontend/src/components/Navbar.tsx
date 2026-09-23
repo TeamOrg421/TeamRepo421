@@ -66,7 +66,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, searchValue, onSearchChange
   const loadNotifications = async () => {
     if (!isAuthenticated) { setNotifications([]); return; }
     try {
-      const response = await apiCall('/notifications');
+      const response = await apiCall('/notifications', { suppressUnauthorizedEvent: true });
       if (response.ok) setNotifications(await response.json());
     } catch { /* Notification polling must not affect navigation. */ }
   };

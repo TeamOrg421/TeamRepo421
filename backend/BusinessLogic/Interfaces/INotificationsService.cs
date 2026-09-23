@@ -1,0 +1,15 @@
+﻿using BusinessLogic.DTOs;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace BusinessLogic.Interfaces
+{
+    public interface INotificationsService
+    {
+        Task<IList<BusinessLogic.Services.NotificationsService.NotificationDto>?> GetMine(Guid userId);
+        Task ReadAll(Guid userId);
+    }
+}

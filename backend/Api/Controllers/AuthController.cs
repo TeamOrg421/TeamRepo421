@@ -13,11 +13,13 @@ namespace YourProject.Controllers
     {
         private readonly IAuthService _authService;
         private readonly IMapper _mapper;
+        private readonly IConfiguration _configuration;
 
-        public AuthController(IAuthService authService, IMapper mapper)
+        public AuthController(IAuthService authService, IMapper mapper, IConfiguration configuration)
         {
             _authService = authService;
             _mapper = mapper;
+            _configuration = configuration;
         }
 
         [HttpPost("register")]
@@ -114,12 +116,13 @@ namespace YourProject.Controllers
 
         private void SetAuthCookie(string token)
         {
+            var expireMinutes = _configuration.GetValue<double>("Jwt:ExpireMinutes", 60);
             Response.Cookies.Append("auth_token", token, new CookieOptions
             {
                 HttpOnly = true,
                 Secure = Request.IsHttps,
                 SameSite = SameSiteMode.Lax,
-                Expires = DateTimeOffset.UtcNow.AddHours(1),
+                Expires = DateTimeOffset.UtcNow.AddMinutes(expireMinutes),
                 Path = "/"
             });
         }
