@@ -1,5 +1,6 @@
 using BusinessLogic.DTOs;
 using BusinessLogic.Interfaces;
+using DataAccess.Data;
 using DataAccess.Entities;
 using DataAccess.Entities.Enums;
 using DataAccess.IRepositories;
@@ -9,6 +10,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using DriveType = DataAccess.Entities.Enums.DriveType;
+using Microsoft.EntityFrameworkCore;
 
 namespace BusinessLogic.Services
 {
@@ -17,57 +20,140 @@ namespace BusinessLogic.Services
         private readonly IRepository<AuctionLot> auctionLotRepository;
         private readonly IRepository<ModerationLog> moderationLogRepo;
         private readonly UserManager<ApplicationUser> userManager;
+        private readonly ApplicationDbContext _db;
+
         public AuctionModerationService(
+            ApplicationDbContext db,
             IRepository<ModerationLog> moderationLogRepo,
             IRepository<AuctionLot> auctionLotRepository,
             UserManager<ApplicationUser> userManager)
         {
+            _db = db;
             this.auctionLotRepository = auctionLotRepository;
             this.userManager = userManager;
             this.moderationLogRepo = moderationLogRepo;
         }
+        private async Task<CarModel> ResolveCarModelAsync(string make, string modelName)
+        {
+            var brandName = make.Trim();
+            var normalizedModel = modelName.Trim();
+            var brand = await _db.CarBrands.FirstOrDefaultAsync(item => item.Name.ToUpper() == brandName.ToUpper());
+            if (brand == null)
+            {
+                brand = new CarBrand { Id = Guid.NewGuid(), Name = brandName, Slug = await GetUniqueSlugAsync(brandName, _db.CarBrands.Select(item => item.Slug)) };
+                _db.CarBrands.Add(brand);
+            }
+            var model = await _db.CarModels.FirstOrDefaultAsync(item => item.BrandId == brand.Id && item.Name.ToUpper() == normalizedModel.ToUpper());
+            if (model != null) return model;
+            model = new CarModel { Id = Guid.NewGuid(), BrandId = brand.Id, Name = normalizedModel, Slug = await GetUniqueSlugAsync($"{brandName}-{normalizedModel}", _db.CarModels.Select(item => item.Slug)) };
+            _db.CarModels.Add(model);
+            return model;
+        }
+        private static async Task<string> GetUniqueSlugAsync(string value, IQueryable<string> existingSlugs)
+        {
+            var root = string.Concat(value.Trim().ToLowerInvariant().Select(character => char.IsLetterOrDigit(character) ? character : '-')).Trim('-');
+            while (root.Contains("--", StringComparison.Ordinal)) root = root.Replace("--", "-", StringComparison.Ordinal);
+            if (string.IsNullOrWhiteSpace(root)) root = "vehicle";
+            var slug = root;
+            for (var suffix = 2; await existingSlugs.AnyAsync(item => item == slug); suffix++) slug = $"{root}-{suffix}";
+            return slug;
+        }
+        public async Task UpdatePendingListing(Guid lisingId, UpdatePendingListingDto dto)
+        {
+            var listing = await auctionLotRepository.GetByIdAsync(lisingId ,"Car", "Car.Model", 
+                                                                "Car.Model.Brand", "Car.Specification");
+            if (listing == null)
+                throw new KeyNotFoundException("Listing not found.");
+            if(listing.Status != ListingStatus.Pending)
+                throw new InvalidOperationException("Only pending listings can be updated.");
+
+            var normalizedVin = dto.Vin.Trim().ToUpperInvariant();
+            if(await _db.Cars.AnyAsync(c => c.Vin == normalizedVin && c.Id != listing.CarId))
+                throw new InvalidOperationException("A car with the same VIN already exists.");
+
+            await using var transaction = await _db.Database.BeginTransactionAsync();
+            var model = await ResolveCarModelAsync(dto.Make, dto.Model);
+            var car = listing.Car;
+            car.ModelId = model.Id;
+            car.Year = dto.Year;
+            car.Vin = normalizedVin;
+            var specification = car.Specification;
+            if (specification == null)
+            {
+                specification = new CarSpecification { Id = Guid.NewGuid(), CarId = car.Id };
+                _db.CarSpecifications.Add(specification);
+            }
+            specification.Mileage = dto.Mileage;
+            specification.HorsePower = dto.HorsePower;
+            specification.EngineVolume = dto.EngineVolume;
+            specification.FuelType = dto.FuelType;
+            specification.Transmission = dto.Transmission;
+            specification.DriveType = dto.DriveType;
+            specification.BodyType = dto.BodyType;
+            specification.Doors = dto.Doors;
+            specification.Seats = dto.Seats;
+            specification.Color = dto.ExteriorColor.Trim();
+            specification.InteriorColor = string.IsNullOrWhiteSpace(dto.InteriorColor) ? null : dto.InteriorColor.Trim();
+            specification.IsAccidentFree = dto.IsAccidentFree;
+            specification.OwnersCount = dto.OwnersCount;
+
+            listing.Title = dto.Title.Trim();
+            listing.Description = dto.Description.Trim();
+            listing.Location = dto.Location.Trim();
+            listing.StartingPrice = dto.StartingPrice;
+            listing.CurrentPrice = dto.StartingPrice;
+            listing.Duration = dto.Duration;
+            if (dto.Duration == AuctionDuration.Custom){
+                if (!dto.CustomEndDate.HasValue || dto.CustomEndDate.Value < DateTime.UtcNow.AddDays(7))
+                    throw new InvalidOperationException("A custom auction must run for at least 7 days.");
+                listing.AuctionEnd = dto.CustomEndDate.Value.ToUniversalTime();
+            }
+            else
+                listing.AuctionEnd = null;
+
+            await _db.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
         public async Task ApproveAuctionAsync(Guid listingId, string moderatorId)
         {
             var auctionLot = await auctionLotRepository.GetByIdAsync(listingId);
-            if (auctionLot == null) {
-                throw new Exception("Auction lot not found");
-            }
+            if (auctionLot == null)
+                throw new Exception("Auction lot not found.");
             if (auctionLot.Status != ListingStatus.Pending)
                 throw new Exception("Only pending auctions can be approved.");
             var user = await userManager.FindByIdAsync(moderatorId);
-            if(user == null)
-            {
-                throw new Exception("Moderator not found");
-            }
-            var moderationLog = new ModerationLog
-            {
-                Id = Guid.NewGuid(),
-                Action = "Approved",
-                CreatedAt = DateTime.UtcNow,
-                ModeratorId = user.Id,
-                ListingId = auctionLot.Id
-            };
-            await moderationLogRepo.AddAsync(moderationLog);
+            if (user == null)
+                throw new Exception("Moderator not found.");
             var auctionStart = DateTime.UtcNow;
-            auctionLot.Status = ListingStatus.Active;
-            auctionLot.AuctionStart = auctionStart;
-            auctionLot.AuctionEnd = auctionLot.Duration switch
+            var auctionEnd = auctionLot.Duration switch
             {
                 AuctionDuration.OneHour => auctionStart.AddHours(1),
                 AuctionDuration.TwelveHours => auctionStart.AddHours(12),
                 AuctionDuration.OneDay => auctionStart.AddDays(1),
                 AuctionDuration.OneWeek => auctionStart.AddDays(7),
                 AuctionDuration.OneMonth => auctionStart.AddMonths(1),
-                AuctionDuration.Custom => auctionLot.AuctionEnd ?? auctionStart.AddDays(1),
+                AuctionDuration.Custom => auctionLot.AuctionEnd,
                 AuctionDuration.Forever => null,
                 _ => auctionStart.AddDays(7)
             };
-            if (auctionLot.Duration == AuctionDuration.Custom && auctionLot.AuctionEnd.HasValue && auctionLot.AuctionEnd.Value <= auctionStart)
+            if (auctionLot.Duration == AuctionDuration.Custom && (!auctionEnd.HasValue || auctionEnd.Value <= auctionStart))
                 throw new Exception("Custom auction end date must be in the future.");
+            auctionLot.Status = ListingStatus.Active;
+            auctionLot.AuctionStart = auctionStart;
+            auctionLot.AuctionEnd = auctionEnd;
             auctionLot.ReviewedById = user.Id;
-            auctionLot.ReviewedAt = DateTime.UtcNow;
+            auctionLot.ReviewedAt = auctionStart;
             auctionLot.RejectionReason = null;
             await auctionLotRepository.UpdateAsync(auctionLot);
+            var moderationLog = new ModerationLog
+            {
+                Id = Guid.NewGuid(),
+                Action = "Approved",
+                CreatedAt = auctionStart,
+                ModeratorId = user.Id,
+                ListingId = auctionLot.Id
+            };
+            await moderationLogRepo.AddAsync(moderationLog);
         }
 
         public async Task<IList<PendingAuctionDto>> GetPendingAuctionsAsync(int? pageNumber)

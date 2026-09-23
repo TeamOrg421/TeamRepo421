@@ -66,3 +66,13 @@ npm install
 npm run dev
 ```
 *Клієнт буде доступний за адресою:* `http://localhost:5173`.
+
+Для локальної конфігурації скопіюйте `frontend/.env.example` та `FakeBankFrontend/.env.example` у `.env` за потреби.
+Секрети backend задаються змінними середовища:
+
+```powershell
+$env:InternalApiKey = "change-this-between-api-services"
+$env:Smtp__Password = "your-smtp-password"
+```
+
+Основна авторизація використовує HttpOnly cookie `auth_token`; JWT не зберігається у браузерному сховищі.

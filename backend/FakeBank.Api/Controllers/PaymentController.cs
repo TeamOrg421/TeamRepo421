@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Shared.Contracts;
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace FakeBank.Api.Controllers
@@ -88,11 +89,14 @@ namespace FakeBank.Api.Controllers
         [ProducesResponseType(typeof(BankTransactionDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> Deposit([FromBody] DepositDto dto)
+        public async Task<IActionResult> Deposit(
+            [FromBody] DepositDto dto,
+            [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
+            CancellationToken cancellationToken)
         {
             try
             {
-                var transaction = await paymentService.DepositAsync(dto);
+                var transaction = await paymentService.DepositAsync(dto, idempotencyKey ?? string.Empty, cancellationToken);
                 return Ok(transaction);
             }
             catch (ArgumentException ex)
@@ -106,6 +110,10 @@ namespace FakeBank.Api.Controllers
             catch (InvalidOperationException ex)
             {
                 return BadRequest(new { error = ex.Message });
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -117,11 +125,14 @@ namespace FakeBank.Api.Controllers
         [ProducesResponseType(typeof(BankTransactionDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> Withdraw([FromBody] WithdrawDto dto)
+        public async Task<IActionResult> Withdraw(
+            [FromBody] WithdrawDto dto,
+            [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
+            CancellationToken cancellationToken)
         {
             try
             {
-                var transaction = await paymentService.WithdrawAsync(dto);
+                var transaction = await paymentService.WithdrawAsync(dto, idempotencyKey ?? string.Empty, cancellationToken);
                 return Ok(transaction);
             }
             catch (ArgumentException ex)
@@ -136,6 +147,10 @@ namespace FakeBank.Api.Controllers
             {
                 return BadRequest(new { error = ex.Message });
             }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 return BadRequest(new { error = ex.Message });
@@ -146,11 +161,14 @@ namespace FakeBank.Api.Controllers
         [ProducesResponseType(typeof(PaymentResultDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> Pay([FromBody] PaymentRequestDto dto)
+        public async Task<IActionResult> Pay(
+            [FromBody] PaymentRequestDto dto,
+            [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
+            CancellationToken cancellationToken)
         {
             try
             {
-                var result = await paymentService.PayAsync(dto);
+                var result = await paymentService.PayAsync(dto, idempotencyKey ?? string.Empty, cancellationToken);
                 return Ok(result);
             }
             catch (ArgumentException ex)
@@ -165,17 +183,24 @@ namespace FakeBank.Api.Controllers
             {
                 return BadRequest(new { error = ex.Message });
             }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
         }
 
         [HttpPost("transfer")]
         [ProducesResponseType(typeof(BankTransactionDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> Transfer([FromBody] TransferDto dto)
+        public async Task<IActionResult> Transfer(
+            [FromBody] TransferDto dto,
+            [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
+            CancellationToken cancellationToken)
         {
             try
             {
-                var transaction = await paymentService.TransferAsync(dto);
+                var transaction = await paymentService.TransferAsync(dto, idempotencyKey ?? string.Empty, cancellationToken);
                 return Ok(transaction);
             }
             catch (ArgumentException ex)
@@ -190,6 +215,10 @@ namespace FakeBank.Api.Controllers
             {
                 return BadRequest(new { error = ex.Message });
             }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 return BadRequest(new { error = ex.Message });
@@ -200,11 +229,17 @@ namespace FakeBank.Api.Controllers
         [ProducesResponseType(typeof(PaymentResultDto), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> Reverse(Guid id)
+        public async Task<IActionResult> Reverse(
+            Guid id,
+            [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
+            CancellationToken cancellationToken)
         {
             try
             {
-                var result = await paymentService.ReverseTransactionAsync(new ReverseTransactionDto { TransactionId = id });
+                var result = await paymentService.ReverseTransactionAsync(
+                    new ReverseTransactionDto { TransactionId = id },
+                    idempotencyKey ?? string.Empty,
+                    cancellationToken);
                 return Ok(result);
             }
             catch (KeyNotFoundException ex)

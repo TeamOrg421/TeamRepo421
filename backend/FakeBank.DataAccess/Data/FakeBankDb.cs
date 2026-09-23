@@ -73,6 +73,9 @@ namespace FakeBank.DataAccess
                 entity.Property(e => e.CreatedAt)
                     .IsRequired();
 
+                entity.Property(e => e.IdempotencyKey)
+                    .HasMaxLength(128);
+
                 entity.HasOne(t => t.Card)
                     .WithMany(c => c.Transactions)
                     .HasForeignKey(t => t.CardId)
@@ -92,6 +95,10 @@ namespace FakeBank.DataAccess
                 entity.HasIndex(t => t.Status);
 
                 entity.HasIndex(t => t.Type);
+
+                entity.HasIndex(t => t.IdempotencyKey)
+                    .IsUnique()
+                    .HasFilter("[IdempotencyKey] IS NOT NULL");
             });
         }
     }

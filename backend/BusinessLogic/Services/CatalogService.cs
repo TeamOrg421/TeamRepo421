@@ -147,13 +147,13 @@ namespace BusinessLogic.Services
 
         public async Task<Dictionary<CarBrand, IList<CarModel>>> GetBrandsWithModelsAsync(int? size = 10, int? page = null)
         {
-            var brands = await carBrandRepository.GetAllAsync(page, size.Value);
+            var brands = await carBrandRepository.GetAllAsync(page, size ?? 10);
             var dict = new Dictionary<CarBrand, IList<CarModel>>();
 
             foreach (var brand in brands)
             {
                 var models = await carModelRepository.FindAllAsync(m => m.BrandId == brand.Id);
-                dict.Add(brand, models.ToList());
+                dict.Add(brand, models?.ToList() ?? new List<CarModel>());
             }
 
             return dict;

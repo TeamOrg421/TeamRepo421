@@ -21,7 +21,6 @@ namespace Api.Controllers
             this.mapper = mapper;
         }
 
-        // ============= CarBrand ===============
 
         [HttpPost("brands")]
         [Authorize(Roles = "Admin")]
@@ -83,7 +82,6 @@ namespace Api.Controllers
             return Ok(brands.Select(b => mapper.Map<CarBrandDto>(b)).ToList());
         }
 
-        // ============= CarModel ===============
 
         [HttpPost("models")]
         [Authorize(Roles = "Admin")]

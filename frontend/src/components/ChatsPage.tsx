@@ -3,6 +3,7 @@ import type { HubConnection } from '@microsoft/signalr';
 import { useAuth } from '../contexts/AuthContext';
 import { apiCall } from '../services/config';
 import { createConversationConnection, createConversationInboxConnection, destroyConversationConnection, destroyConversationInboxConnection } from '../services/auctionHub';
+import { useLanguage } from '../contexts/LanguageContext';
 import './ChatsPage.css';
 
 interface Conversation { listingId: string; title: string; sellerId: string; lastMessage: string; updatedAt: string; unreadCount: number; }
@@ -10,6 +11,7 @@ interface Message { id: string; senderId: string; senderName: string; text: stri
 
 const ChatsPage: React.FC<{ initialListingId?: string | null }> = ({ initialListingId }) => {
   const { isAuthenticated, user, roles } = useAuth();
+  const { t } = useLanguage();
   const isManager = roles.includes('Admin') || roles.includes('Moderator');
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(initialListingId ?? null);
@@ -130,10 +132,10 @@ const ChatsPage: React.FC<{ initialListingId?: string | null }> = ({ initialList
     } catch (error) { setError(error instanceof Error ? error.message : 'Unable to send message.'); }
   };
 
-  if (!isAuthenticated) return <section className="chats-page"><h1>Chats</h1><div className="chats-empty">Sign in to contact the VEYO manager.</div></section>;
+  if (!isAuthenticated) return <section className="chats-page"><h1>{t('chats')}</h1><div className="chats-empty">{t('signInToContactManager')}</div></section>;
 
   const isOwnMessage = (senderId: string) => String(senderId).toLowerCase() === String(user?.id ?? '').toLowerCase();
-  const chatsTitle = isManager ? 'Seller chats' : 'Chats with managers';
+  const chatsTitle = isManager ? t('sellerChats') : t('chatsWithManagers');
 
   return <section className="chats-page">
     <h1>{chatsTitle}</h1>
@@ -142,14 +144,14 @@ const ChatsPage: React.FC<{ initialListingId?: string | null }> = ({ initialList
         <h2>{chatsTitle}</h2>
         {conversations.length ? conversations.map(conversation => <button key={conversation.listingId} type="button" className={`chat-thread ${selectedId === conversation.listingId ? 'active' : ''}`} onClick={() => setSelectedId(conversation.listingId)}>
           <strong>{conversation.title}</strong><span>{conversation.lastMessage}</span>{conversation.unreadCount > 0 && <b>{conversation.unreadCount}</b>}
-        </button>) : <p>No conversations yet. A chat opens when a manager requests information about your listing.</p>}
+        </button>) : <p>{t('noConversationsDetails')}</p>}
       </aside>
       <div className="chat-window">
         {selectedId ? <>
-          <header><div><span>Conversation about</span><h2>{title}</h2></div></header>
-          <div className="chat-messages">{messages.length ? messages.map(message => <article key={message.id} className={`chat-message ${isOwnMessage(message.senderId) ? 'mine' : ''}`}><strong>{isOwnMessage(message.senderId) ? 'You' : message.senderName}</strong><p>{message.text}</p><time>{new Date(message.createdAt).toLocaleString()}</time></article>) : <p className="chats-empty">Start the conversation by asking for the missing details.</p>}</div>
-          <form onSubmit={send} className="chat-compose"><textarea value={draft} onChange={event => setDraft(event.target.value)} maxLength={2000} placeholder="Write a message…" /><button type="submit" disabled={!draft.trim()}>Send</button></form>
-        </> : <div className="chats-empty">Select a conversation to view messages.</div>}
+          <header><div><span>{t('conversationAbout')}</span><h2>{title}</h2></div></header>
+          <div className="chat-messages">{messages.length ? messages.map(message => <article key={message.id} className={`chat-message ${isOwnMessage(message.senderId) ? 'mine' : ''}`}><strong>{isOwnMessage(message.senderId) ? t('you') : message.senderName}</strong><p>{message.text}</p><time>{new Date(message.createdAt).toLocaleString()}</time></article>) : <p className="chats-empty">{t('startConversation')}</p>}</div>
+          <form onSubmit={send} className="chat-compose"><textarea value={draft} onChange={event => setDraft(event.target.value)} maxLength={2000} placeholder={t('writeMessage')} /><button type="submit" disabled={!draft.trim()}>{t('send')}</button></form>
+        </> : <div className="chats-empty">{t('selectConversation')}</div>}
         {error && <p className="chat-error">{error}</p>}
       </div>
     </div>

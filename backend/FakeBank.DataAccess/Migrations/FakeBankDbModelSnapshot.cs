@@ -92,6 +92,13 @@ namespace FakeBank.DataAccess.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("IdempotencyKey")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
                     b.Property<Guid?>("RelatedTransactionId")
                         .HasColumnType("uniqueidentifier");
 
@@ -109,6 +116,10 @@ namespace FakeBank.DataAccess.Migrations
                     b.HasIndex("CardId");
 
                     b.HasIndex("CreatedAt");
+
+                    b.HasIndex("IdempotencyKey")
+                        .IsUnique()
+                        .HasFilter("[IdempotencyKey] IS NOT NULL");
 
                     b.HasIndex("SecondCardId");
 

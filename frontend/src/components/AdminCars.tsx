@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiCall } from '../services/config';
+import Pagination from './Pagination';
 
 interface AdminCarsProps {
   onNavigate: (page: string, params?: { carId?: number | string }) => void;
@@ -78,6 +79,7 @@ const AdminCars: React.FC<AdminCarsProps> = ({ onNavigate }) => {
   const [loading, setLoading] = useState<boolean>(true);
   const [search, setSearch] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'available' | 'unavailable'>('all');
+  const [page, setPage] = useState(1);
 
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [editingCar, setEditingCar] = useState<CarDto | null>(null);
@@ -148,11 +150,10 @@ const AdminCars: React.FC<AdminCarsProps> = ({ onNavigate }) => {
     const fileForm = new FormData();
     fileForm.append('file', formData.imageFile);
 
-    const token = localStorage.getItem('token');
     const response = await fetch(`/api/cars/${carId}/images?isMain=true`, {
       method: 'POST',
       body: fileForm,
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      credentials: 'include',
     });
 
     if (!response.ok) {
@@ -347,6 +348,8 @@ const AdminCars: React.FC<AdminCarsProps> = ({ onNavigate }) => {
   });
 
   const availableCount = cars.filter(c => c.isAvailable).length;
+  const pageCount = Math.ceil(filteredCars.length / 12);
+  const visibleCars = filteredCars.slice((page - 1) * 12, page * 12);
   const unavailableCount = cars.filter(c => !c.isAvailable).length;
 
   return (
@@ -504,7 +507,7 @@ const AdminCars: React.FC<AdminCarsProps> = ({ onNavigate }) => {
               </tr>
             </thead>
             <tbody>
-              {filteredCars.map(car => {
+              {visibleCars.map(car => {
                 const matchedModel = models.find(m => m.id === car.modelId);
                 const brand = car.brandName || matchedModel?.brandName || '—';
                 const model = car.modelName || matchedModel?.name || '—';
@@ -611,6 +614,7 @@ const AdminCars: React.FC<AdminCarsProps> = ({ onNavigate }) => {
             </tbody>
           </table>
         )}
+        <Pagination page={page} pageCount={pageCount} onPageChange={setPage} />
       </div>
 
       {/* Modal for Create / Edit Car */}

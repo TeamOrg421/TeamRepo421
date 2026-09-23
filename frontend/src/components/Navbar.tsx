@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import VeyoLogo from './VeyoLogo';
 import { apiCall } from '../services/config';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface NavbarProps {
   onNavigate: (page: string) => void;
@@ -12,6 +13,7 @@ interface NavbarProps {
 
 const Navbar: React.FC<NavbarProps> = ({ onNavigate, searchValue, onSearchChange, currentPage = 'home' }) => {
   const { isAuthenticated, user, logout, roles } = useAuth();
+  const { language, toggleLanguage, t } = useLanguage();
   const isAdmin = roles.includes('Admin');
   const isManager = isAdmin || roles.includes('Moderator');
   const [searchInput, setSearchInput] = useState(searchValue);
@@ -19,12 +21,13 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, searchValue, onSearchChange
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Array<{ id: string; title: string; message: string; isRead: boolean; createdAt: string }>>([]);
   const menuRef = useRef<HTMLDivElement>(null);
+  const notificationsRef = useRef<HTMLDivElement>(null);
 
   const navLinks = [
-    { label: 'Auctions', page: 'home' },
-    { label: 'Sell your car', page: 'sellCar' },
-    { label: "What's VEYO?", page: 'mainpage' },
-    { label: 'Leaderboard', page: 'leaderboard' },
+    { label: t('auctions'), page: 'home' },
+    { label: t('sellCar'), page: 'sellCar' },
+    { label: t('about'), page: 'mainpage' },
+    { label: t('leaderboard'), page: 'leaderboard' },
   ];
 
   const isLinkActive = (targetPage: string) => {
@@ -48,6 +51,9 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, searchValue, onSearchChange
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setMenuOpen(false);
       }
+      if (notificationsRef.current && !notificationsRef.current.contains(e.target as Node)) {
+        setNotificationsOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -60,7 +66,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, searchValue, onSearchChange
   const loadNotifications = async () => {
     if (!isAuthenticated) { setNotifications([]); return; }
     try {
-      const response = await apiCall('/notifications');
+      const response = await apiCall('/notifications', { suppressUnauthorizedEvent: true });
       if (response.ok) setNotifications(await response.json());
     } catch { /* Notification polling must not affect navigation. */ }
   };
@@ -124,7 +130,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, searchValue, onSearchChange
             </svg>
             <input
               type="text"
-              placeholder="Search for car or model"
+              placeholder={t('search')}
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               className="search-input"
@@ -133,8 +139,8 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, searchValue, onSearchChange
 
           <div className="navbar-actions">
             {/* Notification Icon with Red Dot */}
-            <div className="navbar-notifications-wrapper">
-            <button className="navbar-icon-btn navbar-notification-btn" type="button" aria-label="Notifications" onClick={toggleNotifications}>
+            <div className="navbar-notifications-wrapper" ref={notificationsRef}>
+            <button className="navbar-icon-btn navbar-notification-btn" type="button" aria-label={t('notifications')} onClick={toggleNotifications}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
                 <path d="M13.73 21a2 2 0 0 1-3.46 0" />
@@ -142,8 +148,8 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, searchValue, onSearchChange
               {notifications.some(notification => !notification.isRead) && <span className="navbar-notification-dot" />}
             </button>
             {notificationsOpen && <div className="navbar-notifications-popover">
-              <div className="navbar-notifications-title">Notifications</div>
-              {isAuthenticated ? (notifications.length ? notifications.map(notification => <div key={notification.id} className={`navbar-notification-item ${notification.isRead ? '' : 'unread'}`}><strong>{notification.title}</strong><span>{notification.message}</span><time>{new Date(notification.createdAt).toLocaleString()}</time></div>) : <p>No notifications yet.</p>) : <p>Sign in to see notifications.</p>}
+              <div className="navbar-notifications-title">{t('notifications')}</div>
+              {isAuthenticated ? (notifications.length ? notifications.map(notification => <div key={notification.id} className={`navbar-notification-item ${notification.isRead ? '' : 'unread'}`}><strong>{notification.title}</strong><span>{notification.message}</span><time>{new Date(notification.createdAt).toLocaleString()}</time></div>) : <p>{t('noNotifications')}</p>) : <p>{t('signInNotifications')}</p>}
             </div>}
             </div>
 
@@ -191,7 +197,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, searchValue, onSearchChange
                       type="button"
                       onClick={() => { setMenuOpen(false); onNavigate('login'); }}
                     >
-                      Sign In / Register
+                      {t('signInRegister')}
                     </button>
                   )}
                   {isAuthenticated && (
@@ -201,23 +207,23 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, searchValue, onSearchChange
                         type="button"
                         onClick={() => { setMenuOpen(false); onNavigate('profile'); }}
                       >
-                        Profile
+                        {t('profile')}
                       </button>
                       {isAdmin && <button
                         className="hamburger-dropdown-item hamburger-admin-item"
                         type="button"
                         onClick={() => { setMenuOpen(false); onNavigate('adminCars'); }}
                       >
-                        Admin Panel
+                        {t('adminPanel')}
                       </button>}
                       {isManager && <button
                         className="hamburger-dropdown-item hamburger-admin-item"
                         type="button"
                         onClick={() => { setMenuOpen(false); onNavigate('manager'); }}
                       >
-                        Manager Dashboard
+                        {t('managerDashboard')}
                       </button>}
-                      <button className="hamburger-dropdown-item" type="button" onClick={() => { setMenuOpen(false); onNavigate('chats'); }}>Chats</button>
+                      <button className="hamburger-dropdown-item" type="button" onClick={() => { setMenuOpen(false); onNavigate('chats'); }}>{t('chats')}</button>
                     </>
                   )}
                   <button
@@ -225,28 +231,28 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, searchValue, onSearchChange
                     type="button"
                     onClick={() => { setMenuOpen(false); onNavigate('leaderboard'); }}
                   >
-                    Leaderboard
+                    {t('leaderboard')}
                   </button>
                   <button
                     className="hamburger-dropdown-item"
                     type="button"
                     onClick={() => { setMenuOpen(false); onNavigate('watchlist'); }}
                   >
-                    Watch List
+                    {t('watchList')}
                   </button>
                   <button
                     className="hamburger-dropdown-item"
                     type="button"
                     onClick={() => { setMenuOpen(false); onNavigate('seller'); }}
                   >
-                    Seller Dashboard
+                    {t('sellerDashboard')}
                   </button>
                   <button
                     className="hamburger-dropdown-item"
                     type="button"
                     onClick={() => { setMenuOpen(false); onNavigate('settings'); }}
                   >
-                    Settings
+                    {t('settings')}
                   </button>
                   {isAuthenticated && (
                     <button
@@ -258,7 +264,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, searchValue, onSearchChange
                         onNavigate('home');
                       }}
                     >
-                      Sign Out
+                      {t('signOut')}
                     </button>
                   )}
                 </div>
@@ -266,12 +272,18 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, searchValue, onSearchChange
             </div>
 
             {/* Language Selector */}
-            <div className="navbar-lang-selector" title="Change Language">
-              <span>EN</span>
+            <button
+              type="button"
+              className="navbar-lang-selector"
+              title={language === 'EN' ? 'Українська' : 'English'}
+              aria-label={language === 'EN' ? 'Switch to Ukrainian' : 'Перемкнути на англійську'}
+              onClick={toggleLanguage}
+            >
+              <span>{language}</span>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <polyline points="6 9 12 15 18 9" />
               </svg>
-            </div>
+            </button>
           </div>
         </div>
       </div>

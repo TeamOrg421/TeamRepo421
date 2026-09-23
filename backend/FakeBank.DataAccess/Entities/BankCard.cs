@@ -29,6 +29,7 @@ namespace FakeBank.DataAccess.Entities
         public TransactionType Type { get; set; }
         public TransactionStatus Status { get; set; }
         public DateTime CreatedAt { get; set; }
+        public string? IdempotencyKey { get; set; }
         public Guid? RelatedTransactionId { get; set; } // For reversals
         public string? Description { get; set; }
     }

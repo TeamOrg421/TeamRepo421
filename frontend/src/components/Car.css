@@ -417,7 +417,7 @@
 /* ── Main Two-Column Content Grid ──────────────────────────── */
 .car-content-grid {
   display: grid;
-  grid-template-columns: 1fr 380px;
+  grid-template-columns: 1fr 350px;
   gap: 32px;
   align-items: start;
 }
@@ -1145,6 +1145,14 @@
 .bid-modal-last-bid {
   color: #60a5fa;
   font-weight: 600;
+}
+
+.bid-modal-total-bids {
+  margin-left: auto;
+  color: #64748b;
+  font-size: 11px;
+  text-align: right;
+  white-space: nowrap;
 }
 
 .bid-modal-time-left {

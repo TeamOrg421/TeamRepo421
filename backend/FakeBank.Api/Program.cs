@@ -22,6 +22,9 @@ builder.Services.AddDbContext<FakeBankDb>(options =>
 builder.Services.AddHttpClient("MainApi", client =>
 {
     client.BaseAddress = new Uri(builder.Configuration["MainApi:BaseUrl"] ?? "http://localhost:5254/");
+    var internalApiKey = builder.Configuration["InternalApiKey"];
+    if (!string.IsNullOrWhiteSpace(internalApiKey))
+        client.DefaultRequestHeaders.Add("X-Internal-Api-Key", internalApiKey);
 });
 
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
@@ -66,6 +69,20 @@ using (var scope = app.Services.CreateScope())
                     ALTER TABLE BankCards ADD UserId UNIQUEIDENTIFIER NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000';
                 END
             END
+
+            IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'BankTransactions')
+            BEGIN
+                IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'BankTransactions' AND COLUMN_NAME = 'IdempotencyKey')
+                BEGIN
+                    ALTER TABLE BankTransactions ADD IdempotencyKey NVARCHAR(128) NULL;
+                END
+                IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_BankTransactions_IdempotencyKey')
+                BEGIN
+                    CREATE UNIQUE INDEX IX_BankTransactions_IdempotencyKey
+                    ON BankTransactions (IdempotencyKey)
+                    WHERE IdempotencyKey IS NOT NULL;
+                END
+            END
         ");
     }
     catch (Exception ex)
@@ -100,8 +117,6 @@ if (app.Environment.IsDevelopment())
 app.UseCors("AllowAll");
 
 
-// The local development profile intentionally exposes FakeBank over HTTP on port 5027.
-// Redirecting that profile to HTTPS makes the main API lose the configured upstream.
 if (!app.Environment.IsDevelopment())
 {
 

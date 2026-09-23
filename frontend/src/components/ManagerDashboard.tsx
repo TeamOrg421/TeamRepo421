@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { apiCall } from '../services/config';
 import { useAuth } from '../contexts/AuthContext';
+import Pagination from './Pagination';
 import './ManagerDashboard.css';
 
 interface ManagerDashboardProps {
@@ -80,6 +81,8 @@ const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ onNavigate }) => {
   const [activeMessage, setActiveMessage] = useState('');
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const [activeLoaded, setActiveLoaded] = useState(false);
+  const [newPage, setNewPage] = useState(1);
+  const [progressPage, setProgressPage] = useState(1);
 
   const loadAuctions = useCallback(async () => {
     setLoading(true);
@@ -222,7 +225,7 @@ const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ onNavigate }) => {
           <div className="manager-empty-state">No auctions are waiting for review.</div>
         ) : (
           <div className="manager-new-commissions-grid">
-            {auctions.map((auction) => {
+            {auctions.slice((newPage - 1) * 8, newPage * 8).map((auction) => {
               const imageUrl = getAuctionImage(auction);
               const auctionId = getAuctionId(auction);
               const make = auction.brandName || auction.car?.model?.brand?.name || '';
@@ -273,6 +276,7 @@ const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ onNavigate }) => {
                 </article>
               );
             })}
+            <Pagination page={newPage} pageCount={Math.ceil(auctions.length / 8)} onPageChange={setNewPage} />
           </div>
         )
       )}
@@ -285,7 +289,7 @@ const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ onNavigate }) => {
           <div className="manager-empty-state">No auctions are currently running.</div>
         ) : (
           <div className="manager-progress-list">
-            {activeAuctions.map((auction) => {
+            {activeAuctions.slice((progressPage - 1) * 8, progressPage * 8).map((auction) => {
               const imageUrl = getAuctionImage(auction);
               const make = auction.brandName || auction.car?.model?.brand?.name || '';
               const model = auction.modelName || auction.car?.model?.name || '';
@@ -333,6 +337,7 @@ const ManagerDashboard: React.FC<ManagerDashboardProps> = ({ onNavigate }) => {
                 </article>
               );
             })}
+            <Pagination page={progressPage} pageCount={Math.ceil(activeAuctions.length / 8)} onPageChange={setProgressPage} />
           </div>
         )
       )}

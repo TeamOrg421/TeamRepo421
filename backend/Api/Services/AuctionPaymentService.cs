@@ -16,7 +16,7 @@ namespace Api.Services
             _bankApiClient = bankApiClient;
         }
 
-        public async Task<bool> ProcessAuctionPaymentAsync(Guid winnerId, Guid sellerId, decimal amount, Guid listingId)
+        public async Task<bool> ProcessAuctionPaymentAsync(Guid winnerId, Guid sellerId, decimal amount, Guid listingId, CancellationToken cancellationToken)
         {
             var winnerToken = await _bankCardService.GetTokenDefoultBankCard(winnerId);
             var sellerToken = await _bankCardService.GetTokenDefoultBankCard(sellerId);
@@ -27,7 +27,7 @@ namespace Api.Services
                 ToCardId = sellerToken,
                 Amount = amount,
                 Description = $"Auction payment for listing {listingId}"
-            });
+            }, $"auction-payment:{listingId:N}", cancellationToken);
 
             return true;
         }

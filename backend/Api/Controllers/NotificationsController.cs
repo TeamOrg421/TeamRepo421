@@ -1,3 +1,4 @@
+using BusinessLogic.Interfaces;
 using DataAccess.Data;
 using DataAccess.Entities;
 using Microsoft.AspNetCore.Authorization;
@@ -12,19 +13,15 @@ namespace Api.Controllers;
 [Authorize]
 public class NotificationsController : ControllerBase
 {
-    private readonly ApplicationDbContext _db;
-    public NotificationsController(ApplicationDbContext db) => _db = db;
+    private readonly INotificationsService service;
+    public NotificationsController(INotificationsService service) => this.service = service;
 
     [HttpGet]
     public async Task<IActionResult> GetMine()
     {
         if (!TryGetUserId(out var userId)) return Unauthorized();
-        var notifications = await _db.Notifications.AsNoTracking()
-            .Where(notification => notification.UserId == userId)
-            .OrderByDescending(notification => notification.CreatedAt)
-            .Take(30)
-            .Select(notification => new { notification.Id, notification.Title, notification.Message, notification.IsRead, notification.CreatedAt })
-            .ToListAsync();
+
+        var notifications = await service.GetMine(userId);
         return Ok(notifications);
     }
 
@@ -32,9 +29,7 @@ public class NotificationsController : ControllerBase
     public async Task<IActionResult> ReadAll()
     {
         if (!TryGetUserId(out var userId)) return Unauthorized();
-        var unread = await _db.Notifications.Where(notification => notification.UserId == userId && !notification.IsRead).ToListAsync();
-        unread.ForEach(notification => notification.IsRead = true);
-        await _db.SaveChangesAsync();
+        await service.ReadAll(userId);
         return NoContent();
     }
 

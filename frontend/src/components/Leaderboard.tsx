@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import './Leaderboard.css';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface LeaderBordEntety {
   userId: string | number;
@@ -10,7 +11,7 @@ interface LeaderBordEntety {
 }
 
 interface LeaderboardProps {
-  onNavigate?: (page: string, params?: { carId?: number | string }) => void;
+  onNavigate?: (page: string, params?: { userId?: string }) => void;
 }
 
 const FALLBACK_LEADERBOARD: LeaderBordEntety[] = [
@@ -37,6 +38,7 @@ const initialsOf = (name: string) =>
 const RANK_MEDALS = ['🥇', '🥈', '🥉'];
 
 const Leaderboard: React.FC<LeaderboardProps> = ({ onNavigate }) => {
+  const { t } = useLanguage();
   const [entries, setEntries] = useState<LeaderBordEntety[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDemoData, setIsDemoData] = useState(false);
@@ -80,12 +82,12 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ onNavigate }) => {
             <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M6 4h12v6a6 6 0 0 1-12 0V4z" />
             <path d="M12 16v4M9 20h6" />
           </svg>
-          Top Auction Winners
+          {t('topAuctionWinners')}
         </p>
         <h1>
-          Leader<span className="gradient-text-accent">board</span>
+          {t('leaderboard')}
         </h1>
-        <p>Ranking of top users by total winning bids volume on Veyo.</p>
+        <p>{t('leaderboardDescription')}</p>
       </div>
 
       {isDemoData && (
@@ -96,7 +98,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ onNavigate }) => {
             <line x1="12" y1="16" x2="12.01" y2="16" />
           </svg>
           <span>
-            No completed auctions with registered winners in the database yet. Showing leaderboard preview data below.
+            {t('leaderboardDemo')}
           </span>
         </div>
       )}
@@ -106,7 +108,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ onNavigate }) => {
       {loading ? (
         <div className="profile-loading glass-panel">
           <div className="profile-spinner" />
-          <span>Loading leaderboard...</span>
+          <span>{t('loadingLeaderboard')}</span>
         </div>
       ) : (
         <>
@@ -115,7 +117,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ onNavigate }) => {
               <div
                 key={String(entry.userId)}
                 className={`leaderboard-podium-card glass-panel glass-panel-hover podium-rank-${index + 1}`}
-                onClick={() => onNavigate?.('profile', undefined)}
+                onClick={() => onNavigate?.('user-profile', { userId: String(entry.userId) })}
               >
                 <span className="podium-rank-badge">#{index + 1}</span>
                 <div className="podium-medal">{RANK_MEDALS[index]}</div>
@@ -123,7 +125,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ onNavigate }) => {
                 <div className="podium-username">{entry.userName}</div>
                 <div className="podium-bid">${entry.totalWinningBid.toLocaleString()}</div>
                 <div className="podium-wins">
-                  {entry.totalWins} {entry.totalWins === 1 ? 'win' : 'wins'}
+                  {entry.totalWins} {entry.totalWins === 1 ? t('win') : t('wins')}
                 </div>
                 {entry.carName && <div className="podium-cars">{entry.carName}</div>}
               </div>
@@ -136,13 +138,13 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ onNavigate }) => {
                 <div
                   key={String(entry.userId)}
                   className="leaderboard-row"
-                  onClick={() => onNavigate?.('profile', undefined)}
+                  onClick={() => onNavigate?.('user-profile', { userId: String(entry.userId) })}
                 >
                   <div className="leaderboard-row-rank">{index + 4}</div>
                   <div className="leaderboard-row-avatar">{initialsOf(entry.userName)}</div>
                   <div className="leaderboard-row-info">
                     <div className="leaderboard-row-name">{entry.userName}</div>
-                    <div className="leaderboard-row-cars">{entry.carName || 'No vehicle history'}</div>
+                    <div className="leaderboard-row-cars">{entry.carName || t('noVehicleHistory')}</div>
                   </div>
                   <div className="leaderboard-row-stats">
                     <span className="leaderboard-row-wins">{entry.totalWins} W</span>
@@ -155,8 +157,8 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ onNavigate }) => {
 
           {entries.length === 0 && (
             <div className="catalog-empty">
-              <h3>Leaderboard is empty</h3>
-              <p>No auctions have finished with a winner yet.</p>
+              <h3>{t('leaderboardEmpty')}</h3>
+              <p>{t('noFinishedAuctions')}</p>
             </div>
           )}
         </>

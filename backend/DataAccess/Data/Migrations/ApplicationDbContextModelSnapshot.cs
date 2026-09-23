@@ -275,6 +275,9 @@ namespace DataAccess.Migrations
                     b.Property<Guid>("ModelId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("OwnerId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Vin")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
@@ -285,6 +288,8 @@ namespace DataAccess.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ModelId");
+
+                    b.HasIndex("OwnerId");
 
                     b.HasIndex("Vin")
                         .IsUnique();
@@ -450,6 +455,43 @@ namespace DataAccess.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Comments");
+                });
+
+            modelBuilder.Entity("DataAccess.Entities.ConversationMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("ListingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("RecipientId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("SenderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RecipientId");
+
+                    b.HasIndex("SenderId");
+
+                    b.HasIndex("ListingId", "CreatedAt");
+
+                    b.ToTable("ConversationMessages");
                 });
 
             modelBuilder.Entity("DataAccess.Entities.Favorite", b =>
@@ -771,7 +813,14 @@ namespace DataAccess.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("DataAccess.Entities.ApplicationUser", "Owner")
+                        .WithMany("OwnedCars")
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("Model");
+
+                    b.Navigation("Owner");
                 });
 
             modelBuilder.Entity("DataAccess.Entities.CarImage", b =>
@@ -824,6 +873,33 @@ namespace DataAccess.Migrations
                     b.Navigation("Listing");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("DataAccess.Entities.ConversationMessage", b =>
+                {
+                    b.HasOne("DataAccess.Entities.AuctionLot", "Listing")
+                        .WithMany()
+                        .HasForeignKey("ListingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DataAccess.Entities.ApplicationUser", "Recipient")
+                        .WithMany()
+                        .HasForeignKey("RecipientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("DataAccess.Entities.ApplicationUser", "Sender")
+                        .WithMany()
+                        .HasForeignKey("SenderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Listing");
+
+                    b.Navigation("Recipient");
+
+                    b.Navigation("Sender");
                 });
 
             modelBuilder.Entity("DataAccess.Entities.Favorite", b =>
@@ -952,6 +1028,8 @@ namespace DataAccess.Migrations
                     b.Navigation("ModerationLogs");
 
                     b.Navigation("Notifications");
+
+                    b.Navigation("OwnedCars");
                 });
 
             modelBuilder.Entity("DataAccess.Entities.AuctionLot", b =>

@@ -1,15 +1,10 @@
-/*
-  apiCall
-  - Simple centralized wrapper for API requests.
-  - Automatically attaches `Authorization: Bearer <token>` header when a token
-    is present in localStorage so all calls use the user's JWT.
-  - Keeps `Content-Type: application/json` by default and preserves custom headers.
-  - Note: if you migrate to httpOnly cookies, this wrapper can be simplified.
-*/
-export async function apiCall(endpoint: string, options?: RequestInit) {
-  const apiBaseUrl = 'http://localhost:5254';
+type ApiCallOptions = RequestInit & {
+  suppressUnauthorizedEvent?: boolean;
+};
+
+export async function apiCall(endpoint: string, options?: ApiCallOptions) {
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5254';
   const url = `${apiBaseUrl}/api${endpoint}`;
-  const token = localStorage.getItem('token');
   const headers: Record<string, string> = {};
 
   if (!(options?.body instanceof FormData)) {
@@ -22,17 +17,13 @@ export async function apiCall(endpoint: string, options?: RequestInit) {
     });
   }
 
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-
   const response = await fetch(url, {
     ...options,
     headers,
+    credentials: 'include',
   });
 
-  if (response.status === 401) {
-    localStorage.removeItem('token');
+  if (response.status === 401 && !options?.suppressUnauthorizedEvent) {
     localStorage.removeItem('user');
     window.dispatchEvent(new Event('auth:unauthorized'));
   }

@@ -1,15 +1,14 @@
 using AutoMapper;
 using BusinessLogic.DTOs;
 using BusinessLogic.Interfaces;
+using BusinessLogic.Services;
 using DataAccess.Data;
 using DataAccess.Entities;
 using DataAccess.Entities.Enums;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
-using DriveType = DataAccess.Entities.Enums.DriveType;
 
 namespace Api.Controllers
 {
@@ -18,26 +17,28 @@ namespace Api.Controllers
     public class CarController : ControllerBase
     {
         private readonly ICarService carService;
+        private readonly ICommentService commentService;
         private readonly IFileService fileService;
-        private readonly IActionLotService actionService;
+        private readonly IAuctionFinalizationService auctionFinalizationService;
         private readonly ApplicationDbContext dbContext;
         private readonly IMapper mapper;
 
         public CarController(
             ICarService carService,
+            ICommentService commentService,
             IFileService fileService,
-            IActionLotService actionService,
+            IAuctionFinalizationService auctionFinalizationService,
             ApplicationDbContext dbContext,
             IMapper mapper)
         {
             this.carService = carService;
+            this.commentService = commentService;
             this.fileService = fileService;
-            this.actionService = actionService;
+            this.auctionFinalizationService = auctionFinalizationService;
             this.dbContext = dbContext;
             this.mapper = mapper;
         }
 
-        // ============= CRUD for Car ===============
 
         [HttpPost]
         [Authorize]
@@ -49,187 +50,43 @@ namespace Api.Controllers
                 return Unauthorized("Invalid or missing user ID claim");
             }
 
-            if (dto?.Car == null || dto.Auction == null || dto.Car.Specification == null)
-                return BadRequest("Both the car and auction data are required.");
+            var result = await carService.CreateCarListingAsync(userId, dto);
 
-            var carDto = dto.Car;
-            var specificationDto = carDto.Specification;
-            var lotDto = dto.Auction;
-
-            if (string.IsNullOrWhiteSpace(carDto.Make) || string.IsNullOrWhiteSpace(carDto.Model) || string.IsNullOrWhiteSpace(carDto.Vin))
-                return BadRequest("Make, model and VIN are required.");
-
-            if (carDto.Year is < 1886 or > 2100)
-                return BadRequest("The car year must be between 1886 and 2100.");
-
-            if (string.IsNullOrWhiteSpace(lotDto.Title) || string.IsNullOrWhiteSpace(lotDto.Description) || string.IsNullOrWhiteSpace(lotDto.Location))
-                return BadRequest("An auction title, description and location are required.");
-
-            if (lotDto.Location.Trim().Length > 200)
-                return BadRequest("The location cannot exceed 200 characters.");
-
-            if (lotDto.StartingPrice < 0)
-                return BadRequest("The starting price cannot be negative.");
-
-            if (!Enum.IsDefined(typeof(AuctionDuration), lotDto.Duration))
-                return BadRequest("Choose a valid auction duration.");
-
-            if (lotDto.Duration == AuctionDuration.Custom)
+            if (!result.Success)
             {
-                if (!lotDto.CustomEndDate.HasValue || lotDto.CustomEndDate.Value <= DateTime.UtcNow)
-                    return BadRequest("For a custom auction, choose a future end date.");
+                return result.ErrorType switch
+                {
+                    CreateCarListingErrorType.VinConflict => Conflict(result.Message),
+                    CreateCarListingErrorType.ActiveListingConflict => Conflict(result.Message),
+                    _ => BadRequest(result.Message)
+                };
             }
-
-            if (specificationDto.Mileage < 0 || specificationDto.HorsePower < 0 || specificationDto.EngineVolume < 0 ||
-                specificationDto.Doors is < 1 or > 8 || specificationDto.Seats is < 1 or > 12 || specificationDto.OwnersCount < 0)
-                return BadRequest("Vehicle specifications contain invalid values.");
-
-            if (!Enum.IsDefined(typeof(FuelType), specificationDto.FuelType) ||
-                !Enum.IsDefined(typeof(TransmissionType), specificationDto.Transmission) ||
-                !Enum.IsDefined(typeof(DriveType), specificationDto.DriveType) ||
-                !Enum.IsDefined(typeof(BodyType), specificationDto.BodyType) ||
-                string.IsNullOrWhiteSpace(specificationDto.ExteriorColor))
-                return BadRequest("Complete the vehicle specifications.");
-
-            if (await carService.GetCarByVinAsync(carDto.Vin.Trim()) != null)
-                return Conflict("A car with this VIN already exists.");
-
-            // Both repositories use the same DbContext. The explicit transaction prevents
-            // a partial listing if any part of the car, specifications or lot cannot be saved.
-            await using var transaction = await dbContext.Database.BeginTransactionAsync();
-            var model = await ResolveCarModelAsync(carDto.Make, carDto.Model);
-
-            var car = new Car
-            {
-                Id = Guid.NewGuid(),
-                ModelId = model.Id,
-                Year = carDto.Year,
-                IsAvailable = true,
-                Vin = carDto.Vin.Trim()
-            };
-
-            var specification = new CarSpecification
-            {
-                Id = Guid.NewGuid(),
-                CarId = car.Id,
-                Mileage = specificationDto.Mileage,
-                HorsePower = specificationDto.HorsePower,
-                EngineVolume = specificationDto.EngineVolume,
-                FuelType = specificationDto.FuelType,
-                Transmission = specificationDto.Transmission,
-                DriveType = specificationDto.DriveType,
-                BodyType = specificationDto.BodyType,
-                Doors = specificationDto.Doors,
-                Seats = specificationDto.Seats,
-                Color = specificationDto.ExteriorColor.Trim(),
-                InteriorColor = string.IsNullOrWhiteSpace(specificationDto.InteriorColor) ? null : specificationDto.InteriorColor.Trim(),
-                IsAccidentFree = specificationDto.IsAccidentFree,
-                OwnersCount = specificationDto.OwnersCount
-            };
-
-            var auctionLot = new AuctionLot
-            {
-                Id = Guid.NewGuid(),
-                Title = lotDto.Title.Trim(),
-                Description = lotDto.Description.Trim(),
-                Location = lotDto.Location.Trim(),
-                StartingPrice = lotDto.StartingPrice,
-                CurrentPrice = lotDto.StartingPrice,
-                // AuctionStart/AuctionEnd stay null until a moderator approves the listing,
-                // unless a custom end date is explicitly provided.
-                Duration = lotDto.Duration,
-                AuctionEnd = lotDto.CustomEndDate,
-                Status = DataAccess.Entities.Enums.ListingStatus.Pending,
-
-                SellerId = userId,
-                CarId = car.Id
-            };
-
-            await carService.CreateCarAsync(car);
-            await carService.CreateCarSpecAsync(specification);
-            await actionService.CreateLotAsync(auctionLot);
-            await transaction.CommitAsync();
 
             return CreatedAtAction(
                 nameof(GetCar),
-                new { carId = car.Id },
-                new { carId = car.Id, auctionLotId = auctionLot.Id });
+                new { carId = result.CarId },
+                new { carId = result.CarId, auctionLotId = result.AuctionLotId });
         }
 
-        private async Task<CarModel> ResolveCarModelAsync(string make, string modelName)
+        [HttpPost("listings/{listingId:guid}/end")]
+        [Authorize]
+        public async Task<IActionResult> EndForeverAuction(Guid listingId, CancellationToken cancellationToken)
         {
-            var normalizedMake = make.Trim();
-            var normalizedModel = modelName.Trim();
-            var makeKey = normalizedMake.ToUpperInvariant();
-            var modelKey = normalizedModel.ToUpperInvariant();
+            if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+                return Unauthorized();
 
-            var brand = await dbContext.CarBrands
-                .FirstOrDefaultAsync(item => item.Name.ToUpper() == makeKey);
+            var listing = await dbContext.CarListings.FirstOrDefaultAsync(item => item.Id == listingId, cancellationToken);
+            if (listing == null)
+                return NotFound(new { message = "Auction not found." });
+            if (listing.SellerId != userId)
+                return Forbid();
+            if (listing.Status != ListingStatus.Active || listing.Duration != AuctionDuration.Forever)
+                return BadRequest(new { message = "Only an active forever auction can be ended manually." });
 
-            if (brand == null)
-            {
-                brand = new CarBrand
-                {
-                    Id = Guid.NewGuid(),
-                    Name = normalizedMake,
-                    Slug = await GetUniqueBrandSlugAsync(normalizedMake)
-                };
-                dbContext.CarBrands.Add(brand);
-            }
-
-            var existingModel = await dbContext.CarModels
-                .FirstOrDefaultAsync(item => item.BrandId == brand.Id && item.Name.ToUpper() == modelKey);
-
-            if (existingModel != null)
-                return existingModel;
-
-            var model = new CarModel
-            {
-                Id = Guid.NewGuid(),
-                BrandId = brand.Id,
-                Name = normalizedModel,
-                Slug = await GetUniqueModelSlugAsync(normalizedMake, normalizedModel)
-            };
-            dbContext.CarModels.Add(model);
-            return model;
-        }
-
-        private async Task<string> GetUniqueBrandSlugAsync(string value)
-        {
-            var baseSlug = ToSlug(value);
-            var slug = baseSlug;
-            var suffix = 2;
-
-            while (await dbContext.CarBrands.AnyAsync(item => item.Slug == slug))
-                slug = $"{baseSlug}-{suffix++}";
-
-            return slug;
-        }
-
-        private async Task<string> GetUniqueModelSlugAsync(string make, string model)
-        {
-            var baseSlug = $"{ToSlug(make)}-{ToSlug(model)}";
-            var slug = baseSlug;
-            var suffix = 2;
-
-            while (await dbContext.CarModels.AnyAsync(item => item.Slug == slug))
-                slug = $"{baseSlug}-{suffix++}";
-
-            return slug;
-        }
-
-        private static string ToSlug(string value)
-        {
-            var slug = string.Concat(value
-                .Trim()
-                .ToLowerInvariant()
-                .Select(character => char.IsLetterOrDigit(character) ? character : '-'))
-                .Trim('-');
-
-            while (slug.Contains("--", StringComparison.Ordinal))
-                slug = slug.Replace("--", "-", StringComparison.Ordinal);
-
-            return string.IsNullOrWhiteSpace(slug) ? "vehicle" : slug;
+            listing.AuctionEnd = DateTime.UtcNow;
+            await dbContext.SaveChangesAsync(cancellationToken);
+            await auctionFinalizationService.FinalizeAuctionAsync(listingId, cancellationToken);
+            return NoContent();
         }
 
         private CarDto MapCarDto(Car car)
@@ -504,128 +361,40 @@ namespace Api.Controllers
         [HttpGet("{carId:guid}/comments")]
         public async Task<IActionResult> GetCarComments(Guid carId)
         {
-            var listing = await dbContext.CarListings
-                .Where(l => l.CarId == carId || l.Id == carId)
-                .OrderByDescending(l => l.Status == ListingStatus.Active)
-                .ThenByDescending(l => l.AuctionStart)
-                .FirstOrDefaultAsync();
-
-            var listingId = listing?.Id;
-
-            var commentsQuery = dbContext.Comments
-                .Include(c => c.User)
-                .AsNoTracking();
-
-            List<Comment> comments;
-            if (listingId.HasValue)
-            {
-                comments = await commentsQuery
-                    .Where(c => c.ListingId == listingId.Value || (c.Listing != null && c.Listing.CarId == carId))
-                    .OrderByDescending(c => c.CreatedAt)
-                    .ToListAsync();
-            }
-            else
-            {
-                comments = await commentsQuery
-                    .Where(c => c.Listing != null && c.Listing.CarId == carId)
-                    .OrderByDescending(c => c.CreatedAt)
-                    .ToListAsync();
-            }
-
-            var result = comments.Select(c => new
-            {
-                id = c.Id.ToString(),
-                userId = c.UserId.ToString(),
-                user = !string.IsNullOrWhiteSpace(c.User?.Name) ? c.User.Name : (!string.IsNullOrWhiteSpace(c.User?.UserName) ? c.User.UserName : "User"),
-                userAvatar = c.User?.ProfileImageUrl,
-                text = c.Text,
-                time = c.CreatedAt.ToString("o"),
-                isSeller = listing != null && c.UserId == listing.SellerId,
-                likes = c.Likes
-            }).ToList();
-
-            return Ok(result);
-        }
-
-        public class PostCarCommentDto
-        {
-            public string Text { get; set; } = string.Empty;
+            var comments = await commentService.GetCarCommentsAsync(carId);
+            return Ok(comments);
         }
 
         [HttpPost("{carId:guid}/comments")]
         [Authorize]
         public async Task<IActionResult> AddCarComment(Guid carId, [FromBody] PostCarCommentDto dto)
         {
-            if (string.IsNullOrWhiteSpace(dto?.Text))
-                return BadRequest(new { message = "Comment text cannot be empty." });
-
             var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (!Guid.TryParse(userIdClaim, out var userId))
                 return Unauthorized(new { message = "Invalid user identity." });
 
-            var user = await dbContext.Users.FindAsync(userId);
-            if (user == null)
-                return Unauthorized(new { message = "User not found." });
+            var result = await commentService.AddCommentAsync(carId, userId, dto?.Text ?? string.Empty);
 
-            var listing = await dbContext.CarListings
-                .Where(l => l.CarId == carId || l.Id == carId)
-                .OrderByDescending(l => l.Status == ListingStatus.Active)
-                .ThenByDescending(l => l.AuctionStart)
-                .FirstOrDefaultAsync();
-
-            if (listing == null)
+            if (!result.Success)
             {
-                listing = new AuctionLot
-                {
-                    Id = Guid.NewGuid(),
-                    CarId = carId,
-                    SellerId = userId,
-                    Title = "Listing",
-                    Description = "Listing",
-                    Status = ListingStatus.Active
-                };
-                await dbContext.CarListings.AddAsync(listing);
-                await dbContext.SaveChangesAsync();
+                var message = new { message = result.Message };
+                return result.ErrorType == AddCommentErrorType.UserNotFound
+                    ? Unauthorized(message)
+                    : BadRequest(message);
             }
 
-            var comment = new Comment
-            {
-                Id = Guid.NewGuid(),
-                ListingId = listing.Id,
-                UserId = userId,
-                Text = dto.Text.Trim(),
-                CreatedAt = DateTime.UtcNow,
-                Likes = 0
-            };
-
-            await dbContext.Comments.AddAsync(comment);
-            await dbContext.SaveChangesAsync();
-
-            return Ok(new
-            {
-                id = comment.Id.ToString(),
-                userId = user.Id.ToString(),
-                user = !string.IsNullOrWhiteSpace(user.Name) ? user.Name : (!string.IsNullOrWhiteSpace(user.UserName) ? user.UserName : "User"),
-                userAvatar = user.ProfileImageUrl,
-                text = comment.Text,
-                time = comment.CreatedAt.ToString("o"),
-                isSeller = listing != null && user.Id == listing.SellerId,
-                likes = comment.Likes
-            });
+            return Ok(result.Comment);
         }
 
         [HttpPost("comments/{commentId:guid}/like")]
         [Authorize]
         public async Task<IActionResult> LikeComment(Guid commentId)
         {
-            var comment = await dbContext.Comments.FindAsync(commentId);
-            if (comment == null)
+            var likes = await commentService.LikeCommentAsync(commentId);
+            if (likes == null)
                 return NotFound(new { message = "Comment not found." });
 
-            comment.Likes += 1;
-            await dbContext.SaveChangesAsync();
-
-            return Ok(new { likes = comment.Likes });
+            return Ok(new { likes });
         }
     }
 }

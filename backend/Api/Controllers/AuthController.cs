@@ -13,33 +13,31 @@ namespace YourProject.Controllers
     {
         private readonly IAuthService _authService;
         private readonly IMapper _mapper;
+        private readonly IConfiguration _configuration;
 
-        public AuthController(IAuthService authService, IMapper mapper)
+        public AuthController(IAuthService authService, IMapper mapper, IConfiguration configuration)
         {
             _authService = authService;
             _mapper = mapper;
+            _configuration = configuration;
         }
 
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterDto model)
         {
             var token = await _authService.RegisterAsync(model);
+            SetAuthCookie(token);
 
-            return Ok(new
-            {
-                Token = token
-            });
+            return Ok(new { authenticated = true });
         }
 
         [HttpPost("login")]
         public async Task<IActionResult> Login(LoginDto model)
         {
             var token = await _authService.LoginAsync(model);
+            SetAuthCookie(token);
 
-            return Ok(new
-            {
-                Token = token
-            });
+            return Ok(new { authenticated = true });
         }
 
         [HttpPost("google")]
@@ -47,11 +45,17 @@ namespace YourProject.Controllers
         public async Task<IActionResult> GoogleLogin(GoogleAuthDto model)
         {
             var token = await _authService.GoogleLoginAsync(model);
+            SetAuthCookie(token);
 
-            return Ok(new
-            {
-                Token = token
-            });
+            return Ok(new { authenticated = true });
+        }
+
+        [HttpPost("logout")]
+        [AllowAnonymous]
+        public IActionResult Logout()
+        {
+            Response.Cookies.Delete("auth_token");
+            return Ok(new { authenticated = false });
         }
 
         [HttpGet("test")]
@@ -108,6 +112,19 @@ namespace YourProject.Controllers
             {
                 return BadRequest(new { message = ex.Message });
             }
+        }
+
+        private void SetAuthCookie(string token)
+        {
+            var expireMinutes = _configuration.GetValue<double>("Jwt:ExpireMinutes", 60);
+            Response.Cookies.Append("auth_token", token, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = Request.IsHttps,
+                SameSite = SameSiteMode.Lax,
+                Expires = DateTimeOffset.UtcNow.AddMinutes(expireMinutes),
+                Path = "/"
+            });
         }
     }
 }

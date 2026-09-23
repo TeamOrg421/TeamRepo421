@@ -18,11 +18,9 @@ export interface BidPayload {
 export async function createAuctionConnection(
   listingId: string
 ): Promise<HubConnection> {
-  const token = localStorage.getItem('token');
-
   const connection = new HubConnectionBuilder()
     .withUrl(SIGNALR_URL, {
-      accessTokenFactory: () => token ?? '',
+      withCredentials: true,
     })
     .withAutomaticReconnect()
     .configureLogging(LogLevel.Warning)
@@ -48,9 +46,8 @@ export async function destroyAuctionConnection(
 }
 
 export async function createConversationConnection(listingId: string): Promise<HubConnection> {
-  const token = localStorage.getItem('token');
   const connection = new HubConnectionBuilder()
-    .withUrl(SIGNALR_URL, { accessTokenFactory: () => token ?? '' })
+    .withUrl(SIGNALR_URL, { withCredentials: true })
     .withAutomaticReconnect()
     .configureLogging(LogLevel.Warning)
     .build();
@@ -67,9 +64,8 @@ export async function destroyConversationConnection(connection: HubConnection, l
 }
 
 export async function createConversationInboxConnection(): Promise<HubConnection> {
-  const token = localStorage.getItem('token');
   const connection = new HubConnectionBuilder()
-    .withUrl(SIGNALR_URL, { accessTokenFactory: () => token ?? '' })
+    .withUrl(SIGNALR_URL, { withCredentials: true })
     .withAutomaticReconnect()
     .configureLogging(LogLevel.Warning)
     .build();

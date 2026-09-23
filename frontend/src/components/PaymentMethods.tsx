@@ -131,7 +131,7 @@ export default function PaymentMethods() {
                   justifyContent: 'space-between',
                   alignItems: 'center',
                   padding: '1rem',
-                  borderRadius: '10px',
+                  borderRadius: 'var(--block-radius)',
                   border: card.id === selectedCardId ? '2px solid #3b82f6' : '1px solid rgba(255,255,255,0.1)',
                   cursor: 'pointer',
                   background: card.id === selectedCardId ? 'rgba(59, 130, 246, 0.1)' : 'rgba(255,255,255,0.03)',

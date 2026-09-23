@@ -4008,9 +4008,26 @@ select.form-input option {
 .navbar-notification-btn { position: relative; }
 .navbar-notification-dot { position: absolute; top: 7px; right: 7px; width: 6px; height: 6px; background-color: #ef4444; border-radius: 50%; }
 .navbar-notifications-wrapper { position: relative; }
+.pagination { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 24px 0 8px; }
+.pagination button { min-width: 38px; min-height: 36px; padding: 0 11px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-secondary); color: var(--text-secondary); cursor: pointer; }
+.pagination button:hover:not(:disabled), .pagination button.active { border-color: var(--accent-color); background: var(--accent-color); color: #fff; }
+.pagination button:disabled { cursor: not-allowed; opacity: .45; }
+
+/* Manager Dashboard uses the shared 4px radius throughout the application. */
+#root [class] {
+  border-radius: var(--block-radius) !important;
+}
+
+#root [class*='avatar'],
+#root [class*='dot'],
+#root [class*='spinner'],
+#root [class*='logo'],
+#root [class*='medal'] {
+  border-radius: 50% !important;
+}
 .navbar-notifications-popover { position: absolute; z-index: 50; top: calc(100% + 10px); right: 0; width: min(360px, calc(100vw - 24px)); max-height: 420px; overflow-y: auto; border: 1px solid #343943; border-radius: 8px; background: #17191d; box-shadow: 0 16px 45px rgba(0,0,0,.45); color: #e5e7eb; }
 .navbar-notifications-title { padding: 13px 14px; border-bottom: 1px solid #343943; font-size: 14px; font-weight: 700; }.navbar-notifications-popover > p { padding: 16px; margin: 0; color: #9ca3af; font-size: 13px; }.navbar-notification-item { display: grid; gap: 4px; padding: 12px 14px; border-bottom: 1px solid #2b3038; font-size: 12px; }.navbar-notification-item.unread { background: #172a46; }.navbar-notification-item strong { font-size: 13px; }.navbar-notification-item span,.navbar-notification-item time { color: #b5bdca; }.navbar-notification-item time { font-size: 10px; }
-.navbar-lang-selector { display: flex; align-items: center; gap: 4px; color: #ddd; font-size: 13px; font-weight: 500; cursor: pointer; padding: 6px 4px; user-select: none; transition: color 0.2s ease; }
+.navbar-lang-selector { display: flex; align-items: center; gap: 4px; color: #ddd; font-size: 13px; font-weight: 500; font-family: inherit; cursor: pointer; padding: 6px 4px; user-select: none; transition: color 0.2s ease; background: transparent; border: 0; }
 .navbar-lang-selector:hover { color: #fff; }
 .navbar-lang-selector svg { width: 14px; height: 14px; }
 .btn-sell-car { background: transparent; color: #ddd; font-size: 14px; font-weight: 400; padding: 23px 0 18px; }

@@ -7,11 +7,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Api.BackgroundServices
 {
-    /// <summary>
-    /// Background service that periodically checks for active auctions whose end time has passed,
-    /// sets their status to Completed, identifies the winning bidder, registers them in AuctionWinners,
-    /// and broadcasts the completion via SignalR.
-    /// </summary>
     public class AuctionFinalizerBackgroundService : BackgroundService
     {
         private readonly IServiceProvider _serviceProvider;

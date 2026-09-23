@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { apiCall } from '../services/config';
+import Pagination from './Pagination';
+import { showToast } from '../services/toast';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface HomeProps {
   onNavigate: (page: string, params?: { carId?: number | string }) => void;
@@ -28,6 +31,7 @@ interface AuctionCar {
 }
 
 const SORT_OPTIONS = ['Ending soon', 'Newly listed', 'Lowest mileage', 'Highest bid'];
+const AUCTIONS_PER_PAGE = 12;
 
 const enumLabel = (value: unknown, labels: string[]) => {
   if (typeof value === 'number') return labels[value] ?? labels[0];
@@ -68,8 +72,16 @@ const formatTimer = (auctionEnd?: string) => {
   return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 };
 
+const isActiveAuction = (car: AuctionCar) => {
+  const status = String(car.listingStatus ?? '').toLowerCase();
+  const hasActiveStatus = status === 'active' || status === '2';
+  const hasNotEnded = !car.auctionEnd || new Date(car.auctionEnd).getTime() > Date.now();
+  return hasActiveStatus && hasNotEnded;
+};
+
 const Home: React.FC<HomeProps> = ({ onNavigate, searchQuery }) => {
   const { isAuthenticated } = useAuth();
+  const { t } = useLanguage();
   const [selectedYear, setSelectedYear] = useState('');
   const [selectedTransmission, setSelectedTransmission] = useState('');
   const [selectedBodyStyle, setSelectedBodyStyle] = useState('');
@@ -77,6 +89,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate, searchQuery }) => {
   const [auctionCars, setAuctionCars] = useState<AuctionCar[]>([]);
   const [favorites, setFavorites] = useState<Record<string, boolean>>({});
   const [carToListingMap, setCarToListingMap] = useState<Record<string, string>>({});
+  const [auctionPage, setAuctionPage] = useState(1);
   const [, setTimerTick] = useState(0);
 
   useEffect(() => {
@@ -177,7 +190,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate, searchQuery }) => {
               auctionEnd: car.auctionEnd,
               listingStatus: car.listingStatus ?? car.auctionStatus,
             };
-          })
+          }).filter(isActiveAuction)
         );
       } catch {
         setAuctionCars([]);
@@ -189,7 +202,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate, searchQuery }) => {
   const toggleFavorite = async (car: AuctionCar, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!isAuthenticated) {
-      alert('Please sign in to save this auction to your watchlist.');
+      showToast('Please sign in to save this auction to your watchlist.', 'info');
       onNavigate('login');
       return;
     }
@@ -241,12 +254,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate, searchQuery }) => {
         (!selectedYear || String(car.year) === selectedYear) &&
         (!selectedTransmission || car.transmission === selectedTransmission) &&
         (!selectedBodyStyle || car.bodyStyle === selectedBodyStyle) &&
-        // "Newly listed" is intended for live, newly opened auctions. A completed
-        // listing must never reappear there just because it has a recent start date.
-        (activeSort !== 'Newly listed' ||
-          (String(car.listingStatus).toLowerCase() !== 'completed' &&
-            String(car.listingStatus) !== '4' &&
-            (!car.auctionEnd || new Date(car.auctionEnd).getTime() > Date.now())))
+        isActiveAuction(car)
     );
     return result.sort((left, right) => {
       if (activeSort === 'Newly listed') {
@@ -262,7 +270,9 @@ const Home: React.FC<HomeProps> = ({ onNavigate, searchQuery }) => {
     });
   }, [activeSort, auctionCars, searchQuery, selectedBodyStyle, selectedTransmission, selectedYear]);
 
-  const featuredCar = filteredCars[0] ?? auctionCars[0];
+  const featuredCar = filteredCars[0];
+  const auctionPageCount = Math.ceil(filteredCars.length / AUCTIONS_PER_PAGE);
+  const visibleCars = filteredCars.slice((auctionPage - 1) * AUCTIONS_PER_PAGE, auctionPage * AUCTIONS_PER_PAGE);
   const years = Array.from(new Set(auctionCars.map((car) => car.year).filter(Boolean))).sort(
     (a, b) => Number(b) - Number(a)
   );
@@ -274,6 +284,10 @@ const Home: React.FC<HomeProps> = ({ onNavigate, searchQuery }) => {
     setSelectedTransmission('');
     setSelectedBodyStyle('');
   };
+
+  useEffect(() => {
+    setAuctionPage(1);
+  }, [activeSort, searchQuery, selectedBodyStyle, selectedTransmission, selectedYear]);
 
   return (
     <div className="home catalog-home">
@@ -291,10 +305,10 @@ const Home: React.FC<HomeProps> = ({ onNavigate, searchQuery }) => {
               : undefined
           }
         >
-          <span className="catalog-featured-label">FEATURED AUCTION</span>
+          <span className="catalog-featured-label">{t('featuredAuction')}</span>
           <div className="catalog-featured-copy">
-            <h1>{featuredCar?.title || 'Discover your next car'}</h1>
-            <p>{featuredCar?.description || 'Browse live vehicle auctions from verified sellers.'}</p>
+            <h1>{featuredCar?.title || t('discoverCar')}</h1>
+            <p>{featuredCar?.description || t('browseLive')}</p>
           </div>
         </div>
       </section>
@@ -302,8 +316,8 @@ const Home: React.FC<HomeProps> = ({ onNavigate, searchQuery }) => {
       <section className="auctions-section">
         <div className="auctions-header">
           <div>
-            <h2 className="auctions-title">Auctions</h2>
-            {searchQuery && <p className="catalog-result-copy">Results for “{searchQuery}”</p>}
+            <h2 className="auctions-title">{t('auctionsTitle')}</h2>
+            {searchQuery && <p className="catalog-result-copy">{t('resultsFor')} “{searchQuery}”</p>}
           </div>
           <div className="sort-links">
             {SORT_OPTIONS.map((item) => (
@@ -313,7 +327,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate, searchQuery }) => {
                 className={`sort-link ${activeSort === item ? 'sort-link-active' : ''}`}
                 onClick={() => setActiveSort(item)}
               >
-                {item}
+                {item === 'Ending soon' ? t('endingSoon') : item === 'Newly listed' ? t('newlyListed') : item === 'Lowest mileage' ? t('lowestMileage') : t('highestBid')}
               </button>
             ))}
           </div>
@@ -325,7 +339,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate, searchQuery }) => {
             value={selectedYear}
             onChange={(event) => setSelectedYear(event.target.value)}
           >
-            <option value="">Year</option>
+            <option value="">{t('year')}</option>
             {years.map((year) => (
               <option key={year} value={year}>
                 {year}
@@ -337,7 +351,7 @@ const Home: React.FC<HomeProps> = ({ onNavigate, searchQuery }) => {
             value={selectedTransmission}
             onChange={(event) => setSelectedTransmission(event.target.value)}
           >
-            <option value="">Transmission</option>
+            <option value="">{t('transmission')}</option>
             <option>Manual</option>
             <option>Automatic</option>
             <option>Automated manual</option>
@@ -348,21 +362,21 @@ const Home: React.FC<HomeProps> = ({ onNavigate, searchQuery }) => {
             value={selectedBodyStyle}
             onChange={(event) => setSelectedBodyStyle(event.target.value)}
           >
-            <option value="">Body type</option>
+            <option value="">{t('bodyType')}</option>
             {bodyStyles.map((bodyStyle) => (
               <option key={bodyStyle}>{bodyStyle}</option>
             ))}
           </select>
           {(selectedYear || selectedTransmission || selectedBodyStyle) && (
             <button type="button" className="clear-filters" onClick={resetFilters}>
-              Clear filters
+              {t('clearFilters')}
             </button>
           )}
         </div>
 
         {filteredCars.length ? (
           <div className="auction-grid">
-            {filteredCars.map((car) => {
+            {visibleCars.map((car) => {
               const isFav = Boolean(
                 favorites[String(car.id)] || (car.listingId && favorites[String(car.listingId)])
               );
@@ -445,10 +459,11 @@ const Home: React.FC<HomeProps> = ({ onNavigate, searchQuery }) => {
           </div>
         ) : (
           <div className="catalog-empty">
-            <h3>No auctions found</h3>
-            <p>Try another search or clear the selected filters.</p>
+            <h3>{t('noAuctions')}</h3>
+            <p>{t('tryAnother')}</p>
           </div>
         )}
+        <Pagination page={auctionPage} pageCount={auctionPageCount} onPageChange={setAuctionPage} />
       </section>
     </div>
   );

@@ -1,4 +1,5 @@
-﻿using BusinessLogic.Services;
+﻿using BusinessLogic.DTOs;
+using BusinessLogic.Services;
 using DataAccess.Entities;
 using System;
 using System.Collections.Generic;
@@ -16,5 +17,6 @@ namespace BusinessLogic.Interfaces
         Task<IList<PendingAuctionDto>> GetActiveAuctionsAsync(int? pageNumber);
 
         Task<AuctionDetailsDto?> GetAuctionDetailsAsync(Guid listingId);
+        Task UpdatePendingListing(Guid lisingId, UpdatePendingListingDto dto);
     }
 }

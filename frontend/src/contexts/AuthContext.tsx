@@ -109,46 +109,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (res.ok) {
         const data = await res.json()
         setUser(prev => {
-          if (!prev) return prev
           const updated: User = {
             ...prev,
-            name: data.name || prev.name,
-            profileImageUrl: data.profileImageUrl || prev.profileImageUrl,
+            id: data.id || prev?.id || '',
+            name: data.name || prev?.name,
+            profileImageUrl: data.profileImageUrl || prev?.profileImageUrl,
+            roles: Array.isArray(data.roles) ? data.roles : prev?.roles ?? [],
           }
           localStorage.setItem('user', JSON.stringify(updated))
           return updated
         })
+        return true
       }
     } catch {
-      // ignore
     }
+    return false
   }
 
   useEffect(() => {
-    const savedToken = localStorage.getItem('token')
-    if (savedToken) {
-      setToken(savedToken)
-      const tokenUser = getUserFromToken(savedToken)
-      const savedUser = localStorage.getItem('user')
-      if (savedUser) {
-        try {
-          const parsed = JSON.parse(savedUser)
-          if (parsed?.profileImageUrl && (parsed.profileImageUrl.includes('10000') || parsed.profileImageUrl.includes('devstoreaccount1'))) {
-            parsed.profileImageUrl = undefined;
-          }
-          setUser({ ...parsed, roles: tokenUser?.roles ?? parsed.roles ?? [] })
-        } catch {
-          setUser(tokenUser)
-        }
-      } else {
-        setUser(tokenUser)
-      }
-      syncProfileFromBackend()
+    const savedUser = localStorage.getItem('user')
+    if (savedUser) {
+      try { setUser(JSON.parse(savedUser)) } catch { localStorage.removeItem('user') }
     }
+    syncProfileFromBackend().then((restored) => {
+      if (restored) setToken('cookie')
+    })
 
     const handleUnauthorized = () => {
       setToken(null)
       setUser(null)
+      localStorage.removeItem('user')
     }
 
     window.addEventListener('auth:unauthorized', handleUnauthorized)
@@ -156,8 +146,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [])
 
   const login = (newToken: string) => {
-    localStorage.setItem('token', newToken)
-    setToken(newToken)
+    setToken('cookie')
     const userFromToken = getUserFromToken(newToken)
     setUser(userFromToken)
     if (userFromToken) {
@@ -169,7 +158,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   const logout = () => {
-    localStorage.removeItem('token')
+    void apiCall('/auth/logout', { method: 'POST' })
     localStorage.removeItem('user')
     setToken(null)
     setUser(null)

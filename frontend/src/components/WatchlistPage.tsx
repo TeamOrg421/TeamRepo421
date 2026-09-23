@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { apiCall } from '../services/config';
+import Pagination from './Pagination';
 import './Watchlist.css';
 
 export interface WatchlistCardData {
@@ -27,6 +28,7 @@ interface WatchlistPageProps {
 }
 
 const TABS = ['Auctions', 'Ending soon', 'New cars', 'Inspected', 'No reserve'] as const;
+const ITEMS_PER_PAGE = 12;
 type TabType = (typeof TABS)[number];
 
 const formatRemainingTime = (auctionEnd?: string) => {
@@ -48,6 +50,7 @@ const WatchlistPage: React.FC<WatchlistPageProps> = ({ onNavigate }) => {
   const [activeTab, setActiveTab] = useState<TabType>('Auctions');
   const [items, setItems] = useState<WatchlistCardData[]>([]);
   const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -143,6 +146,9 @@ const WatchlistPage: React.FC<WatchlistPageProps> = ({ onNavigate }) => {
     return result;
   }, [items, activeTab]);
 
+  const pageCount = Math.ceil(filteredItems.length / ITEMS_PER_PAGE);
+  const visibleItems = filteredItems.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+
   return (
     <div className="watchlist-page-container">
       <main className="watchlist-main-area">
@@ -155,7 +161,7 @@ const WatchlistPage: React.FC<WatchlistPageProps> = ({ onNavigate }) => {
                 key={tab}
                 type="button"
                 className={`watchlist-tab-btn ${activeTab === tab ? 'active' : ''}`}
-                onClick={() => setActiveTab(tab)}
+                onClick={() => { setActiveTab(tab); setPage(1); }}
               >
                 {tab}
               </button>
@@ -199,7 +205,7 @@ const WatchlistPage: React.FC<WatchlistPageProps> = ({ onNavigate }) => {
           </div>
         ) : (
           <div className="watchlist-grid">
-            {filteredItems.map(item => (
+            {visibleItems.map(item => (
               <article
                 key={item.favoriteId}
                 className="watchlist-car-card"
@@ -263,6 +269,7 @@ const WatchlistPage: React.FC<WatchlistPageProps> = ({ onNavigate }) => {
             ))}
           </div>
         )}
+        {filteredItems.length > 0 && <Pagination page={page} pageCount={pageCount} onPageChange={setPage} />}
       </main>
     </div>
   );
